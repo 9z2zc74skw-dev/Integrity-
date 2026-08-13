@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PIU Layer Viewer</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --color-bg:#f7f6f2; --color-surface:#f9f8f5; --color-surface-2:#fbfbf9; --color-surface-offset:#f3f0ec; --color-border:#d4d1ca;
+      --color-text:#28251d; --color-text-muted:#6e6c67; --color-primary:#01696f; --color-primary-hover:#0c4e54; --color-primary-highlight:#cedcd8;
+      --color-danger:#8f3d32; --color-warning-blue:#1e5eff; --color-warning-clear:rgba(255,255,255,.78); --color-hardware:#121212; --color-interface:#3b82f6;
+      --radius-sm:.5rem; --radius-md:.75rem; --radius-lg:1rem; --radius-xl:1.25rem; --shadow-sm:0 1px 2px rgba(0,0,0,.06); --shadow-md:0 12px 32px rgba(0,0,0,.08);
+      --space-2:.5rem; --space-3:.75rem; --space-4:1rem; --space-5:1.25rem; --space-6:1.5rem; --space-8:2rem; --space-12:3rem;
+      --text-xs:.78rem; --text-sm:.92rem; --text-base:1rem; --text-lg:1.15rem; --text-xl:1.7rem;
+      --font-body:'General Sans', Inter, sans-serif;
+    }
+    [data-theme="dark"] {
+      --color-bg:#171614; --color-surface:#1c1b19; --color-surface-2:#201f1d; --color-surface-offset:#22211f; --color-border:#393836;
+      --color-text:#cdccca; --color-text-muted:#989691; --color-primary:#4f98a3; --color-primary-hover:#227f8b; --color-primary-highlight:#313b3b;
+      --color-danger:#d163a7; --color-warning-blue:#78a8ff; --color-warning-clear:rgba(255,255,255,.85); --color-hardware:#d7d7d7; --color-interface:#7cb5ff;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.24); --shadow-md:0 18px 44px rgba(0,0,0,.34);
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);line-height:1.5}
+    button,select{font:inherit} .app{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
+    .sidebar{padding:var(--space-6);background:var(--color-surface);border-right:1px solid var(--color-border);display:flex;flex-direction:column;gap:var(--space-5)}
+    .brand{display:flex;align-items:center;gap:.85rem}.logo{width:40px;height:40px;border-radius:12px;background:var(--color-primary);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-sm)}
+    .logo svg{width:24px;height:24px}.eyebrow{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted)}
+    h1{font-size:var(--text-xl);line-height:1.1;margin:.25rem 0 .4rem}.sub{font-size:var(--text-sm);color:var(--color-text-muted);max-width:28ch}
+    .panel{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);display:grid;gap:var(--space-3)}
+    .panel h2{font-size:var(--text-sm);margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted)}
+    .toggle-row,.legend-item,.stat{display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+    .view-button-group,.filter-group{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}.view-btn,.chip, .theme-btn{border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);padding:.7rem .85rem;border-radius:.85rem;cursor:pointer;text-align:left}
+    .view-btn.active,.chip.active{background:var(--color-primary-highlight);border-color:var(--color-primary);color:var(--color-primary)}
+    .theme-btn{width:100%;text-align:center;background:var(--color-primary);color:#fff;border-color:transparent}.theme-btn:hover{background:var(--color-primary-hover)}
+    .legend-swatch{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+    .content{padding:var(--space-6);display:grid;grid-template-rows:auto 1fr;gap:var(--space-5)}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem}.topbar p{margin:0;color:var(--color-text-muted)}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--space-5);min-height:0}
+    .viewer-card,.details{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);box-shadow:var(--shadow-md)}
+    .viewer-card{padding:var(--space-5);display:grid;grid-template-rows:auto 1fr;gap:var(--space-4)} .meta{display:flex;flex-wrap:wrap;gap:.75rem}
+    .badge{display:inline-flex;align-items:center;gap:.45rem;padding:.42rem .7rem;border-radius:999px;font-size:var(--text-xs);background:var(--color-surface-offset);border:1px solid var(--color-border);color:var(--color-text-muted)}
+    .stage-wrap{display:grid;place-items:center;background:linear-gradient(180deg,var(--color-surface-2),var(--color-surface-offset));border-radius:calc(var(--radius-xl) - .25rem);padding:var(--space-4);min-height:500px}
+    .stage{position:relative;display:inline-block;max-width:100%}.stage img{display:block;max-width:min(100%,980px);width:100%;height:auto;border-radius:1rem;box-shadow:var(--shadow-sm)}
+    .overlay{position:absolute;border-radius:8px;border:2px solid rgba(255,255,255,.72);transform-origin:center center;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.15), 0 6px 18px rgba(0,0,0,.14)}
+    .overlay::after{content:"";position:absolute;inset:-6px;border-radius:10px;border:1px dashed rgba(255,255,255,.55);opacity:.65}
+    .overlay.active{outline:3px solid var(--color-primary);outline-offset:2px}
+    .overlay.hardware-black,.overlay.interface-blue{border-style:solid}
+    .overlay.warning-blue{background:rgba(30,94,255,.28)} .overlay.warning-clear{background:rgba(255,255,255,.28)} .overlay.hardware-black{background:rgba(18,18,18,.18)} .overlay.interface-blue{background:rgba(59,130,246,.22)}
+    .overlay-label{position:absolute;left:50%;top:-12px;transform:translate(-50%,-100%);padding:.2rem .45rem;border-radius:999px;background:rgba(23,22,20,.78);color:#fff;font-size:.68rem;white-space:nowrap}
+    .details{padding:var(--space-5);display:grid;grid-template-rows:auto auto 1fr;gap:var(--space-4)} .details h3{margin:0;font-size:var(--text-lg)}
+    .details p,.details li{color:var(--color-text-muted)} ul{margin:0;padding-left:1rem}.callout{padding:var(--space-4);border-radius:var(--radius-lg);background:var(--color-primary-highlight);color:var(--color-primary)}
+    .sku-list{display:flex;flex-wrap:wrap;gap:.5rem}.sku{padding:.38rem .55rem;border-radius:999px;font-size:var(--text-xs);background:var(--color-surface-offset);border:1px solid var(--color-border)}
+    .empty{padding:var(--space-6);border-radius:var(--radius-lg);background:var(--color-surface-2);border:1px dashed var(--color-border);color:var(--color-text-muted)}
+    @media (max-width: 1100px){.app{grid-template-columns:1fr}.workspace{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--color-border)}}
+    @media (max-width: 700px){.content,.sidebar{padding:1rem}.view-button-group,.filter-group{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}.stage-wrap{min-height:320px}.overlay-label{display:none}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 16 12 4l8 12" />
+            <path d="M8.5 16h7" />
+            <path d="M10.5 20h3" />
+          </svg>
+        </div>
+        <div>
+          <div class="eyebrow">Reference build</div>
+          <h1>PIU layer viewer</h1>
+          <p class="sub">Starter viewer for the same-car PIU reference set, built from your seed data.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Views</h2>
+        <div class="view-button-group" id="viewButtons"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Zones</h2>
+        <div class="filter-group" id="zoneFilters"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Legend</h2>
+        <div class="legend-item"><span>Warning blue</span><span class="legend-swatch" style="background:rgba(30,94,255,.7)"></span></div>
+        <div class="legend-item"><span>Clear housing</span><span class="legend-swatch" style="background:rgba(255,255,255,.92)"></span></div>
+        <div class="legend-item"><span>Hardware</span><span class="legend-swatch" style="background:#121212"></span></div>
+        <div class="legend-item"><span>Interface</span><span class="legend-swatch" style="background:#3b82f6"></span></div>
+      </div>
+
+      <div class="panel">
+        <h2>Quote</h2>
+        <div class="stat"><span>Build</span><strong id="buildId">—</strong></div>
+        <div class="stat"><span>Selected SKUs</span><strong id="skuCount">—</strong></div>
+        <button class="theme-btn" id="themeToggle" type="button">Toggle dark mode</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">Visual placement preview</div>
+          <p id="viewDescription">Loading starter PIU data…</p>
+        </div>
+        <div class="meta" id="metaBadges"></div>
+      </div>
+
+      <div class="workspace">
+        <section class="viewer-card">
+          <div class="meta">
+            <span class="badge" id="currentViewBadge">View</span>
+            <span class="badge" id="layerCountBadge">0 layers</span>
+            <span class="badge" id="zoneBadge">All zones</span>
+          </div>
+          <div class="stage-wrap">
+            <div class="stage" id="stage"></div>
+          </div>
+        </section>
+
+        <aside class="details">
+          <div>
+            <div class="eyebrow">Selected layer</div>
+            <h3 id="detailTitle">No layer selected</h3>
+          </div>
+          <div class="callout" id="detailCallout">Choose a highlighted layer to inspect its placement, mount type, and evidence source.</div>
+          <div id="detailBody" class="empty">This viewer is reading the same starter JSON structure used for the PIU seed data. Select a layer to inspect the underlying placement record.</div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const STYLE_LABELS = {
+      'warning-blue': 'warning-blue',
+      'warning-clear': 'warning-clear',
+      'hardware-black': 'hardware-black',
+      'interface-blue': 'interface-blue'
+    };
+
+    const zoneLabels = {
+      all: 'All zones',
+      front_warning: 'Front warning',
+      rear_warning: 'Rear warning',
+      side_warning: 'Side warning',
+      scene: 'Scene',
+      siren_audio: 'Siren/audio',
+      interior_control: 'Interior control',
+      interior_mount: 'Interior mount'
+    };
+
+    const state = { data: null, currentView: null, currentZone: 'all', selectedLayerId: null };
+
+    fetch('./piu-seed-data.json')
+      .then(r => r.json())
+      .then(data => {
+        state.data = data;
+        const firstBuild = data.quoteBuilds[0];
+        document.getElementById('buildId').textContent = firstBuild.id;
+        document.getElementById('skuCount').textContent = firstBuild.selectedSkus.length;
+        buildViewButtons();
+        buildZoneFilters();
+        state.currentView = data.viewAssets[0].id;
+        render();
+      });
+
+    function buildViewButtons() {
+      const wrap = document.getElementById('viewButtons');
+      wrap.innerHTML = '';
+      state.data.viewAssets.forEach(asset => {
+        const btn = document.createElement('button');
+        btn.className = 'view-btn';
+        btn.textContent = asset.view.replaceAll('_', ' ');
+        btn.type = 'button';
+        btn.addEventListener('click', () => { state.currentView = asset.id; state.selectedLayerId = null; render(); });
+        btn.dataset.id = asset.id;
+        wrap.appendChild(btn);
+      });
+    }
+
+    function buildZoneFilters() {
+      const zones = ['all', ...new Set(state.data.placementLayers.map(l => l.zone))];
+      const wrap = document.getElementById('zoneFilters');
+      wrap.innerHTML = '';
+      zones.forEach(zone => {
+        const btn = document.createElement('button');
+        btn.className = 'chip';
+        btn.textContent = zoneLabels[zone] || zone;
+        btn.type = 'button';
+        btn.addEventListener('click', () => { state.currentZone = zone; state.selectedLayerId = null; render(); });
+        btn.dataset.zone = zone;
+        wrap.appendChild(btn);
+      });
+    }
+
+    function getActivePlacements() {
+      const build = state.data.quoteBuilds[0];
+      const activeIds = new Set();
+      build.selectedSkus.forEach(sku => {
+        state.data.packageMappings.filter(m => m.sku === sku).forEach(m => m.placements.forEach(p => activeIds.add(p)));
+      });
+      return state.data.placementLayers.filter(layer => activeIds.has(layer.id));
+    }
+
+    function render() {
+      const asset = state.data.viewAssets.find(v => v.id === state.currentView);
+      const activePlacements = getActivePlacements().filter(l => l.viewAssetId === asset.id && (state.currentZone === 'all' || l.zone === state.currentZone));
+      document.querySelectorAll('.view-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === state.currentView));
+      document.querySelectorAll('.chip').forEach(btn => btn.classList.toggle('active', btn.dataset.zone === state.currentZone));
+      document.getElementById('currentViewBadge').textContent = asset.view.replaceAll('_', ' ');
+      document.getElementById('layerCountBadge').textContent = `${activePlacements.length} layers`;
+      document.getElementById('zoneBadge').textContent = zoneLabels[state.currentZone] || state.currentZone;
+      document.getElementById('viewDescription').textContent = `Showing ${asset.view.replaceAll('_',' ')} layers from the same-car PIU reference build.`;
+      document.getElementById('metaBadges').innerHTML = `<span class="badge">${asset.sourceType}</span><span class="badge">${asset.width}×${asset.height}</span><span class="badge">${asset.evidence?.sourceFileId || 'no evidence id'}</span>`;
+
+      const stage = document.getElementById('stage');
+      stage.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = asset.image;
+      img.alt = `PIU ${asset.view}`;
+      img.width = asset.width;
+      img.height = asset.height;
+      stage.appendChild(img);
+
+      activePlacements.forEach(layer => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = `overlay ${STYLE_LABELS[layer.styleToken] || ''}`;
+        el.style.left = `${layer.anchor.x * 100}%`;
+        el.style.top = `${layer.anchor.y * 100}%`;
+        el.style.width = `${layer.size.w * 100}%`;
+        el.style.height = `${layer.size.h * 100}%`;
+        el.style.transform = `translate(-50%, -50%) rotate(${layer.rotation}deg)`;
+        el.style.zIndex = layer.zIndex;
+        el.setAttribute('aria-label', layer.label || layer.id);
+        if (state.selectedLayerId === layer.id) el.classList.add('active');
+        const label = document.createElement('span');
+        label.className = 'overlay-label';
+        label.textContent = layer.label || layer.id;
+        el.appendChild(label);
+        el.addEventListener('click', () => { state.selectedLayerId = layer.id; renderDetails(layer); render(); });
+        stage.appendChild(el);
+      });
+
+      if (!activePlacements.length) {
+        renderDetails(null, 'No active layers on this view for the current zone filter.');
+      } else if (!state.selectedLayerId || !activePlacements.find(l => l.id === state.selectedLayerId)) {
+        renderDetails(activePlacements[0]);
+      }
+    }
+
+    function renderDetails(layer, fallback) {
+      const title = document.getElementById('detailTitle');
+      const body = document.getElementById('detailBody');
+      const callout = document.getElementById('detailCallout');
+      if (!layer) {
+        title.textContent = 'No layer selected';
+        callout.textContent = fallback || 'Choose a highlighted layer to inspect its placement, mount type, and evidence source.';
+        body.className = 'empty';
+        body.textContent = 'Try another view or zone filter.';
+        return;
+      }
+      state.selectedLayerId = layer.id;
+      title.textContent = layer.label || layer.id;
+      callout.textContent = `${zoneLabels[layer.zone] || layer.zone} • ${layer.componentType} • ${layer.mountType}`;
+      const mappedSkus = state.data.packageMappings.filter(m => m.placements.includes(layer.id)).map(m => m.sku);
+      body.className = '';
+      body.innerHTML = `
+        <p>${layer.description || 'No description provided.'}</p>
+        <ul>
+          <li><strong>Placement ID:</strong> ${layer.id}</li>
+          <li><strong>Anchor:</strong> x ${layer.anchor.x}, y ${layer.anchor.y}</li>
+          <li><strong>Size:</strong> w ${layer.size.w}, h ${layer.size.h}</li>
+          <li><strong>Rotation:</strong> ${layer.rotation}°</li>
+          <li><strong>Evidence:</strong> ${layer.evidence?.sourceFileId || 'n/a'} — ${layer.evidence?.note || 'No note'}</li>
+        </ul>
+        <div>
+          <div class="eyebrow" style="margin:1rem 0 .5rem">Mapped SKUs</div>
+          <div class="sku-list">${mappedSkus.length ? mappedSkus.map(s => `<span class="sku">${s}</span>`).join('') : '<span class="sku">None yet</span>'}</div>
+        </div>
+      `;
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const root = document.documentElement;
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    });
+  </script>
+</body>
+</html>
