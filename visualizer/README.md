@@ -34,7 +34,9 @@ Catalog `w` values are percent of stage/vehicle width, tuned for Durango against
 
 Click-to-place defaults are **view-aware** (front/rear/hero/side) and include Durango `fixtureNudge` (+1% Y) from the Perplexity reference.
 
-White Durango plates are synced from `compiled-app/` (no matte despill). Black body uses the existing `*_black.png` plates.
+White/black **Front** plates (`durango_front.png`, `durango_front_black.png`) were rebuilt to close internal alpha holes in the fascia under the grille (jagged stage bleed). Studio guidance came from DHC-ICEv2 page-02 front photo; other views remain as previously synced. `compiled-app/` Front is left untouched as reference capital.
+
+If you downloaded a zip of this branch earlier, **re-download** after this Front fix — a hard refresh is not enough for a local zip extract.
 
 ## Out of scope (this milestone)
 
@@ -45,7 +47,7 @@ White Durango plates are synced from `compiled-app/` (no matte despill). Black b
 
 ## Asset provenance (reuse, not redesign)
 
-- **Durango vehicle PNGs**: pixel-identical to `compiled-app/` (encoding may differ). Do not despill/matte-clean.
+- **Durango vehicle PNGs**: non-Front views match prior sync; **Front** white/black plates were hole-filled from DHC-ICEv2 page-02 (fascia alpha repair). Do not re-run blanket despill.
 - **FedSig fx cutouts**: MicroPulse / ALGT / ILS / Dyna / stick sprites in `visualizer/fx/` are the editable source cutouts.
 - **Round lightheads**: higher-res hard-alpha sprites reused from `compiled-app/fx/fx_round_*.png`.
 - **Chrome tokens**: colors, 288px panels, 4:3 stage cradle, and density cues ported from `compiled-app/assets/index-CqPjqCI_.css` (`.dark`) into this file’s CSS.
