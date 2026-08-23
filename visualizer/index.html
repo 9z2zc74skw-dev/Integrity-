@@ -185,7 +185,7 @@ function setDragSku(sku){
 function clearDragSkuSoon(){
   /* Keep SKU through drop: dragend often fires before drop in some browsers. */
   if(dragClearTimer) clearTimeout(dragClearTimer);
-  dragClearTimer=setTimeout(function(){dragSku=null; dragClearTimer=null},80);
+  dragClearTimer=setTimeout(function(){dragSku=null; dragClearTimer=null},220);
 }
 function resolveDragSku(e){
   var fromDt="";
