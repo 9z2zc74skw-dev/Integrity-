@@ -25,6 +25,7 @@ select,input[type=text]{background:var(--s2);border:1px solid var(--border);colo
 .group-title{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--faint);text-transform:uppercase;padding:10px 8px 4px}
 .part{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;cursor:grab;user-select:none}
 .part:hover{background:var(--s2)}.part:active{cursor:grabbing}
+.part.placing{outline:1px solid rgba(59,130,246,.55);background:var(--pd)}
 .part-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(90deg,#ef4444,#3b82f6);flex-shrink:0}
 .part-sku{font-size:12px;font-weight:600}.part-name{font-size:11px;color:var(--muted)}
 .stage-wrap{display:flex;flex-direction:column;min-height:0;background:#0a0a0c}
@@ -42,11 +43,12 @@ select,input[type=text]{background:var(--s2);border:1px solid var(--border);colo
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .light .tag{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);background:rgba(0,0,0,.9);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0}
 .light.selected .tag,.light:hover .tag{opacity:1}
-.light .ctrls{position:absolute;top:-32px;left:50%;transform:translateX(-50%);display:none;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px}
+.light .ctrls{position:absolute;top:-32px;left:50%;transform:translateX(-50%);display:none;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px;z-index:20}
 .light.selected .ctrls{display:flex}
 .light .ctrls button{width:26px;height:26px;border:none;background:transparent;color:var(--text);border-radius:4px;cursor:pointer;font-size:13px}
 .light .ctrls button:hover{background:var(--s3)}
 .stage-bar{display:flex;justify-content:center;gap:8px;padding:10px;flex-shrink:0}
+.hint-bar{font-size:11px;color:var(--faint);padding:0 12px 8px;text-align:center}
 .panel-section{padding:12px 14px;border-bottom:1px solid var(--border)}
 .sec-title{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--faint);text-transform:uppercase;margin-bottom:8px}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13px}
@@ -60,12 +62,24 @@ select,input[type=text]{background:var(--s2);border:1px solid var(--border);colo
 .scheme.active{border-color:var(--primary);color:#93c5fd;background:var(--pd)}
 .summary{font-size:12px;color:var(--muted)}.summary div{display:flex;justify-content:space-between;padding:4px 0}
 .summary .total{border-top:1px solid var(--border);margin-top:4px;padding-top:8px;font-weight:600;color:var(--text)}
+@media print{
+  header,.panel,.view-tabs,.stage-bar,.hint-bar{display:none!important}
+  .layout{display:block}
+  .stage-wrap,.stage-area,.stage{background:#fff;border:none}
+  .stage img.vehicle{max-height:none;width:100%}
+}
 </style>
 </head>
 <body>
+<!--
+  Durango-first lighting visualizer (source of truth: this file, not compiled-app/).
+  Local run:
+    - Open visualizer/index.html in a browser, OR
+    - From repo root: npx --yes serve visualizer
+-->
 <header>
-<div class="logo"><div class="logo-mark">&#9889;</div><div><strong>Lighting Visualizer</strong><span>Integrity Upfitters</span></div></div>
-<select id="vehicleSelect"><option>Dodge Durango Pursuit</option></select>
+<div class="logo"><div class="logo-mark">&#9889;</div><div><strong>Lighting Visualizer</strong><span>Integrity Upfitters · Durango</span></div></div>
+<select id="vehicleSelect" aria-label="Vehicle"><option>Dodge Durango Pursuit</option></select>
 <input type="text" id="quoteInput" placeholder="Quote #" style="width:100px"/>
 <button class="btn" id="loadBtn">Load SKUs</button>
 <div class="spacer"></div>
@@ -79,6 +93,7 @@ select,input[type=text]{background:var(--s2);border:1px solid var(--border);colo
 </aside>
 <section class="stage-wrap">
 <div class="view-tabs" id="viewTabs"></div>
+<div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount.</div>
 <div class="stage-area" id="stageArea">
 <div class="stage" id="stage">
 <img class="vehicle" id="vehicleImg" src="durango_front.png" alt="Vehicle" draggable="false"/>
@@ -121,6 +136,8 @@ select,input[type=text]{background:var(--s2);border:1px solid var(--border);colo
 </div>
 <script>
 (function(){
+/* Durango-only visualizer. w values ≈ % of stage/vehicle width for FedSig sprites.
+   ALGT 53" roof bar ≈ 46–52% of roof width; MicroPulse grille ≈ 3.5–5%. */
 var VIEWS=[
 {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
 {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -130,17 +147,17 @@ var VIEWS=[
 {id:"hero",label:"3/4 View",imgW:"durango_hero.png",imgB:"durango_hero_black.png"}
 ];
 var CATALOG=[
-{sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:42},
-{sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:28},
+{sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:48},
+{sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:24},
 {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:10},
 {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:18},
 {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:40},
 {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:48},
-{sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:5},
-{sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:7},
-{sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:8},
-{sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:26},
-{sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
+{sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4},
+{sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
+{sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
+{sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:22},
+{sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:20},
 {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
 {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
 {sku:"PF200",name:"PathFinder PF200 Siren Amp",group:"Siren / Control",fx:null,w:6},
@@ -150,13 +167,37 @@ var CATALOG=[
 {sku:"EXPMOD24",name:"Expansion Module 24",group:"Siren / Control",fx:null,w:5}
 ];
 var DEFAULTS={ALGT:[0.5,0.16],SIFMJS:[0.5,0.26],MPS63:[0.38,0.48],MPSW9:[0.18,0.4],"DYNA-1":[0.5,0.72],"DYNA-2":[0.5,0.72],"DYNA-5":[0.5,0.72],"DYNA-6":[0.5,0.72],SIFMJH:[0.5,0.55],"STICK-RB":[0.5,0.58],MPS123:[0.5,0.62],XSM2:[0.55,0.55],"416300":[0.7,0.55]};
-var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1,dragSku=null;
+var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
+var dragSku=null,dragClearTimer=null,emptyDragImg=null;
+
 VIEWS.forEach(function(v){nodes[v.id]=[]});
+
+function getEmptyDragImage(){
+  if(emptyDragImg) return emptyDragImg;
+  emptyDragImg=document.createElement("canvas");
+  emptyDragImg.width=1; emptyDragImg.height=1;
+  return emptyDragImg;
+}
+function setDragSku(sku){
+  if(dragClearTimer){clearTimeout(dragClearTimer); dragClearTimer=null}
+  dragSku=sku||null;
+}
+function clearDragSkuSoon(){
+  /* Keep SKU through drop: dragend often fires before drop in some browsers. */
+  if(dragClearTimer) clearTimeout(dragClearTimer);
+  dragClearTimer=setTimeout(function(){dragSku=null; dragClearTimer=null},80);
+}
+function resolveDragSku(e){
+  var fromDt="";
+  try{fromDt=e.dataTransfer&&e.dataTransfer.getData("text/plain")||""}catch(err){}
+  return fromDt||dragSku||null;
+}
 
 function fxFor(part){
   if(!part.fx) return null;
   var f=part.fx;
   if(scheme==="bw") f=f.replace("_rb.","_bw.").replace("_r.","_bw.").replace("_b.","_bw.");
+  else if(scheme==="rw") f=f.replace("_rb.","_r.").replace("_bw.","_r.").replace("_b.","_r.");
   return "fx/"+f;
 }
 function renderParts(){
@@ -175,11 +216,21 @@ function renderParts(){
       row.className="part"; row.draggable=true; row.dataset.sku=p.sku;
       row.innerHTML='<div class="part-dot"></div><div><div class="part-sku">'+p.sku+'</div><div class="part-name">'+p.name+"</div></div>";
       row.addEventListener("dragstart",function(e){
-        dragSku=p.sku;
-        e.dataTransfer.setData("text/plain",p.sku);
-        e.dataTransfer.effectAllowed="copy";
+        setDragSku(p.sku);
+        try{
+          e.dataTransfer.setData("text/plain",p.sku);
+          e.dataTransfer.setData("application/x-iu-sku",p.sku);
+          e.dataTransfer.effectAllowed="copy";
+          e.dataTransfer.setDragImage(getEmptyDragImage(),0,0);
+        }catch(err){}
+        row.classList.add("placing");
+        document.getElementById("hintBar").textContent="Drop on the vehicle to place "+p.sku+".";
       });
-      row.addEventListener("dragend",function(){dragSku=null});
+      row.addEventListener("dragend",function(){
+        row.classList.remove("placing");
+        clearDragSkuSoon();
+        document.getElementById("hintBar").textContent="Drag a part onto the vehicle, or click a part to place at its default mount.";
+      });
       row.addEventListener("click",function(){
         var d=DEFAULTS[p.sku]||[0.5,0.4];
         addNode(p.sku,d[0],d[1]);
@@ -215,17 +266,23 @@ function renderStage(){
     var part=CATALOG.find(function(c){return c.sku===p.sku});
     var src=part?fxFor(part):null;
     if(src){
-      el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="rot">&#8635;</button><button type="button" data-act="in">+</button><button type="button" data-act="out">&#8722;</button><button type="button" data-act="del">&#215;</button></div>';
+      el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="rot" title="Rotate">&#8635;</button><button type="button" data-act="in" title="Larger">+</button><button type="button" data-act="out" title="Smaller">&#8722;</button><button type="button" data-act="del" title="Remove">&#215;</button></div>';
     } else {
-      el.innerHTML='<div style="background:#333;color:#aaa;font-size:10px;padding:4px 8px;border-radius:4px">'+p.sku+'</div><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="del">&#215;</button></div>';
+      el.innerHTML='<div style="background:#333;color:#aaa;font-size:10px;padding:4px 8px;border-radius:4px">'+p.sku+'</div><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="del" title="Remove">&#215;</button></div>';
     }
     el.addEventListener("mousedown",function(e){
       if(e.target.closest(".ctrls")) return;
-      e.preventDefault(); sel=p.id; renderStage(); startMove(e,p,false);
+      e.preventDefault(); e.stopPropagation();
+      sel=p.id; renderStage();
+      var node=nodes[view].find(function(n){return n.id===p.id});
+      if(node) startMove(e,node,false);
     });
     el.addEventListener("touchstart",function(e){
       if(e.target.closest(".ctrls")) return;
-      sel=p.id; renderStage(); startMove(e,p,true);
+      e.stopPropagation();
+      sel=p.id; renderStage();
+      var node=nodes[view].find(function(n){return n.id===p.id});
+      if(node) startMove(e,node,true);
     },{passive:false});
     el.querySelectorAll(".ctrls button").forEach(function(btn){
       btn.onclick=function(e){
@@ -233,8 +290,8 @@ function renderStage(){
         var a=btn.dataset.act;
         if(a==="del"){nodes[view]=nodes[view].filter(function(n){return n.id!==p.id}); sel=null}
         else if(a==="rot") p.rot=(p.rot+15)%360;
-        else if(a==="in") p.scale=Math.min(2.5,p.scale+0.1);
-        else if(a==="out") p.scale=Math.max(0.3,p.scale-0.1);
+        else if(a==="in") p.scale=Math.min(2.5,+(p.scale+0.1).toFixed(2));
+        else if(a==="out") p.scale=Math.max(0.3,+(p.scale-0.1).toFixed(2));
         renderStage(); renderTabs(); renderSum();
       };
     });
@@ -259,6 +316,8 @@ function startMove(e,p,isTouch){
   function onUp(){
     document.removeEventListener(isTouch?"touchmove":"mousemove",onMove);
     document.removeEventListener(isTouch?"touchend":"mouseup",onUp);
+    if(!isTouch) document.removeEventListener("mouseup",onUp);
+    renderSum();
   }
   document.addEventListener(isTouch?"touchmove":"mousemove",onMove,{passive:false});
   document.addEventListener(isTouch?"touchend":"mouseup",onUp);
@@ -271,30 +330,64 @@ function addNode(sku,x,y){
   sel=id;
   renderStage(); renderTabs(); renderSum();
 }
+function placeFromEvent(e,clamp){
+  var sku=resolveDragSku(e);
+  if(!sku) return false;
+  var stage=document.getElementById("stage");
+  var r=stage.getBoundingClientRect();
+  var x=(e.clientX-r.left)/r.width;
+  var y=(e.clientY-r.top)/r.height;
+  if(clamp){
+    x=Math.max(0.1,Math.min(0.9,x));
+    y=Math.max(0.1,Math.min(0.9,y));
+  } else {
+    x=Math.max(0.02,Math.min(0.98,x));
+    y=Math.max(0.02,Math.min(0.98,y));
+  }
+  addNode(sku,x,y);
+  setDragSku(null);
+  return true;
+}
 function renderSum(){
   var total=0,html="";
   VIEWS.forEach(function(v){var n=nodes[v.id].length; total+=n; html+="<div><span>"+v.label+"</span><span>"+n+"</span></div>"});
   html+='<div class="total"><span>Total</span><span>'+total+"</span></div>";
   document.getElementById("summary").innerHTML=html;
 }
+
 var stage=document.getElementById("stage");
-stage.addEventListener("dragover",function(e){e.preventDefault(); e.dataTransfer.dropEffect="copy"; stage.classList.add("drag-over")});
-stage.addEventListener("dragleave",function(e){if(!stage.contains(e.relatedTarget)) stage.classList.remove("drag-over")});
-stage.addEventListener("drop",function(e){
-  e.preventDefault(); stage.classList.remove("drag-over");
-  var sku=e.dataTransfer.getData("text/plain")||dragSku;
-  if(!sku) return;
-  var r=stage.getBoundingClientRect();
-  addNode(sku,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
-});
-document.getElementById("stageArea").addEventListener("dragover",function(e){e.preventDefault()});
-document.getElementById("stageArea").addEventListener("drop",function(e){
+var stageArea=document.getElementById("stageArea");
+
+function onDragOver(e){
   e.preventDefault();
-  var sku=e.dataTransfer.getData("text/plain")||dragSku;
-  if(!sku) return;
-  var r=stage.getBoundingClientRect();
-  addNode(sku,Math.max(0.1,Math.min(0.9,(e.clientX-r.left)/r.width)),Math.max(0.1,Math.min(0.9,(e.clientY-r.top)/r.height)));
+  try{e.dataTransfer.dropEffect="copy"}catch(err){}
+  stage.classList.add("drag-over");
+}
+function onDragLeave(e){
+  if(!stage.contains(e.relatedTarget)&&e.relatedTarget!==stage) stage.classList.remove("drag-over");
+}
+function onDrop(e,clamp){
+  e.preventDefault();
+  e.stopPropagation();
+  stage.classList.remove("drag-over");
+  placeFromEvent(e,!!clamp);
+}
+
+stage.addEventListener("dragover",onDragOver);
+stage.addEventListener("dragenter",function(e){e.preventDefault(); stage.classList.add("drag-over")});
+stage.addEventListener("dragleave",onDragLeave);
+stage.addEventListener("drop",function(e){onDrop(e,false)});
+
+stageArea.addEventListener("dragover",function(e){e.preventDefault(); try{e.dataTransfer.dropEffect="copy"}catch(err){}});
+stageArea.addEventListener("dragenter",function(e){e.preventDefault()});
+stageArea.addEventListener("drop",function(e){onDrop(e,true)});
+
+stage.addEventListener("mousedown",function(e){
+  if(e.target===stage||e.target.id==="vehicleImg"||e.target.classList.contains("drop-hint")){
+    sel=null; renderStage();
+  }
 });
+
 document.querySelectorAll(".sw").forEach(function(s){
   s.onclick=function(){var on=s.dataset.on==="true"; s.dataset.on=String(!on); s.classList.toggle("on",!on)};
 });
@@ -307,7 +400,7 @@ document.getElementById("colorScheme").querySelectorAll("button").forEach(functi
 document.getElementById("clearView").onclick=function(){nodes[view]=[]; sel=null; renderStage(); renderTabs(); renderSum()};
 document.getElementById("clearAll").onclick=function(){VIEWS.forEach(function(v){nodes[v.id]=[]}); sel=null; renderStage(); renderTabs(); renderSum()};
 document.getElementById("search").oninput=renderParts;
-document.getElementById("loadBtn").onclick=function(){var q=document.getElementById("quoteInput").value.trim(); if(!q) return alert("Enter a quote number"); alert("Quote "+q+" - SKU import when catalog is connected.")};
+document.getElementById("loadBtn").onclick=function(){var q=document.getElementById("quoteInput").value.trim(); if(!q) return alert("Enter a quote number"); alert("Quote "+q+" — SKU import when catalog is connected.")};
 document.getElementById("pdfBtn").onclick=function(){window.print()};
 renderParts(); renderTabs(); renderStage(); renderSum();
 })();
