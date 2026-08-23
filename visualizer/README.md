@@ -42,3 +42,11 @@ White Durango plates are synced from `compiled-app/` (no matte despill). Black b
 - Live QuickBooks OAuth / quote import
 - Multi-vehicle (PIU / Tahoe)
 - Polished multi-page PDF export
+
+## Asset provenance (reuse, not redesign)
+
+- **Durango vehicle PNGs**: pixel-identical to `compiled-app/` (encoding may differ). Do not despill/matte-clean.
+- **FedSig fx cutouts**: MicroPulse / ALGT / ILS / Dyna / stick sprites in `visualizer/fx/` are the editable source cutouts.
+- **Round lightheads**: higher-res hard-alpha sprites reused from `compiled-app/fx/fx_round_*.png`.
+- **Chrome tokens**: colors, 288px panels, 4:3 stage cradle, and density cues ported from `compiled-app/assets/index-CqPjqCI_.css` (`.dark`) into this file’s CSS.
+- **Default mounts**: per-view x/y/rot mined from the compiled catalog (plus Durango `fixtureNudge` dy≈1%).
