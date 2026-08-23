@@ -55,10 +55,10 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .view-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--bg) 60%,transparent);flex-shrink:0}
 .view-tab{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
 .view-tab:hover{background:var(--elevate)}.view-tab.active{background:var(--pd);border-color:rgba(59,130,246,.35);color:#93c5fd;font-weight:600}
-/* compiled stage: aspect-[4/3] max-w-3xl rounded-lg border + black/40 cradle */
-.stage-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;min-height:0;overflow:auto}
-.stage{position:relative;width:100%;max-width:48rem;aspect-ratio:4/3;background:#00000066;border-radius:0.5rem;overflow:hidden;border:1px solid var(--border)}
-.stage img.vehicle{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;filter:drop-shadow(0 12px 28px rgba(0,0,0,.45))}
+/* Stage shrink-wraps the vehicle so light % coords match the truck (no letterbox drift). */
+.stage-area{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;min-height:0}
+.stage{position:relative;max-width:100%;max-height:100%;background:radial-gradient(ellipse at center,#1a1a1e,#0a0a0c);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.stage img.vehicle{display:block;max-width:100%;max-height:calc(100vh - 160px);width:auto;height:auto;user-select:none;pointer-events:none;filter:drop-shadow(0 12px 28px rgba(0,0,0,.45))}
 .stage.drag-over{outline:2px dashed var(--primary);outline-offset:-4px}
 .drop-hint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(59,130,246,.08);color:#93c5fd;font-weight:600;font-size:14px;pointer-events:none;z-index:5}
 .stage.drag-over .drop-hint{display:flex}
@@ -93,7 +93,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
   header,.panel,.view-tabs,.stage-bar,.hint-bar{display:none!important}
   .layout{display:block}
   .stage-wrap,.stage-area,.stage{background:#fff;border:none;max-width:none;aspect-ratio:auto}
-  .stage img.vehicle{position:static;max-height:none;width:100%;height:auto}
+  .stage img.vehicle{max-height:none;width:100%;height:auto}
 }
 </style>
 </head>
@@ -187,7 +187,7 @@ var VIEWS=[
   {id:"hero",label:"3/4 View",imgW:"durango_hero.png",imgB:"durango_hero_black.png"}
 ];
 var CATALOG=[
-  {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:48},
+  {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
   {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:28},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:10},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:18},
@@ -206,21 +206,21 @@ var CATALOG=[
   {sku:"OBDFORD",name:"OBD Interface (Ford)",group:"Siren / Control",fx:null,w:5},
   {sku:"EXPMOD24",name:"Expansion Module 24",group:"Siren / Control",fx:null,w:5}
 ];
-/* Per-view defaults from compiled-app (percent → fraction) + Durango nudge dy+0.01 */
+/* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
-  ALGT:{front:[0.5,0.23,0],rear:[0.5,0.23,0],left:[0.48,0.23,0],right:[0.48,0.23,0],hero:[0.46,0.21,0],_:[0.5,0.2,0]},
-  SIFMJS:{front:[0.5,0.31,0],hero:[0.45,0.28,-15],_:[0.5,0.28,0]},
-  MPS63:{front:[0.4,0.52,0],hero:[0.33,0.53,-20],_:[0.38,0.5,0]},
-  MPSW9:{front:[0.24,0.41,0],left:[0.3,0.42,0],right:[0.3,0.42,0],hero:[0.44,0.37,0],_:[0.22,0.4,0]},
-  "DYNA-1":{front:[0.5,0.63,0],hero:[0.34,0.61,-6],rear:[0.5,0.31,180],_:[0.5,0.62,0]},
-  "DYNA-2":{front:[0.5,0.63,0],hero:[0.36,0.61,-6],rear:[0.5,0.31,180],_:[0.5,0.62,0]},
-  "DYNA-5":{front:[0.5,0.67,0],hero:[0.44,0.63,-6],rear:[0.5,0.31,180],_:[0.5,0.66,0]},
-  "DYNA-6":{front:[0.5,0.67,0],hero:[0.46,0.63,-6],rear:[0.5,0.31,180],_:[0.5,0.66,0]},
-  SIFMJH:{rear:[0.5,0.28,0],hero:[0.76,0.29,160],rear_open:[0.5,0.45,0],_:[0.5,0.4,0]},
-  "STICK-RB":{rear:[0.5,0.35,0],rear_open:[0.5,0.5,0],_:[0.5,0.4,0]},
-  MPS123:{rear:[0.26,0.41,180],rear_open:[0.3,0.5,90],_:[0.5,0.45,90]},
-  XSM2:{rear:[0.3,0.43,200],rear_open:[0.35,0.48,0],_:[0.55,0.5,0]},
-  "416300":{rear:[0.62,0.37,180],rear_open:[0.4,0.17,180],_:[0.7,0.45,0]}
+  ALGT:{front:[0.5,0.28,0],rear:[0.5,0.22,0],left:[0.45,0.30,0],right:[0.55,0.30,0],hero:[0.48,0.26,0],_:[0.5,0.28,0]},
+  SIFMJS:{front:[0.5,0.36,0],hero:[0.48,0.34,0],_:[0.5,0.34,0]},
+  MPS63:{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
+  MPSW9:{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
+  "DYNA-1":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
+  "DYNA-2":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
+  "DYNA-5":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
+  "DYNA-6":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
+  SIFMJH:{rear:[0.5,0.55,0],rear_open:[0.5,0.50,0],_:[0.5,0.55,0]},
+  "STICK-RB":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
+  MPS123:{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
+  XSM2:{rear:[0.55,0.55,0],_:[0.55,0.55,0]},
+  "416300":{rear:[0.7,0.55,0],_:[0.7,0.55,0]}
 };
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
