@@ -62,6 +62,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .stage.drag-over{outline:2px dashed var(--primary);outline-offset:-4px}
 .drop-hint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(59,130,246,.08);color:#93c5fd;font-weight:600;font-size:14px;pointer-events:none;z-index:5}
 .stage.drag-over .drop-hint{display:flex}
+.snap-grid{position:absolute;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .12s;background-image:linear-gradient(to right,rgba(147,197,253,.12) 1px,transparent 1px),linear-gradient(to bottom,rgba(147,197,253,.12) 1px,transparent 1px);background-size:2% 2%;background-position:0 0}
+.snap-grid.show{opacity:1}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
@@ -131,10 +133,11 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
   </aside>
   <section class="stage-wrap">
     <div class="view-tabs" id="viewTabs"></div>
-    <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount.</div>
+    <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount. Snap is on — hold Shift for free place.</div>
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <img class="vehicle" id="vehicleImg" src="durango_front.png" alt="Vehicle" draggable="false"/>
+        <div class="snap-grid" id="snapGrid" aria-hidden="true"></div>
         <div class="drop-hint">Drop light here</div>
       </div>
     </div>
@@ -147,6 +150,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="section">
       <div class="panel-head">Build Parameters</div>
       <div class="toggles">
+        <div class="toggle"><div class="lbl">Snap to grid<small>Hold Shift while dragging for free place</small></div><button type="button" class="sw on" id="snapToggle" data-on="true" aria-label="Snap to grid"></button></div>
         <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" data-on="false" aria-label="Push Bar"></button></div>
         <div class="toggle"><div class="lbl">Interior Dash<small>Windshield warning</small></div><button type="button" class="sw" data-on="false" aria-label="Interior Dash"></button></div>
         <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Liftgate glass stick</small></div><button type="button" class="sw" data-on="false" aria-label="Rear Hatch Lights"></button></div>
@@ -224,6 +228,7 @@ var DEFAULTS={
 };
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
+var snapEnabled=true, SNAP_STEP=0.02;
 
 VIEWS.forEach(function(v){nodes[v.id]=[]});
 
@@ -289,7 +294,7 @@ function renderParts(){
       row.addEventListener("dragend",function(){
         row.classList.remove("placing");
         clearDragSkuSoon();
-        document.getElementById("hintBar").textContent="Drag a part onto the vehicle, or click a part to place at its default mount.";
+        document.getElementById("hintBar").textContent="Drag a part onto the vehicle, or click a part to place at its default mount. Snap is on — hold Shift for free place.";
       });
       row.addEventListener("click",function(){
         var d=defaultFor(p.sku);
@@ -361,26 +366,40 @@ function renderStage(){
     stage.appendChild(el);
   });
 }
+function snapCoord(v, free){
+  if(free||!snapEnabled) return v;
+  return Math.round(v/SNAP_STEP)*SNAP_STEP;
+}
+function setSnapGridVisible(show){
+  var g=document.getElementById("snapGrid");
+  if(g) g.classList.toggle("show",!!show);
+}
 function startMove(e,p,isTouch){
   var stage=document.getElementById("stage");
   var rect=stage.getBoundingClientRect();
   function point(ev){
     var t=isTouch?(ev.touches[0]||ev.changedTouches[0]):ev;
-    return {x:(t.clientX-rect.left)/rect.width,y:(t.clientY-rect.top)/rect.height};
+    return {x:(t.clientX-rect.left)/rect.width,y:(t.clientY-rect.top)/rect.height,shift:!!(t&&t.shiftKey)||!!(ev&&ev.shiftKey)};
   }
   function onMove(ev){
     if(isTouch) ev.preventDefault();
     var c=point(ev);
-    p.x=Math.max(0.02,Math.min(0.98,c.x));
-    p.y=Math.max(0.02,Math.min(0.98,c.y));
+    var free=!!c.shift||!snapEnabled;
+    setSnapGridVisible(snapEnabled&&!free);
+    var x=snapCoord(c.x, free);
+    var y=snapCoord(c.y, free);
+    p.x=Math.max(0.02,Math.min(0.98,x));
+    p.y=Math.max(0.02,Math.min(0.98,y));
     var n=document.querySelector('.light[data-id="'+p.id+'"]');
     if(n){n.style.left=(p.x*100)+"%"; n.style.top=(p.y*100)+"%"}
   }
   function onUp(){
+    setSnapGridVisible(false);
     document.removeEventListener(isTouch?"touchmove":"mousemove",onMove);
     document.removeEventListener(isTouch?"touchend":"mouseup",onUp);
     renderSum();
   }
+  setSnapGridVisible(snapEnabled&&!(e&&e.shiftKey));
   document.addEventListener(isTouch?"touchmove":"mousemove",onMove,{passive:false});
   document.addEventListener(isTouch?"touchend":"mouseup",onUp);
 }
@@ -397,8 +416,9 @@ function placeFromEvent(e,clamp){
   if(!sku) return false;
   var stage=document.getElementById("stage");
   var r=stage.getBoundingClientRect();
-  var x=(e.clientX-r.left)/r.width;
-  var y=(e.clientY-r.top)/r.height;
+  var free=!!e.shiftKey||!snapEnabled;
+  var x=snapCoord((e.clientX-r.left)/r.width, free);
+  var y=snapCoord((e.clientY-r.top)/r.height, free);
   if(clamp){
     x=Math.max(0.1,Math.min(0.9,x));
     y=Math.max(0.1,Math.min(0.9,y));
@@ -455,7 +475,12 @@ stage.addEventListener("mousedown",function(e){
 });
 
 document.querySelectorAll(".sw").forEach(function(s){
-  s.onclick=function(){var on=s.dataset.on==="true"; s.dataset.on=String(!on); s.classList.toggle("on",!on)};
+  s.onclick=function(){
+    var on=s.dataset.on==="true";
+    s.dataset.on=String(!on);
+    s.classList.toggle("on",!on);
+    if(s.id==="snapToggle") snapEnabled=!on;
+  };
 });
 document.getElementById("bodyColor").querySelectorAll("button").forEach(function(btn){
   btn.onclick=function(){
