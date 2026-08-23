@@ -188,7 +188,7 @@ var VIEWS=[
 ];
 var CATALOG=[
   {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
-  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:14},
+  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:8},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:10},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:18},
   {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:42},
@@ -321,11 +321,12 @@ function renderStage(){
     var el=document.createElement("div");
     el.className="light"+(p.id===sel?" selected":"");
     el.dataset.id=String(p.id);
+    var part=CATALOG.find(function(c){return c.sku===p.sku});
+    var catW=(part&&part.w!=null)?part.w:(p.w||10);
     el.style.left=(p.x*100)+"%";
     el.style.top=(p.y*100)+"%";
-    el.style.width=(p.w*p.scale)+"%";
+    el.style.width=(catW*p.scale)+"%";
     el.style.transform="translate(-50%,-50%) rotate("+p.rot+"deg)";
-    var part=CATALOG.find(function(c){return c.sku===p.sku});
     var src=part?fxFor(part):null;
     if(src){
       el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="rot" title="Rotate">&#8635;</button><button type="button" data-act="in" title="Larger">+</button><button type="button" data-act="out" title="Smaller">&#8722;</button><button type="button" data-act="del" class="x" title="Remove">&#215;</button></div>';
