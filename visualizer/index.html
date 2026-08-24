@@ -84,6 +84,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .sw.on{background:var(--primary);border-color:color-mix(in srgb,var(--primary) 80%,#000)}
 .sw::after{content:"";position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .15s}
 .sw.on::after{left:20px}
+.overlay-pushbar,.overlay-dash,.overlay-hatch{position:absolute;pointer-events:none;z-index:4}
+.overlay-pushbar img,.overlay-dash img{width:100%;height:100%;display:block;object-fit:fill;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
 .section .schemes{padding:4px 14px 14px}.schemes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .scheme{background:color-mix(in srgb,var(--card) 60%,transparent);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px;font-size:12px;font-family:inherit;cursor:pointer}
 .scheme:hover{background:var(--elevate)}.scheme.active{border-color:var(--primary);color:#93c5fd;background:var(--pd)}
@@ -153,9 +155,9 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
       <div class="panel-head">Build Parameters</div>
       <div class="toggles">
         <div class="toggle"><div class="lbl">Snap / align<small>To centerline + other lights. Hold Shift for freeform</small></div><button type="button" class="sw on" id="snapToggle" data-on="true" aria-label="Snap / align"></button></div>
-        <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" data-on="false" aria-label="Push Bar"></button></div>
-        <div class="toggle"><div class="lbl">Interior Dash<small>Windshield warning</small></div><button type="button" class="sw" data-on="false" aria-label="Interior Dash"></button></div>
-        <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Liftgate glass stick</small></div><button type="button" class="sw" data-on="false" aria-label="Rear Hatch Lights"></button></div>
+        <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" id="pushBarToggle" data-on="false" aria-label="Push Bar"></button></div>
+        <div class="toggle"><div class="lbl">Interior Dash<small>Windshield warning</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
+        <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Liftgate glass stick</small></div><button type="button" class="sw" id="hatchToggle" data-on="false" aria-label="Rear Hatch Lights"></button></div>
       </div>
     </div>
     <div class="section">
@@ -229,6 +231,10 @@ var DEFAULTS={
   "416300":{rear:[0.7,0.55,0],_:[0.7,0.55,0]}
 };
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
+var pushBar=false,dashLighting=false,rearHatchLights=false;
+/* Durango placement from compiled-app (percent of stage) */
+var PUSH_BAR={front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}};
+var DASH_SPRITES={front:{cx:50,cy:22.5,w:34},hero:{cx:44,cy:20.5,w:22,rot:-3}};
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
 var snapEnabled=true, SNAP_STEP=0.02, SNAP_MAG=0.035;
 
@@ -323,7 +329,43 @@ function renderStage(){
   var v=VIEWS.find(function(x){return x.id===view});
   document.getElementById("vehicleImg").src=bodyColor==="black"?v.imgB:v.imgW;
   var stage=document.getElementById("stage");
-  stage.querySelectorAll(".light").forEach(function(n){n.remove()});
+  stage.querySelectorAll(".light,.overlay-pushbar,.overlay-dash,.overlay-hatch").forEach(function(n){n.remove()});
+  function placeOverlay(cls, place, src){
+    if(!place) return;
+    var el=document.createElement("div");
+    el.className=cls;
+    var aspect=(cls==="overlay-pushbar")?(780/570):(810/630);
+    var hs=place.hs!=null?place.hs:1;
+    var ww=place.w, hh=place.w/aspect*hs;
+    el.style.left=place.cx+"%";
+    el.style.top=place.cy+"%";
+    el.style.width=ww+"%";
+    el.style.height=hh+"%";
+    var tyFrac=place.ty!=null?place.ty:0.5;
+    var tyPct=(-tyFrac*100)+"%";
+    el.style.transform="translate(-50%,"+tyPct+")"+(place.rot?" rotate("+place.rot+"deg)":"");
+    el.innerHTML='<img src="'+src+'" alt="" draggable="false"/>';
+    stage.appendChild(el);
+  }
+  if(pushBar){
+    var pb=PUSH_BAR[view==="hero"?"hero":(view==="front"?"front":null)];
+    if(pb) placeOverlay("overlay-pushbar", pb, "fx/fx_pushbar_front.png");
+  }
+  if(dashLighting){
+    var ds=DASH_SPRITES[view==="hero"?"hero":(view==="front"?"front":null)];
+    var dsrc=(scheme==="bw"||scheme==="rw")?"fx/fx_ils_bw.png":"fx/fx_ils_rb.png";
+    if(ds) placeOverlay("overlay-dash", ds, dsrc);
+  }
+  if(rearHatchLights && (view==="rear"||view==="hero")){
+    var el=document.createElement("div");
+    el.className="overlay-hatch light";
+    el.style.left=(view==="rear"?50:76)+"%";
+    el.style.top=(view==="rear"?27:28)+"%";
+    el.style.width=(view==="rear"?22:13)+"%";
+    el.style.transform="translate(-50%,-50%)";
+    el.innerHTML='<img src="fx/fx_stick_rb.png" alt="hatch" draggable="false"/>';
+    stage.appendChild(el);
+  }
   nodes[view].forEach(function(p){
     var el=document.createElement("div");
     el.className="light"+(p.id===sel?" selected":"");
@@ -508,6 +550,9 @@ document.querySelectorAll(".sw").forEach(function(s){
     s.dataset.on=String(!on);
     s.classList.toggle("on",!on);
     if(s.id==="snapToggle") snapEnabled=!on;
+    else if(s.id==="pushBarToggle"){ pushBar=!on; renderStage(); }
+    else if(s.id==="dashToggle"){ dashLighting=!on; renderStage(); }
+    else if(s.id==="hatchToggle"){ rearHatchLights=!on; renderStage(); }
   };
 });
 document.getElementById("bodyColor").querySelectorAll("button").forEach(function(btn){
