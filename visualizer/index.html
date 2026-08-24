@@ -63,7 +63,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .drop-hint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(59,130,246,.08);color:#93c5fd;font-weight:600;font-size:14px;pointer-events:none;z-index:5}
 .stage.drag-over .drop-hint{display:flex}
 .snap-guides{position:absolute;inset:0;pointer-events:none;z-index:4}
-.snap-guides .gx,.snap-guides .gy{position:absolute;background:rgba(147,197,253,.55);box-shadow:0 0 6px rgba(59,130,246,.45)}
+.snap-guides .gx,.snap-guides .gy{position:absolute;background:rgba(147,197,253,.85);box-shadow:0 0 10px rgba(59,130,246,.7)}
 .snap-guides .gx{top:0;bottom:0;width:1px;transform:translateX(-50%)}
 .snap-guides .gy{left:0;right:0;height:1px;transform:translateY(-50%)}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
@@ -194,7 +194,7 @@ var VIEWS=[
 ];
 var CATALOG=[
   {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
-  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:16},
+  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:26},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:10},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:18},
   {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:42},
@@ -202,7 +202,7 @@ var CATALOG=[
   {sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
   {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
-  {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:22},
+  {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:28},
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
@@ -230,7 +230,7 @@ var DEFAULTS={
 };
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
-var snapEnabled=true, SNAP_STEP=0.0025, SNAP_MAG=0.012;
+var snapEnabled=true, SNAP_STEP=0.02, SNAP_MAG=0.035;
 
 VIEWS.forEach(function(v){nodes[v.id]=[]});
 
@@ -390,15 +390,18 @@ function snapTo(x,y,free,skipId){
   else ny=Math.round(y/SNAP_STEP)*SNAP_STEP;
   return {x:nx,y:ny,vx:vx,hy:hy};
 }
-function drawSnapGuides(g){
+function drawSnapGuides(g, showCenter){
   var el=document.getElementById("snapGuides");
   if(!el) return;
   el.innerHTML="";
-  if(!g) return;
-  (g.vx||[]).forEach(function(x){
+  if(!g && !showCenter) return;
+  var xs = (g&&g.vx)||[];
+  var ys = (g&&g.hy)||[];
+  if(showCenter && xs.indexOf(0.5)<0) xs = xs.concat([0.5]);
+  xs.forEach(function(x){
     var d=document.createElement("div"); d.className="gx"; d.style.left=(x*100)+"%"; el.appendChild(d);
   });
-  (g.hy||[]).forEach(function(y){
+  ys.forEach(function(y){
     var d=document.createElement("div"); d.className="gy"; d.style.top=(y*100)+"%"; el.appendChild(d);
   });
 }
@@ -413,7 +416,7 @@ function startMove(e,p,isTouch){
     if(isTouch) ev.preventDefault();
     var c=point(ev);
     var g=snapTo(c.x,c.y,c.free,p.id);
-    drawSnapGuides(c.free||!snapEnabled?null:g);
+    drawSnapGuides(c.free||!snapEnabled?null:g, snapEnabled&&!c.free);
     p.x=Math.max(0.02,Math.min(0.98,g.x));
     p.y=Math.max(0.02,Math.min(0.98,g.y));
     var n=document.querySelector('.light[data-id="'+p.id+'"]');
