@@ -196,15 +196,15 @@ var VIEWS=[
 ];
 var CATALOG=[
   {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
-  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:26},
-  {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:10},
-  {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:18},
-  {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:42},
-  {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:50},
+  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:20},
+  {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8},
+  {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14},
+  {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32},
+  {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38},
   {sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
   {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
-  {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:28},
+  {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
@@ -217,14 +217,14 @@ var CATALOG=[
 /* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
   ALGT:{front:[0.5,0.28,0],rear:[0.5,0.22,0],left:[0.45,0.30,0],right:[0.55,0.30,0],hero:[0.48,0.26,0],_:[0.5,0.28,0]},
-  SIFMJS:{front:[0.5,0.32,0],hero:[0.48,0.32,0],_:[0.5,0.32,0]},
+  SIFMJS:{front:[0.5,0.295,0],hero:[0.47,0.29,0],_:[0.5,0.295,0]},
   MPS63:{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
   MPSW9:{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
-  "DYNA-1":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
-  "DYNA-2":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
-  "DYNA-5":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
-  "DYNA-6":{front:[0.5,0.72,0],_:[0.5,0.72,0]},
-  SIFMJH:{rear:[0.5,0.55,0],rear_open:[0.5,0.50,0],_:[0.5,0.55,0]},
+  "DYNA-1":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
+  "DYNA-2":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
+  "DYNA-5":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
+  "DYNA-6":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
+  SIFMJH:{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
   "STICK-RB":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   MPS123:{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
   XSM2:{rear:[0.55,0.55,0],_:[0.55,0.55,0]},
@@ -236,9 +236,39 @@ var pushBar=false,dashLighting=false,rearHatchLights=false;
 var PUSH_BAR={front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}};
 var DASH_SPRITES={front:{cx:50,cy:22.5,w:34},hero:{cx:44,cy:20.5,w:22,rot:-3}};
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
-var snapEnabled=true, SNAP_STEP=0.02, SNAP_MAG=0.035;
+var snapEnabled=true, SNAP_STEP=0.025, SNAP_MAG=0.045;
+/* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
+var MOUNT_SNAPS={
+  front:[[0.5,0.295,"ILS visor"],[0.5,0.28,"roof/visor"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"]],
+  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"]],
+  rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"]],
+  left:[[0.45,0.30,"roofline"],[0.28,0.42,"mirror"]],
+  right:[[0.55,0.30,"roofline"],[0.72,0.42,"mirror"]],
+  hero:[[0.48,0.29,"ILS visor"],[0.48,0.26,"roof"],[0.36,0.52,"grille"]]
+};
 
 VIEWS.forEach(function(v){nodes[v.id]=[]});
+var STORE_KEY="iu-visualizer-v1";
+function saveState(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      view:view, bodyColor:bodyColor, scheme:scheme, nodes:nodes,
+      pushBar:pushBar, dashLighting:dashLighting, rearHatchLights:rearHatchLights,
+      snapEnabled:snapEnabled, nid:nid
+    }));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    var s=JSON.parse(localStorage.getItem(STORE_KEY)||"null");
+    if(!s||!s.nodes) return;
+    view=s.view||view; bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
+    pushBar=!!s.pushBar; dashLighting=!!s.dashLighting; rearHatchLights=!!s.rearHatchLights;
+    if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
+    if(s.nid) nid=s.nid;
+    VIEWS.forEach(function(v){ nodes[v.id]=Array.isArray(s.nodes[v.id])?s.nodes[v.id]:[]; });
+  }catch(e){}
+}
 
 function getEmptyDragImage(){
   if(emptyDragImg) return emptyDragImg;
@@ -409,6 +439,7 @@ function renderStage(){
     });
     stage.appendChild(el);
   });
+  saveState();
 }
 function isFreePlace(ev){
   return !!(ev&&(ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey));
@@ -416,17 +447,29 @@ function isFreePlace(ev){
 function snapTo(x,y,free,skipId){
   if(free||!snapEnabled) return {x:x,y:y,vx:[],hy:[]};
   var others=nodes[view].filter(function(n){return n.id!==skipId});
+  var mounts=MOUNT_SNAPS[view]||[];
+  // Prefer nearest good mount point (real placement), then centerline/peers, then grid
+  var bestM=null, bestMD=1e9;
+  mounts.forEach(function(m){
+    var d=Math.hypot(x-m[0], y-m[1]);
+    if(d<SNAP_MAG*1.6 && d<bestMD){ bestMD=d; bestM=m; }
+  });
+  if(bestM){
+    return {x:bestM[0],y:bestM[1],vx:[bestM[0]],hy:[bestM[1]]};
+  }
   var vx=[],hy=[],nx=x,ny=y,bestX=1e9,bestY=1e9;
   var xs=[0.5].concat(others.map(function(n){return n.x}));
+  mounts.forEach(function(m){ xs.push(m[0]); });
   xs.forEach(function(tx){
     var d=Math.abs(x-tx);
     if(d<SNAP_MAG&&d<bestX){bestX=d; nx=tx}
   });
   if(bestX<1e9) vx.push(nx);
   else nx=Math.round(x/SNAP_STEP)*SNAP_STEP;
-  others.forEach(function(n){
-    var d=Math.abs(y-n.y);
-    if(d<SNAP_MAG&&d<bestY){bestY=d; ny=n.y}
+  var ys=others.map(function(n){return n.y}).concat(mounts.map(function(m){return m[1]}));
+  ys.forEach(function(ty){
+    var d=Math.abs(y-ty);
+    if(d<SNAP_MAG&&d<bestY){bestY=d; ny=ty}
   });
   if(bestY<1e9) hy.push(ny);
   else ny=Math.round(y/SNAP_STEP)*SNAP_STEP;
@@ -549,7 +592,7 @@ document.querySelectorAll(".sw").forEach(function(s){
     var on=s.dataset.on==="true";
     s.dataset.on=String(!on);
     s.classList.toggle("on",!on);
-    if(s.id==="snapToggle") snapEnabled=!on;
+    if(s.id==="snapToggle"){ snapEnabled=!on; saveState(); }
     else if(s.id==="pushBarToggle"){ pushBar=!on; renderStage(); }
     else if(s.id==="dashToggle"){ dashLighting=!on; renderStage(); }
     else if(s.id==="hatchToggle"){ rearHatchLights=!on; renderStage(); }
@@ -578,6 +621,19 @@ document.getElementById("loadBtn").onclick=function(){
   alert("Quote "+q+" — SKU import when catalog is connected.");
 };
 document.getElementById("pdfBtn").onclick=function(){window.print()};
+loadState();
+(function syncToggles(){
+  function setSw(id, on){
+    var s=document.getElementById(id); if(!s) return;
+    s.dataset.on=String(!!on); s.classList.toggle("on", !!on);
+  }
+  setSw("snapToggle", snapEnabled);
+  setSw("pushBarToggle", pushBar);
+  setSw("dashToggle", dashLighting);
+  setSw("hatchToggle", rearHatchLights);
+  document.querySelectorAll("#bodyColor button").forEach(function(b){b.classList.toggle("active", b.dataset.body===bodyColor)});
+  document.querySelectorAll("#colorScheme button").forEach(function(b){b.classList.toggle("active", b.dataset.s===scheme)});
+})();
 renderParts(); renderTabs(); renderStage(); renderSum();
 })();
 </script>
