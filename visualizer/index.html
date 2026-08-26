@@ -137,7 +137,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
   </aside>
   <section class="stage-wrap">
     <div class="view-tabs" id="viewTabs"></div>
-    <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount. Snap is a fine grid plus centerline / other-light align — hold Shift for freeform.</div>
+    <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount. At roof/visor height, snap centers and seats — hold Shift for freeform.</div>
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <img class="vehicle" id="vehicleImg" src="durango_front.png" alt="Vehicle" draggable="false"/>
@@ -154,7 +154,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="section">
       <div class="panel-head">Build Parameters</div>
       <div class="toggles">
-        <div class="toggle"><div class="lbl">Snap / align<small>Fine grid + centerline / other lights. Hold Shift for freeform</small></div><button type="button" class="sw on" id="snapToggle" data-on="true" aria-label="Snap / align"></button></div>
+        <div class="toggle"><div class="lbl">Snap / align<small>Seats on roof/visor when at that height. Hold Shift for freeform</small></div><button type="button" class="sw on" id="snapToggle" data-on="true" aria-label="Snap / align"></button></div>
         <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" id="pushBarToggle" data-on="false" aria-label="Push Bar"></button></div>
         <div class="toggle"><div class="lbl">Interior Dash<small>Windshield warning</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
         <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Liftgate glass stick</small></div><button type="button" class="sw" id="hatchToggle" data-on="false" aria-label="Rear Hatch Lights"></button></div>
@@ -237,9 +237,10 @@ var PUSH_BAR={front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs
 var DASH_SPRITES={front:{cx:50,cy:22.5,w:34},hero:{cx:44,cy:20.5,w:22,rot:-3}};
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
 /* Front plate (1024², vehicle y≈0.220–0.790): roof peak ~0.220, glass under header ~0.242.
-   2.5% grid + 7% mount magnet sat ALGT in air (y=0.20) or mid-glass (y=0.28) — never on the roof.
-   Fine grid (~0.5% / 5px) seats on sheet metal; short magnets keep centerline/peer align. */
-var snapEnabled=true, SNAP_STEP=0.005, SNAP_MAG=0.012, SNAP_MOUNT=0.008;
+   Tight 2D hypot (SNAP_MOUNT=0.008) only locked after an L-to-R centerline hunt.
+   Catch the roof/visor *Y band* (no 7% teleport), then center X; keep 0.5% Y nudge. */
+var snapEnabled=true, SNAP_STEP=0.005, SNAP_MAG=0.012, SNAP_MOUNT=0.010;
+var SNAP_BAND_Y=0.016, SNAP_BAND_X=0.18;
 /* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
 var MOUNT_SNAPS={
   front:[[0.5,0.255,"ILS visor"],[0.5,0.230,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"]],
@@ -335,7 +336,7 @@ function renderParts(){
       row.addEventListener("dragend",function(){
         row.classList.remove("placing");
         clearDragSkuSoon();
-        document.getElementById("hintBar").textContent="Drag a part onto the vehicle, or click a part to place at its default mount. Snap is a fine grid plus centerline / other-light align — hold Shift for freeform.";
+        document.getElementById("hintBar").textContent="Drag a part onto the vehicle, or click a part to place at its default mount. At roof/visor height, snap centers and seats — hold Shift for freeform.";
       });
       row.addEventListener("click",function(){
         var d=defaultFor(p.sku);
@@ -448,21 +449,37 @@ function isFreePlace(ev){
   return !!(ev&&(ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey));
 }
 function quant(v){ return +(Math.round(v/SNAP_STEP)*SNAP_STEP).toFixed(4); }
-function snapTo(x,y,free,skipId){
+function mountBandX(m){
+  // Centerline seats (roof / visor / grille): wide X so you do not hunt L-R.
+  // Side mounts are medium-tight so a near-L drop stays L, not stolen to center.
+  return Math.abs(m[0]-0.5)<0.05 ? SNAP_BAND_X : 0.06;
+}
+function mountPrefer(m, sku){
+  if(!sku) return 0;
+  var name=m[2]||"";
+  if(sku==="ALGT" && /roof/i.test(name)) return -0.006;
+  if((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)) return -0.006;
+  return 0;
+}
+function snapTo(x,y,free,skipId,sku){
   if(free||!snapEnabled) return {x:x,y:y,vx:[],hy:[]};
   var others=nodes[view].filter(function(n){return n.id!==skipId});
   var mounts=MOUNT_SNAPS[view]||[];
-  // Close 2D mount only — a large radius teleports lights off the roof/visor.
-  var bestM=null, bestMD=1e9;
+  // Prefer the mount whose Y band we are in, then center — not a 2D hypot hunt.
+  var bestM=null, bestScore=1e9;
   mounts.forEach(function(m){
-    var d=Math.hypot(x-m[0], y-m[1]);
-    if(d<SNAP_MOUNT && d<bestMD){ bestMD=d; bestM=m; }
+    var dx=Math.abs(x-m[0]), dy=Math.abs(y-m[1]);
+    if(dy>=SNAP_BAND_Y) return;
+    if(dx>=mountBandX(m)) return;
+    var score=Math.hypot(dx,dy)+mountPrefer(m, sku);
+    if(score<bestScore){ bestScore=score; bestM=m; }
   });
   if(bestM){
-    return {x:bestM[0],y:bestM[1],vx:[bestM[0]],hy:[bestM[1]]};
+    var dy=Math.abs(y-bestM[1]);
+    var ny=dy<=SNAP_MOUNT ? bestM[1] : quant(y);
+    return {x:bestM[0],y:ny,vx:[bestM[0]],hy:[ny]};
   }
   var vx=[],hy=[],nx=x,ny=y,bestX=1e9,bestY=1e9;
-  // Axis magnets: centerline + other lights only (mount Ys in 1D recreated the coarse trap).
   var xs=[0.5].concat(others.map(function(n){return n.x}));
   xs.forEach(function(tx){
     var d=Math.abs(x-tx);
@@ -503,7 +520,7 @@ function startMove(e,p,isTouch){
   function onMove(ev){
     if(isTouch) ev.preventDefault();
     var c=point(ev);
-    var g=snapTo(c.x,c.y,c.free,p.id);
+    var g=snapTo(c.x,c.y,c.free,p.id,p.sku);
     drawSnapGuides(c.free||!snapEnabled?null:g, snapEnabled&&!c.free);
     p.x=Math.max(0.02,Math.min(0.98,g.x));
     p.y=Math.max(0.02,Math.min(0.98,g.y));
@@ -533,7 +550,7 @@ function placeFromEvent(e,clamp){
   if(!sku) return false;
   var stage=document.getElementById("stage");
   var r=stage.getBoundingClientRect();
-  var g=snapTo((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,isFreePlace(e)||!snapEnabled,null);
+  var g=snapTo((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,isFreePlace(e)||!snapEnabled,null,sku);
   var x=g.x;
   var y=g.y;
   if(clamp){
