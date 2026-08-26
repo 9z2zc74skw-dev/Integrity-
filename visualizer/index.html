@@ -409,7 +409,6 @@ function renderStage(){
     el.style.left=(p.x*100)+"%";
     el.style.top=(p.y*100)+"%";
     el.style.width=(catW*p.scale)+"%";
-    el.style.transformOrigin=(p.sku==="ALGT"&&view==="front")?"center bottom":"center center";
     el.style.transform=sitTransform(p);
     var src=part?fxFor(part):null;
     if(src){
