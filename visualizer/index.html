@@ -240,7 +240,7 @@ var dragSku=null,dragClearTimer=null,emptyDragImg=null;
    Tight 2D hypot (SNAP_MOUNT=0.008) only locked after an L-to-R centerline hunt.
    Catch the roof/visor *Y band* (no 7% teleport), then center X; keep 0.5% Y nudge. */
 var snapEnabled=true, SNAP_STEP=0.005, SNAP_MAG=0.012, SNAP_MOUNT=0.010;
-var SNAP_BAND_Y=0.016, SNAP_BAND_X=0.18;
+var SNAP_BAND_Y=0.016, SNAP_BAND_X=0.28;
 /* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
 var MOUNT_SNAPS={
   front:[[0.5,0.255,"ILS visor"],[0.5,0.230,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"]],
@@ -449,9 +449,12 @@ function isFreePlace(ev){
   return !!(ev&&(ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey));
 }
 function quant(v){ return +(Math.round(v/SNAP_STEP)*SNAP_STEP).toFixed(4); }
-function mountBandX(m){
-  // Centerline seats (roof / visor / grille): wide X so you do not hunt L-R.
-  // Side mounts are medium-tight so a near-L drop stays L, not stolen to center.
+function mountBandX(m, sku){
+  var name=m[2]||"";
+  // Roof bar / visor stick: center whenever you are at that height (no L-R hunt).
+  if((sku==="ALGT" && /roof/i.test(name)) || ((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)))
+    return 0.42;
+  // Other centerline seats are wide; side mounts stay closer so L/R are not stolen.
   return Math.abs(m[0]-0.5)<0.05 ? SNAP_BAND_X : 0.06;
 }
 function mountPrefer(m, sku){
@@ -470,7 +473,7 @@ function snapTo(x,y,free,skipId,sku){
   mounts.forEach(function(m){
     var dx=Math.abs(x-m[0]), dy=Math.abs(y-m[1]);
     if(dy>=SNAP_BAND_Y) return;
-    if(dx>=mountBandX(m)) return;
+    if(dx>=mountBandX(m, sku)) return;
     var score=Math.hypot(dx,dy)+mountPrefer(m, sku);
     if(score<bestScore){ bestScore=score; bestM=m; }
   });
@@ -513,14 +516,17 @@ function drawSnapGuides(g, showCenter){
 function startMove(e,p,isTouch){
   var stage=document.getElementById("stage");
   var rect=stage.getBoundingClientRect();
-  function point(ev){
+  function raw(ev){
     var t=isTouch?(ev.touches[0]||ev.changedTouches[0]):ev;
     return {x:(t.clientX-rect.left)/rect.width,y:(t.clientY-rect.top)/rect.height,free:isFreePlace(t)||isFreePlace(ev)};
   }
+  // Keep grab offset so grabbing the left end of a 46% bar does not jump the center off the seat.
+  var grab=raw(e);
+  var offX=p.x-grab.x, offY=p.y-grab.y;
   function onMove(ev){
     if(isTouch) ev.preventDefault();
-    var c=point(ev);
-    var g=snapTo(c.x,c.y,c.free,p.id,p.sku);
+    var c=raw(ev);
+    var g=snapTo(c.x+offX,c.y+offY,c.free,p.id,p.sku);
     drawSnapGuides(c.free||!snapEnabled?null:g, snapEnabled&&!c.free);
     p.x=Math.max(0.02,Math.min(0.98,g.x));
     p.y=Math.max(0.02,Math.min(0.98,g.y));
