@@ -238,10 +238,10 @@ var PUSH_BAR={front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs
 var DASH_SPRITES={front:{cx:50,cy:22.5,w:34},hero:{cx:44,cy:20.5,w:22,rot:-3}};
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
 /* Front plate (1024², vehicle y≈0.220–0.790): roof peak ~0.220, glass under header ~0.242.
-   Seat Y in the roof/visor band (no 7% hypot teleport). X only gets a short
-   centerline magnet — a wide L-R band stole the bar while dragging. */
+   Seat Y in the roof/visor band (no 7% hypot teleport). X magnet is a few
+   percent only — 0.28/0.42 L-R bands yanked the bar to 0.5 while dragging. */
 var snapEnabled=true, SNAP_STEP=0.005, SNAP_MAG=0.012, SNAP_MOUNT=0.010;
-var SNAP_BAND_Y=0.016, SNAP_BAND_X=0.28, SNAP_CENTER_X=0.035;
+var SNAP_BAND_Y=0.016, SNAP_CENTER_X=0.03;
 /* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
 var MOUNT_SNAPS={
   front:[[0.5,0.242,"ILS visor"],[0.5,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"]],
@@ -465,14 +465,6 @@ function isFreePlace(ev){
   return !!(ev&&(ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey));
 }
 function quant(v){ return +(Math.round(v/SNAP_STEP)*SNAP_STEP).toFixed(4); }
-function mountBandX(m, sku){
-  var name=m[2]||"";
-  // Roof bar / visor stick: short center magnet only. Click-to-place uses defaults.
-  if((sku==="ALGT" && /roof/i.test(name)) || ((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)))
-    return SNAP_CENTER_X;
-  // Other centerline seats are wider; side mounts stay closer so L/R are not stolen.
-  return Math.abs(m[0]-0.5)<0.05 ? SNAP_BAND_X : 0.06;
-}
 function mountPrefer(m, sku){
   if(!sku) return 0;
   var name=m[2]||"";
@@ -484,15 +476,13 @@ function snapTo(x,y,free,skipId,sku){
   if(free||!snapEnabled) return {x:x,y:y,vx:[],hy:[]};
   var others=nodes[view].filter(function(n){return n.id!==skipId});
   var mounts=MOUNT_SNAPS[view]||[];
-  // Prefer the mount whose Y band we are in (no 7% hypot teleport). Snap X to
-  // that mount only with a short magnet — a wide L-R band glued the bar.
+  // Y-band seats on roof/visor (no 7% hypot teleport). X snaps to a mount
+  // only inside SNAP_CENTER_X (~3%) — never a 18–42% steal to 0.5.
   var bestM=null, bestScore=1e9;
   mounts.forEach(function(m){
     var dx=Math.abs(x-m[0]), dy=Math.abs(y-m[1]);
     if(dy>=SNAP_BAND_Y) return;
-    var score=dy+mountPrefer(m, sku);
-    if(dx<mountBandX(m, sku)) score-=0.04;
-    else score+=dx*0.01;
+    var score=dy+mountPrefer(m, sku)+dx*0.01;
     if(score<bestScore){ bestScore=score; bestM=m; }
   });
   var vx=[],hy=[],nx=x,ny=y,bestX=1e9,bestY=1e9;
@@ -500,8 +490,7 @@ function snapTo(x,y,free,skipId,sku){
     var dy=Math.abs(y-bestM[1]);
     ny=dy<=SNAP_MOUNT ? bestM[1] : quant(y);
     hy.push(ny);
-    var dx=Math.abs(x-bestM[0]);
-    if(dx<mountBandX(bestM, sku)){
+    if(Math.abs(x-bestM[0])<SNAP_CENTER_X){
       return {x:bestM[0],y:ny,vx:[bestM[0]],hy:hy};
     }
   }
