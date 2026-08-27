@@ -71,9 +71,10 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .light .tag{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0}
 .light.selected .tag,.light:hover .tag{opacity:1}
-.light .ctrls{position:absolute;top:-32px;left:50%;transform:translateX(-50%);display:none;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px;z-index:20}
+/* Dock above the sprite (not on top of it). 40px hits; 16px air gap so a large cursor can still grab the light. */
+.light .ctrls{position:absolute;top:auto;bottom:calc(100% + 16px);left:50%;transform:translateX(-50%);display:none;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.45)}
 .light.selected .ctrls{display:flex}
-.light .ctrls button{width:26px;height:26px;border:none;background:transparent;color:var(--text);border-radius:4px;cursor:pointer;font-size:13px}
+.light .ctrls button{width:40px;height:40px;border:none;background:transparent;color:var(--text);border-radius:6px;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0}
 .light .ctrls button:hover{background:var(--s3)}
 .stage-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px;flex-shrink:0}
 .hint-bar{font-size:10px;color:var(--muted);padding:6px 12px 0;text-align:center;line-height:1.35}
