@@ -71,11 +71,12 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .light .tag{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0}
 .light.selected .tag,.light:hover .tag{opacity:1}
-/* Dock above the sprite (not on top of it). 40px hits; 16px air gap so a large cursor can still grab the light. */
-.light .ctrls{position:absolute;top:auto;bottom:calc(100% + 16px);left:50%;transform:translateX(-50%);display:none;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.45)}
-.light.selected .ctrls{display:flex}
-.light .ctrls button{width:40px;height:40px;border:none;background:transparent;color:var(--text);border-radius:6px;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0}
-.light .ctrls button:hover{background:var(--s3)}
+/* Stage-level dock — not a child of the transformed sprite, so it cannot cover the bar. */
+.sel-dock{position:absolute;display:none;z-index:30;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.55);pointer-events:auto}
+.sel-dock.on{display:flex}
+.sel-dock button{width:44px;height:44px;border:none;background:transparent;color:var(--text);border-radius:8px;cursor:pointer;font-size:20px;line-height:1;flex-shrink:0}
+.sel-dock button:hover{background:var(--s3)}
+.sel-dock button.x{color:#f87171}
 .stage-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px;flex-shrink:0}
 .hint-bar{font-size:10px;color:var(--muted);padding:6px 12px 0;text-align:center;line-height:1.35}
 .section{padding:0;border-bottom:1px solid var(--border)}.section .panel-head{border-bottom:none;background:transparent;backdrop-filter:none;padding:12px 14px 4px;color:var(--faint);letter-spacing:.05em}
@@ -90,7 +91,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .section .schemes{padding:4px 14px 14px}.schemes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .scheme{background:color-mix(in srgb,var(--card) 60%,transparent);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px;font-size:12px;font-family:inherit;cursor:pointer}
 .scheme:hover{background:var(--elevate)}.scheme.active{border-color:var(--primary);color:#93c5fd;background:var(--pd)}
-.summary{padding:4px 14px 14px;font-size:12px;color:var(--muted)}.sum-row{display:flex;justify-content:space-between;padding:4px 0}.sum-row b{color:var(--text);font-weight:600}.sum-total{border-top:1px solid var(--border);margin-top:4px;padding-top:8px}.view-tab .n{margin-left:6px;opacity:.7;font-weight:500}.group{margin-bottom:2px}.part-info{min-width:0}.ctrls button.x{color:#f87171}
+.summary{padding:4px 14px 14px;font-size:12px;color:var(--muted)}.sum-row{display:flex;justify-content:space-between;padding:4px 0}.sum-row b{color:var(--text);font-weight:600}.sum-total{border-top:1px solid var(--border);margin-top:4px;padding-top:8px}.view-tab .n{margin-left:6px;opacity:.7;font-weight:500}.group{margin-bottom:2px}.part-info{min-width:0}
 @media (max-width:960px){
   .layout{grid-template-columns:1fr;grid-template-rows:min(38vh,320px) 1fr min(45vh,360px)}
   .panel{border-right:none;border-bottom:1px solid var(--border)}
@@ -144,6 +145,12 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
         <img class="vehicle" id="vehicleImg" src="durango_front.png" alt="Vehicle" draggable="false"/>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         <div class="drop-hint">Drop light here</div>
+        <div class="sel-dock" id="selDock" aria-label="Selected light">
+          <button type="button" data-act="rot" title="Rotate">&#8635;</button>
+          <button type="button" data-act="in" title="Larger">+</button>
+          <button type="button" data-act="out" title="Smaller">&#8722;</button>
+          <button type="button" data-act="del" class="x" title="Remove">&#215;</button>
+        </div>
       </div>
     </div>
     <div class="stage-bar">
@@ -413,36 +420,26 @@ function renderStage(){
     el.style.transform=sitTransform(p);
     var src=part?fxFor(part):null;
     if(src){
-      el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="rot" title="Rotate">&#8635;</button><button type="button" data-act="in" title="Larger">+</button><button type="button" data-act="out" title="Smaller">&#8722;</button><button type="button" data-act="del" class="x" title="Remove">&#215;</button></div>';
+      el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div>';
     } else {
-      el.innerHTML='<div style="background:linear-gradient(135deg,#2a2a30,#1a1a1e);color:#c4c4cc;font-size:10px;padding:5px 9px;border-radius:5px;border:1px solid #3f3f46;white-space:nowrap">'+p.sku+'</div><div class="tag">'+p.sku+'</div><div class="ctrls"><button type="button" data-act="del" class="x" title="Remove">&#215;</button></div>';
+      el.innerHTML='<div style="background:linear-gradient(135deg,#2a2a30,#1a1a1e);color:#c4c4cc;font-size:10px;padding:5px 9px;border-radius:5px;border:1px solid #3f3f46;white-space:nowrap">'+p.sku+'</div><div class="tag">'+p.sku+'</div>';
     }
     el.addEventListener("mousedown",function(e){
-      if(e.target.closest(".ctrls")) return;
       e.preventDefault(); e.stopPropagation();
       selectPlacedLight(el,p);
       startMove(e,p,false);
     });
     el.addEventListener("touchstart",function(e){
-      if(e.target.closest(".ctrls")) return;
       e.stopPropagation();
       selectPlacedLight(el,p);
       startMove(e,p,true);
     },{passive:false});
-    el.querySelectorAll(".ctrls button").forEach(function(btn){
-      btn.onclick=function(e){
-        e.stopPropagation();
-        var a=btn.dataset.act;
-        if(a==="del"){nodes[view]=nodes[view].filter(function(n){return n.id!==p.id}); sel=null}
-        else if(a==="rot") p.rot=(p.rot+15)%360;
-        else if(a==="in") p.scale=Math.min(2.5,+(p.scale+0.1).toFixed(2));
-        else if(a==="out") p.scale=Math.max(0.3,+(p.scale-0.1).toFixed(2));
-        renderStage(); renderTabs(); renderSum();
-      };
-    });
+    var img=el.querySelector("img");
+    if(img) img.addEventListener("load",function(){ if(p.id===sel) syncSelDock(); });
     stage.appendChild(el);
   });
   saveState();
+  requestAnimationFrame(syncSelDock);
 }
 function selectPlacedLight(el,p){
   /* Do not renderStage() here: removing the mousedown target cancels the pointer
@@ -452,6 +449,32 @@ function selectPlacedLight(el,p){
     if(n!==el) n.classList.remove("selected");
   });
   el.classList.add("selected");
+  syncSelDock();
+}
+function syncSelDock(){
+  var dock=document.getElementById("selDock");
+  if(!dock) return;
+  var el=document.querySelector("#stage .light.selected");
+  if(!el || sel==null){
+    dock.classList.remove("on");
+    return;
+  }
+  dock.classList.add("on");
+  var stage=document.getElementById("stage");
+  var sr=stage.getBoundingClientRect();
+  var r=el.getBoundingClientRect();
+  var gap=16;
+  var w=dock.offsetWidth||220, h=dock.offsetHeight||60;
+  var left=(r.left+r.width/2-sr.left)-w/2;
+  var top=r.top-sr.top-gap-h;
+  if(top<8){
+    top=r.bottom-sr.top+gap;
+    if(top+h>sr.height-8) top=Math.max(8, (r.top-sr.top+r.height/2)-h/2);
+  }
+  left=Math.max(8, Math.min(left, sr.width-w-8));
+  top=Math.max(8, Math.min(top, sr.height-h-8));
+  dock.style.left=left+"px";
+  dock.style.top=top+"px";
 }
 function sitTransform(p){
   /* Front ALGT: stored y is the roof contact (sprite bottom), not the bbox center.
@@ -545,6 +568,7 @@ function startMove(e,p,isTouch){
     p.y=Math.max(0.02,Math.min(0.98,g.y));
     var n=document.querySelector('.light[data-id="'+p.id+'"]');
     if(n){n.style.left=(p.x*100)+"%"; n.style.top=(p.y*100)+"%"}
+    syncSelDock();
   }
   function onUp(){
     drawSnapGuides(null);
@@ -622,10 +646,32 @@ stageArea.addEventListener("dragenter",function(e){e.preventDefault()});
 stageArea.addEventListener("drop",function(e){onDrop(e,true)});
 
 stage.addEventListener("mousedown",function(e){
+  if(e.target.closest("#selDock")) return;
   if(e.target===stage||e.target.id==="vehicleImg"||e.target.classList.contains("drop-hint")){
     sel=null; renderStage();
   }
 });
+
+(function bindSelDock(){
+  var dock=document.getElementById("selDock");
+  if(!dock) return;
+  dock.addEventListener("mousedown",function(e){ e.stopPropagation(); });
+  dock.addEventListener("touchstart",function(e){ e.stopPropagation(); },{passive:false});
+  dock.querySelectorAll("button").forEach(function(btn){
+    btn.addEventListener("click",function(e){
+      e.stopPropagation();
+      var p=nodes[view].find(function(n){return n.id===sel});
+      if(!p) return;
+      var a=btn.dataset.act;
+      if(a==="del"){ nodes[view]=nodes[view].filter(function(n){return n.id!==sel}); sel=null; }
+      else if(a==="rot") p.rot=(p.rot+15)%360;
+      else if(a==="in") p.scale=Math.min(2.5,+(p.scale+0.1).toFixed(2));
+      else if(a==="out") p.scale=Math.max(0.3,+(p.scale-0.1).toFixed(2));
+      renderStage(); renderTabs(); renderSum();
+    });
+  });
+})();
+window.addEventListener("resize",syncSelDock);
 
 document.querySelectorAll(".sw").forEach(function(s){
   s.onclick=function(){
