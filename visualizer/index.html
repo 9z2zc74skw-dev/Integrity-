@@ -195,6 +195,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 /* Durango-only visualizer. Catalog w ≈ % of vehicle width for FedSig sprites.
    Defaults aligned to compiled-app Durango mounts (+ fixtureNudge dy≈1). */
 var ASSET_V="rearcut2";
+var FX_V="smk3";
 var VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -216,30 +217,30 @@ var CATALOG=[
   {sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPS63U-RBW",name:"MicroPulse behind front grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
-  {sku:"MPSW9-BW",name:"MicroPulse Wide Angle B/W, side lighting / mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
-  {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9 (Ford PI)",group:"Front / Perimeter",fx:null,w:5},
+  {sku:"MPSW9-BW",name:"MicroPulse Wide Angle B/W, side lighting / mirror",group:"Front / Perimeter",fx:"fx_mps_bw.png",w:6},
+  {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9 (Ford PI)",group:"Front / Perimeter",fx:"fx_bracket_l.png",w:5},
   {sku:"416309-RBW-SMK",name:"1 in round B/W smoked (front bumper ×4, rear bumper ×6)",group:"Front / Perimeter",fx:"fx_round_smk.png",w:2.6},
   {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
   {sku:"MPS123U-RBW",name:"MicroPulse 1200-series rear hatch face / plate",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
   {sku:"LIGHTS:MPS123U-RBW-SMK",name:"MicroPulse 1200 plate side smoked",group:"Rear Hatch",fx:"fx_mps123_smk.png",w:7},
-  {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series (MPS123U)",group:"Rear Hatch",fx:null,w:5},
-  {sku:"mpsm6-sb2",name:"MicroPulse swivel bracket (1200-series)",group:"Rear Hatch",fx:null,w:5},
-  {sku:"BRACKETS:MPSM6-LB",name:"MicroPulse L bracket",group:"Rear Hatch",fx:null,w:5},
+  {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series (MPS123U)",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
+  {sku:"mpsm6-sb2",name:"MicroPulse swivel bracket (1200-series)",group:"Rear Hatch",fx:"fx_bracket_l.png",w:5},
+  {sku:"BRACKETS:MPSM6-LB",name:"MicroPulse L bracket",group:"Rear Hatch",fx:"fx_bracket_l.png",w:5},
   {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
   {sku:"LIGHTS:SIFMJH-TAH21-P3",name:"Rear hatch ILS, FS Join, brake/reverse",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"CNSMJ8R-P3C",name:"SignalMaster 8-head rear stick, Red/Amber + Blue/Amber",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
-  {sku:"CNSM-RBK1",name:"SignalMaster 8-head mount bracket",group:"Rear Hatch",fx:null,w:5},
+  {sku:"CNSM-RBK1",name:"SignalMaster 8-head mount bracket",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
   {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"XSM2-BRW-US",name:"SpectraLux XSM2 rear quarter glass",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
   {sku:"ES100C",name:"100W speaker",group:"Siren / Control",fx:"fx_speaker.png",w:6},
-  {sku:"ESBL-FPIU20",name:"EC100 speaker bracket Ford PI",group:"Siren / Control",fx:null,w:5},
+  {sku:"ESBL-FPIU20",name:"EC100 speaker bracket Ford PI",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},
   {sku:"ESBL2-TAH21ND",name:"Dual ESB speaker/light mount Tahoe 21+",group:"Siren / Control",fx:"fx_speaker.png",w:7},
   {sku:"RBKIT1",name:"Rumbler",group:"Siren / Control",fx:"fx_rumbler.png",w:5},
-  {sku:"BRACKETS:RBS-FPIU20",name:"Rumbler bracket Ford PI",group:"Siren / Control",fx:null,w:5},
+  {sku:"BRACKETS:RBS-FPIU20",name:"Rumbler bracket Ford PI",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},
   {sku:"RBKIT2-COMPACT",name:"Compact rumbler",group:"Siren / Control",fx:"fx_rumbler.png",w:4.5},
-  {sku:"RBC2-TAH21ND",name:"2 compact rumbler brackets Tahoe 21+",group:"Siren / Control",fx:null,w:5}
+  {sku:"RBC2-TAH21ND",name:"2 compact rumbler brackets Tahoe 21+",group:"Siren / Control",fx:"fx_bracket_l.png",w:5}
 ];
 /* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
@@ -400,9 +401,12 @@ function defaultFor(sku){
 function fxFor(part){
   if(!part.fx) return null;
   var f=part.fx;
-  if(scheme==="bw") f=f.replace("_rb.","_bw.").replace("_r.","_bw.").replace("_b.","_bw.");
-  else if(scheme==="rw") f=f.replace("_rb.","_r.").replace("_bw.","_r.").replace("_b.","_r.");
-  return "fx/"+f;
+  /* Only scheme-swap the _rb family. Dedicated smoked/MAX/BW files keep their colors. */
+  if(/_rb\./.test(f)){
+    if(scheme==="bw") f=f.replace("_rb.","_bw.").replace("_r.","_bw.").replace("_b.","_bw.");
+    else if(scheme==="rw") f=f.replace("_rb.","_r.").replace("_bw.","_r.").replace("_b.","_r.");
+  }
+  return "fx/"+f+"?v="+FX_V;
 }
 function renderParts(){
   var q=(document.getElementById("search").value||"").toLowerCase();
