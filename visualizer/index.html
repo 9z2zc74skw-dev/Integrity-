@@ -368,6 +368,14 @@ function renderTabs(){
     el.appendChild(b);
   });
 }
+function catalogWidth(part,p){
+  /* Front roof is a smaller fraction of the stage than the bumper. Catalog
+     ALGT w:46 hangs off both sides of the cap; DYNA-6 72" is only w:38.
+     Keep other views at catalog w so Left/Right/Hero don't shrink. */
+  if(part && part.sku==="ALGT" && view==="front") return 32;
+  if(part && part.w!=null) return part.w;
+  return (p && p.w)!=null?p.w:10;
+}
 function renderStage(){
   var v=VIEWS.find(function(x){return x.id===view});
   document.getElementById("vehicleImg").src=bodyColor==="black"?v.imgB:v.imgW;
@@ -414,7 +422,7 @@ function renderStage(){
     el.className="light"+(p.id===sel?" selected":"");
     el.dataset.id=String(p.id);
     var part=CATALOG.find(function(c){return c.sku===p.sku});
-    var catW=(part&&part.w!=null)?part.w:(p.w||10);
+    var catW=catalogWidth(part,p);
     el.style.left=(p.x*100)+"%";
     el.style.top=(p.y*100)+"%";
     el.style.width=(catW*p.scale)+"%";
