@@ -194,7 +194,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Durango-only visualizer. Catalog w ≈ % of vehicle width for FedSig sprites.
    Defaults aligned to compiled-app Durango mounts (+ fixtureNudge dy≈1). */
-var ASSET_V="ac5173e";
+var ASSET_V="rearcut2";
 var VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -205,38 +205,41 @@ var VIEWS=[
 ];
 var CATALOG=[
   {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
-  {sku:"ALGT53JX-P3LB",name:"FedSig 53\" MAX tri-color light bar, black top, TD floods, alley, amber directional",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
+  {sku:"ALGT53JX-P3LB",name:"FedSig 53\" MAX tri-color light bar, black top, TD floods, alley, amber directional",group:"Front / Perimeter",fx:"fx_algt_max.png",w:46},
   {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:20},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14},
   {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32},
   {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38},
+  {sku:"DR1-RBK-SMK",name:"DynaFlare 1 ft smoked, behind grille, B/W",group:"Front / Perimeter",fx:"fx_dyna_1ft_smk.png",w:8},
+  {sku:"DR6-RBW",name:"DynaFlare 60 inch R/B/W exterior stick",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:28},
   {sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPS63U-RBW",name:"MicroPulse behind front grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
   {sku:"MPSW9-BW",name:"MicroPulse Wide Angle B/W, side lighting / mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
   {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9 (Ford PI)",group:"Front / Perimeter",fx:null,w:5},
+  {sku:"416309-RBW-SMK",name:"1 in round B/W smoked (front bumper ×4, rear bumper ×6)",group:"Front / Perimeter",fx:"fx_round_smk.png",w:2.6},
   {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
   {sku:"MPS123U-RBW",name:"MicroPulse 1200-series rear hatch face / plate",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
+  {sku:"LIGHTS:MPS123U-RBW-SMK",name:"MicroPulse 1200 plate side smoked",group:"Rear Hatch",fx:"fx_mps123_smk.png",w:7},
   {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series (MPS123U)",group:"Rear Hatch",fx:null,w:5},
+  {sku:"mpsm6-sb2",name:"MicroPulse swivel bracket (1200-series)",group:"Rear Hatch",fx:null,w:5},
+  {sku:"BRACKETS:MPSM6-LB",name:"MicroPulse L bracket",group:"Rear Hatch",fx:null,w:5},
   {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
+  {sku:"LIGHTS:SIFMJH-TAH21-P3",name:"Rear hatch ILS, FS Join, brake/reverse",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"CNSMJ8R-P3C",name:"SignalMaster 8-head rear stick, Red/Amber + Blue/Amber",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"CNSM-RBK1",name:"SignalMaster 8-head mount bracket",group:"Rear Hatch",fx:null,w:5},
   {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"XSM2-BRW-US",name:"SpectraLux XSM2 rear quarter glass",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
-  {sku:"PF200",name:"Pathfinder siren controller, dash mount",group:"Siren / Control",fx:null,w:6},
-  {sku:"ES100C",name:"100W speaker",group:"Siren / Control",fx:null,w:5},
+  {sku:"ES100C",name:"100W speaker",group:"Siren / Control",fx:"fx_speaker.png",w:6},
   {sku:"ESBL-FPIU20",name:"EC100 speaker bracket Ford PI",group:"Siren / Control",fx:null,w:5},
-  {sku:"RBKIT1",name:"Rumbler",group:"Siren / Control",fx:null,w:5},
+  {sku:"ESBL2-TAH21ND",name:"Dual ESB speaker/light mount Tahoe 21+",group:"Siren / Control",fx:"fx_speaker.png",w:7},
+  {sku:"RBKIT1",name:"Rumbler",group:"Siren / Control",fx:"fx_rumbler.png",w:5},
   {sku:"BRACKETS:RBS-FPIU20",name:"Rumbler bracket Ford PI",group:"Siren / Control",fx:null,w:5},
-  {sku:"BRACKETS:RBC-FPIU20ND",name:"Rumbler bracket Ford PI (companion)",group:"Siren / Control",fx:null,w:5},
-  {sku:"OBDFORD",name:"Vehicle integration (OBD Ford)",group:"Siren / Control",fx:null,w:5},
-  {sku:"EXPMOD24",name:"Expansion module 24",group:"Siren / Control",fx:null,w:5},
-  {sku:"PFPDM-1",name:"Pathfinder power distribution module",group:"Siren / Control",fx:null,w:5},
-  {sku:"CABLES:EXPHARN03",name:"Expansion harness Ford PI (rear blackout)",group:"Siren / Control",fx:null,w:5},
-  {sku:"PFSync-1",name:"Pathfinder Scene Sync",group:"Siren / Control",fx:null,w:5}
+  {sku:"RBKIT2-COMPACT",name:"Compact rumbler",group:"Siren / Control",fx:"fx_rumbler.png",w:4.5},
+  {sku:"RBC2-TAH21ND",name:"2 compact rumbler brackets Tahoe 21+",group:"Siren / Control",fx:null,w:5}
 ];
 /* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
@@ -251,58 +254,78 @@ var DEFAULTS={
   "DYNA-2":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-5":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-6":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
+  "DR1-RBK-SMK":{front:[0.38,0.48,0],hero:[0.36,0.48,0],_:[0.38,0.48,0]},
+  "DR6-RBW":{left:[0.50,0.42,0],right:[0.50,0.42,0],hero:[0.42,0.40,0],_:[0.50,0.42,0]},
   SIFMJH:{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
+  "LIGHTS:SIFMJH-TAH21-P3":{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
   "STICK-RB":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   "CNSMJ8R-P3C":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   MPS123:{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
   "MPS123U-RBW":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
+  "LIGHTS:MPS123U-RBW-SMK":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
   XSM2:{rear:[0.55,0.55,0],_:[0.55,0.55,0]},
   "XSM2-BRW-US":{rear:[0.28,0.45,0],left:[0.78,0.40,0],right:[0.22,0.40,0],_:[0.28,0.45,0]},
   "416300":{rear:[0.7,0.55,0],_:[0.7,0.55,0]},
-  PF200:{front:[0.5,0.40,0],hero:[0.48,0.40,0],_:[0.5,0.40,0]},
-  ES100C:{front:[0.5,0.68,0],hero:[0.42,0.66,0],_:[0.5,0.68,0]},
-  "ESBL-FPIU20":{front:[0.5,0.68,0],hero:[0.42,0.66,0],_:[0.5,0.68,0]},
-  RBKIT1:{front:[0.42,0.70,0],hero:[0.38,0.68,0],_:[0.42,0.70,0]},
-  "BRACKETS:RBS-FPIU20":{front:[0.42,0.70,0],hero:[0.38,0.68,0],_:[0.42,0.70,0]},
-  "BRACKETS:RBC-FPIU20ND":{front:[0.58,0.70,0],hero:[0.46,0.68,0],_:[0.58,0.70,0]},
+  "416309-RBW-SMK":{front:[0.26,0.74,0],rear:[0.22,0.76,0],_:[0.26,0.74,0]},
+  ES100C:{front:[0.38,0.70,0],hero:[0.36,0.66,0],_:[0.38,0.70,0]},
+  "ESBL-FPIU20":{front:[0.38,0.70,0],hero:[0.36,0.66,0],_:[0.38,0.70,0]},
+  "ESBL2-TAH21ND":{front:[0.50,0.70,0],hero:[0.42,0.66,0],_:[0.50,0.70,0]},
+  RBKIT1:{front:[0.42,0.78,0],hero:[0.38,0.72,0],_:[0.42,0.78,0]},
+  "BRACKETS:RBS-FPIU20":{front:[0.42,0.78,0],hero:[0.38,0.72,0],_:[0.42,0.78,0]},
+  "RBKIT2-COMPACT":{front:[0.58,0.78,0],hero:[0.44,0.72,0],_:[0.58,0.78,0]},
+  "RBC2-TAH21ND":{front:[0.58,0.78,0],hero:[0.44,0.72,0],_:[0.58,0.78,0]},
   "BRACKETS:FPIU20MIR":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.18,0.42,0]},
-  OBDFORD:{front:[0.52,0.42,0],hero:[0.50,0.42,0],_:[0.52,0.42,0]},
-  EXPMOD24:{front:[0.55,0.44,0],hero:[0.52,0.44,0],_:[0.55,0.44,0]},
-  "PFPDM-1":{front:[0.48,0.44,0],hero:[0.46,0.44,0],_:[0.48,0.44,0]},
-  "CABLES:EXPHARN03":{rear:[0.5,0.50,0],rear_open:[0.5,0.48,0],_:[0.5,0.50,0]},
-  "PFSync-1":{front:[0.5,0.38,0],hero:[0.48,0.38,0],_:[0.5,0.38,0]},
   "CNSM-RBK1":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
-  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]}
+  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
+  "mpsm6-sb2":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
+  "BRACKETS:MPSM6-LB":{rear:[0.62,0.62,0],rear_open:[0.62,0.58,0],_:[0.62,0.62,0]}
 };
-/* Estimate 1236 qty-2 lighting: one catalog click drops the pair on Durango L/R mounts. */
+/* Qty-2+ lighting: one catalog click drops the set on Durango mounts. */
 var CLICK_PAIRS={
   "MPS63U-RBW":{front:[[0.38,0.52,0],[0.62,0.52,0]],hero:[[0.36,0.52,0]]},
   "MPSW9-BW":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
   "BRACKETS:FPIU20MIR":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
   "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
-  "MPS123U-RBW":{rear:[[0.38,0.62,0],[0.62,0.62,0]],rear_open:[[0.38,0.58,0],[0.62,0.58,0]]}
+  "MPS123U-RBW":{rear:[[0.38,0.62,0],[0.62,0.62,0]],rear_open:[[0.38,0.58,0],[0.62,0.58,0]]},
+  "LIGHTS:MPS123U-RBW-SMK":{rear:[[0.32,0.62,0],[0.68,0.62,0]],rear_open:[[0.32,0.58,0],[0.68,0.58,0]]},
+  "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]],hero:[[0.36,0.48,0]]},
+  ES100C:{front:[[0.38,0.70,0],[0.62,0.70,0]],hero:[[0.36,0.66,0]]}
+};
+/* SKUs that drop onto more than one view at once (front×4 + rear×6, side pair). */
+var CLICK_MULTI={
+  "416309-RBW-SMK":{
+    front:[[0.26,0.74,0],[0.38,0.74,0],[0.62,0.74,0],[0.74,0.74,0]],
+    rear:[[0.22,0.76,0],[0.32,0.76,0],[0.42,0.76,0],[0.58,0.76,0],[0.68,0.76,0],[0.78,0.76,0]]
+  },
+  "DR6-RBW":{
+    left:[[0.50,0.42,0]],
+    right:[[0.50,0.42,0]]
+  }
 };
 var HOME_VIEW={
   "ALGT53JX-P3LB":"front",
   "MPS63U-RBW":"front",
   "MPSW9-BW":"front",
   "BRACKETS:FPIU20MIR":"front",
+  "DR1-RBK-SMK":"front",
+  "DR6-RBW":"left",
+  "416309-RBW-SMK":"front",
   "XSM2-BRW-US":"rear",
   "CNSMJ8R-P3C":"rear",
   "CNSM-RBK1":"rear",
   "MPS123U-RBW":"rear",
+  "LIGHTS:MPS123U-RBW-SMK":"rear",
+  "LIGHTS:SIFMJH-TAH21-P3":"rear",
   "BRACKETS:MPSM6-LPH1":"rear",
-  PF200:"front",
+  "mpsm6-sb2":"rear",
+  "BRACKETS:MPSM6-LB":"rear",
   ES100C:"front",
   "ESBL-FPIU20":"front",
+  "ESBL2-TAH21ND":"front",
   RBKIT1:"front",
   "BRACKETS:RBS-FPIU20":"front",
-  "BRACKETS:RBC-FPIU20ND":"front",
-  OBDFORD:"front",
-  EXPMOD24:"front",
-  "PFPDM-1":"front",
-  "CABLES:EXPHARN03":"rear",
-  "PFSync-1":"front"
+  "RBKIT2-COMPACT":"front",
+  "RBC2-TAH21ND":"front"
 };
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var pushBar=false,dashLighting=false,rearHatchLights=false;
@@ -318,8 +341,8 @@ var snapEnabled=true, SNAP_STEP=0.005, SNAP_MAG=0.012, SNAP_MOUNT=0.010;
 var SNAP_BAND_Y=0.016, SNAP_CENTER_X=0.03;
 /* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
 var MOUNT_SNAPS={
-  front:[[0.5,0.285,"ILS visor"],[0.5,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"]],
-  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.58,"hatch stick"],[0.38,0.62,"hatch plate L"],[0.62,0.62,"hatch plate R"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"]],
+  front:[[0.5,0.285,"ILS visor"],[0.5,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"],[0.26,0.74,"bumper L"],[0.38,0.74,"bumper L2"],[0.62,0.74,"bumper R2"],[0.74,0.74,"bumper R"]],
+  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.58,"hatch stick"],[0.38,0.62,"hatch plate L"],[0.62,0.62,"hatch plate R"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"],[0.22,0.76,"bumper L"],[0.32,0.76,"bumper L2"],[0.42,0.76,"bumper L3"],[0.58,0.76,"bumper R3"],[0.68,0.76,"bumper R2"],[0.78,0.76,"bumper R"]],
   rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"],[0.38,0.58,"hatch plate L"],[0.62,0.58,"hatch plate R"]],
   left:[[0.45,0.30,"roofline"],[0.28,0.42,"mirror"],[0.78,0.40,"quarter"]],
   right:[[0.55,0.30,"roofline"],[0.72,0.42,"mirror"],[0.22,0.40,"quarter"]],
@@ -569,17 +592,18 @@ function mountPrefer(m, sku){
   if(!sku) return 0;
   var name=m[2]||"";
   if(isRoofBar(sku) && /roof/i.test(name)) return -0.006;
-  if((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)) return -0.006;
-  if(sku==="MPS63U-RBW" && /grille/i.test(name)) return -0.006;
+  if((sku==="SIFMJS"||sku==="SIFMJH"||sku==="LIGHTS:SIFMJH-TAH21-P3") && /ILS|visor/i.test(name)) return -0.006;
+  if((sku==="MPS63U-RBW"||sku==="DR1-RBK-SMK") && /grille/i.test(name)) return -0.006;
   if(sku==="MPSW9-BW" && /mirror/i.test(name)) return -0.006;
   if(sku==="XSM2-BRW-US" && /pillar|quarter/i.test(name)) return -0.006;
   if(sku==="CNSMJ8R-P3C" && /hatch stick/i.test(name)) return -0.006;
   if(sku==="CNSM-RBK1" && /hatch stick/i.test(name)) return -0.006;
-  if(sku==="MPS123U-RBW" && /hatch plate/i.test(name)) return -0.006;
+  if((sku==="MPS123U-RBW"||sku==="LIGHTS:MPS123U-RBW-SMK"||sku==="mpsm6-sb2"||sku==="BRACKETS:MPSM6-LB") && /hatch plate/i.test(name)) return -0.006;
   if(sku==="BRACKETS:MPSM6-LPH1" && /hatch plate/i.test(name)) return -0.006;
   if(sku==="BRACKETS:FPIU20MIR" && /mirror/i.test(name)) return -0.006;
-  if((sku==="ES100C"||sku==="ESBL-FPIU20"||sku==="RBKIT1"||sku==="BRACKETS:RBS-FPIU20"||sku==="BRACKETS:RBC-FPIU20ND") && /pushbar|lower/i.test(name)) return -0.006;
-  if(sku==="CABLES:EXPHARN03" && /hatch mid/i.test(name)) return -0.006;
+  if(sku==="416309-RBW-SMK" && /bumper/i.test(name)) return -0.006;
+  if(sku==="DR6-RBW" && /roofline|mirror/i.test(name)) return -0.006;
+  if((sku==="ES100C"||sku==="ESBL-FPIU20"||sku==="ESBL2-TAH21ND"||sku==="RBKIT1"||sku==="BRACKETS:RBS-FPIU20"||sku==="RBKIT2-COMPACT"||sku==="RBC2-TAH21ND") && /pushbar|lower|bumper/i.test(name)) return -0.006;
   return 0;
 }
 function snapTo(x,y,free,skipId,sku){
@@ -670,7 +694,7 @@ function startMove(e,p,isTouch){
 function addNode(sku,x,y,rot){
   addNodes(sku,[{x:x,y:y,rot:rot||0}]);
 }
-function addNodes(sku, spots){
+function addNodes(sku, spots, quiet){
   var part=CATALOG.find(function(p){return p.sku===sku});
   if(!part || !spots || !spots.length) return;
   spots.forEach(function(s){
@@ -678,7 +702,7 @@ function addNodes(sku, spots){
     nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0});
     sel=id;
   });
-  renderStage(); renderTabs(); renderSum();
+  if(!quiet){ renderStage(); renderTabs(); renderSum(); }
 }
 function placeSpots(sku, v){
   var pair=CLICK_PAIRS[sku];
@@ -693,6 +717,18 @@ function placeSpots(sku, v){
   return [];
 }
 function clickPlace(sku){
+  var multi=CLICK_MULTI[sku];
+  if(multi){
+    var last=view;
+    Object.keys(multi).forEach(function(v){
+      view=v; last=v;
+      var spots=multi[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
+      addNodes(sku, spots, true);
+    });
+    view=HOME_VIEW[sku]||last;
+    renderStage(); renderTabs(); renderSum();
+    return;
+  }
   var home=HOME_VIEW[sku];
   if(home && home!==view) view=home;
   var spots=placeSpots(sku, view);
