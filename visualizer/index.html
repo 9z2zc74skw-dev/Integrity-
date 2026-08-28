@@ -50,7 +50,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .part:hover{background:var(--elevate)}.part:active{cursor:grabbing}
 .part.placing{outline:1px solid rgba(59,130,246,.55);background:var(--pd)}
 .part-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(90deg,#ef4444,#3b82f6);flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
-.part-sku{font-size:11px;font-weight:600}.part-name{font-size:10px;color:var(--muted);line-height:1.25}
+.part-info{min-width:0}.part-sku{font-size:11px;font-weight:600;word-break:break-word}.part-name{font-size:10px;color:var(--muted);line-height:1.25}
 .stage-wrap{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
 .view-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--bg) 60%,transparent);flex-shrink:0}
 .view-tab{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
@@ -205,17 +205,23 @@ var VIEWS=[
 ];
 var CATALOG=[
   {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
+  {sku:"ALGT53JX-P3LB",name:"FedSig 53\" MAX tri-color light bar, black top, TD floods, alley, amber directional",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
   {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:20},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14},
   {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32},
   {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38},
   {sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
+  {sku:"MPS63U-RBW",name:"MicroPulse behind front grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
+  {sku:"MPSW9-BW",name:"MicroPulse Wide Angle B/W, side lighting / mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
   {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
+  {sku:"MPS123U-RBW",name:"MicroPulse 1200-series rear hatch face / plate",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
   {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
+  {sku:"CNSMJ8R-P3C",name:"SignalMaster 8-head rear stick, Red/Amber + Blue/Amber",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
+  {sku:"XSM2-BRW-US",name:"SpectraLux XSM2 rear quarter glass",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
   {sku:"PF200",name:"PathFinder PF200 Siren Amp",group:"Siren / Control",fx:null,w:6},
   {sku:"ES100C",name:"ES100C Speaker",group:"Siren / Control",fx:null,w:5},
@@ -226,18 +232,39 @@ var CATALOG=[
 /* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
   ALGT:{front:[0.5,0.248,0],rear:[0.5,0.22,0],left:[0.45,0.30,0],right:[0.55,0.30,0],hero:[0.48,0.26,0],_:[0.5,0.248,0]},
+  "ALGT53JX-P3LB":{front:[0.5,0.248,0],rear:[0.5,0.22,0],left:[0.45,0.30,0],right:[0.55,0.30,0],hero:[0.48,0.26,0],_:[0.5,0.248,0]},
   SIFMJS:{front:[0.5,0.285,0],hero:[0.47,0.29,0],_:[0.5,0.285,0]},
   MPS63:{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
+  "MPS63U-RBW":{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
   MPSW9:{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
+  "MPSW9-BW":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
   "DYNA-1":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-2":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-5":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-6":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   SIFMJH:{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
   "STICK-RB":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
+  "CNSMJ8R-P3C":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   MPS123:{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
+  "MPS123U-RBW":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
   XSM2:{rear:[0.55,0.55,0],_:[0.55,0.55,0]},
+  "XSM2-BRW-US":{rear:[0.28,0.45,0],left:[0.78,0.40,0],right:[0.22,0.40,0],_:[0.28,0.45,0]},
   "416300":{rear:[0.7,0.55,0],_:[0.7,0.55,0]}
+};
+/* Estimate 1236 qty-2 lighting: one catalog click drops the pair on Durango L/R mounts. */
+var CLICK_PAIRS={
+  "MPS63U-RBW":{front:[[0.38,0.52,0],[0.62,0.52,0]],hero:[[0.36,0.52,0]]},
+  "MPSW9-BW":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
+  "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
+  "MPS123U-RBW":{rear:[[0.38,0.62,0],[0.62,0.62,0]],rear_open:[[0.38,0.58,0],[0.62,0.58,0]]}
+};
+var HOME_VIEW={
+  "ALGT53JX-P3LB":"front",
+  "MPS63U-RBW":"front",
+  "MPSW9-BW":"front",
+  "XSM2-BRW-US":"rear",
+  "CNSMJ8R-P3C":"rear",
+  "MPS123U-RBW":"rear"
 };
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var pushBar=false,dashLighting=false,rearHatchLights=false;
@@ -254,10 +281,10 @@ var SNAP_BAND_Y=0.016, SNAP_CENTER_X=0.03;
 /* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
 var MOUNT_SNAPS={
   front:[[0.5,0.285,"ILS visor"],[0.5,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"]],
-  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"]],
-  rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"]],
-  left:[[0.45,0.30,"roofline"],[0.28,0.42,"mirror"]],
-  right:[[0.55,0.30,"roofline"],[0.72,0.42,"mirror"]],
+  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.58,"hatch stick"],[0.38,0.62,"hatch plate L"],[0.62,0.62,"hatch plate R"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"]],
+  rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"],[0.38,0.58,"hatch plate L"],[0.62,0.58,"hatch plate R"]],
+  left:[[0.45,0.30,"roofline"],[0.28,0.42,"mirror"],[0.78,0.40,"quarter"]],
+  right:[[0.55,0.30,"roofline"],[0.72,0.42,"mirror"],[0.22,0.40,"quarter"]],
   hero:[[0.48,0.29,"ILS visor"],[0.48,0.26,"roof"],[0.36,0.52,"grille"]]
 };
 
@@ -349,8 +376,7 @@ function renderParts(){
         document.getElementById("hintBar").textContent="Drag a part onto the vehicle, or click a part to place at its default mount. At roof/visor height, snap seats — nudge left/right, hold Shift for freeform.";
       });
       row.addEventListener("click",function(){
-        var d=defaultFor(p.sku);
-        addNode(p.sku,d.x,d.y,d.rot);
+        clickPlace(p.sku);
       });
       wrap.appendChild(row);
     });
@@ -373,7 +399,7 @@ function catalogWidth(part,p){
   /* Front roof is a smaller fraction of the stage than the bumper. Catalog
      ALGT w:46 hangs off both sides of the cap; DYNA-6 72" is only w:38.
      Keep other views at catalog w so Left/Right/Hero don't shrink. */
-  if(part && part.sku==="ALGT" && view==="front") return 32;
+  if(part && isRoofBar(part.sku) && view==="front") return 32;
   if(part && part.w!=null) return part.w;
   return (p && p.w)!=null?p.w:10;
 }
@@ -486,11 +512,14 @@ function syncSelDock(){
   dock.style.left=left+"px";
   dock.style.top=top+"px";
 }
+function isRoofBar(sku){
+  return sku==="ALGT" || sku==="ALGT53JX-P3LB";
+}
 function sitTransform(p){
   /* Front ALGT: stored y is the roof contact (sprite bottom), not the bbox center.
      Center-origin left a sky gap even when the mount sat on the roof peak. */
   var ty=-50;
-  if(p.sku==="ALGT" && view==="front") ty=-100;
+  if(isRoofBar(p.sku) && view==="front") ty=-100;
   if(p.sku==="SIFMJS" && view==="front") ty=-15;
   return "translate(-50%,"+ty+"%) rotate("+(p.rot||0)+"deg)";
 }
@@ -501,8 +530,13 @@ function quant(v){ return +(Math.round(v/SNAP_STEP)*SNAP_STEP).toFixed(4); }
 function mountPrefer(m, sku){
   if(!sku) return 0;
   var name=m[2]||"";
-  if(sku==="ALGT" && /roof/i.test(name)) return -0.006;
+  if(isRoofBar(sku) && /roof/i.test(name)) return -0.006;
   if((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)) return -0.006;
+  if(sku==="MPS63U-RBW" && /grille/i.test(name)) return -0.006;
+  if(sku==="MPSW9-BW" && /mirror/i.test(name)) return -0.006;
+  if(sku==="XSM2-BRW-US" && /pillar|quarter/i.test(name)) return -0.006;
+  if(sku==="CNSMJ8R-P3C" && /hatch stick/i.test(name)) return -0.006;
+  if(sku==="MPS123U-RBW" && /hatch plate/i.test(name)) return -0.006;
   return 0;
 }
 function snapTo(x,y,free,skipId,sku){
@@ -591,12 +625,44 @@ function startMove(e,p,isTouch){
   document.addEventListener(isTouch?"touchend":"mouseup",onUp);
 }
 function addNode(sku,x,y,rot){
+  addNodes(sku,[{x:x,y:y,rot:rot||0}]);
+}
+function addNodes(sku, spots){
   var part=CATALOG.find(function(p){return p.sku===sku});
-  if(!part) return;
-  var id=nid++;
-  nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:x,y:y,scale:1,rot:rot||0});
-  sel=id;
+  if(!part || !spots || !spots.length) return;
+  spots.forEach(function(s){
+    var id=nid++;
+    nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0});
+    sel=id;
+  });
   renderStage(); renderTabs(); renderSum();
+}
+function placeSpots(sku, v){
+  var pair=CLICK_PAIRS[sku];
+  if(pair && pair[v]){
+    return pair[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
+  }
+  var map=DEFAULTS[sku];
+  if(map && map[v]){
+    var d=map[v];
+    return [{x:d[0], y:d[1], rot:d[2]||0}];
+  }
+  return [];
+}
+function clickPlace(sku){
+  var spots=placeSpots(sku, view);
+  if(!spots.length){
+    var home=HOME_VIEW[sku];
+    if(home && home!==view){
+      view=home;
+      spots=placeSpots(sku, view);
+    }
+  }
+  if(!spots.length){
+    var d=defaultFor(sku);
+    spots=[{x:d.x,y:d.y,rot:d.rot}];
+  }
+  addNodes(sku, spots);
 }
 function placeFromEvent(e,clamp){
   var sku=resolveDragSku(e);
