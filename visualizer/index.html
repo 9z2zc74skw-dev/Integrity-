@@ -194,7 +194,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Durango-only visualizer. Catalog w ≈ % of vehicle width for FedSig sprites.
    Defaults aligned to compiled-app Durango mounts (+ fixtureNudge dy≈1). */
-var ASSET_V="rearcut2";
+var ASSET_V="plate1";
 var FX_V="smk3";
 var VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -261,9 +261,9 @@ var DEFAULTS={
   "LIGHTS:SIFMJH-TAH21-P3":{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
   "STICK-RB":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   "CNSMJ8R-P3C":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
-  MPS123:{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
-  "MPS123U-RBW":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
-  "LIGHTS:MPS123U-RBW-SMK":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
+  MPS123:{rear:[0.5,0.553,0],rear_open:[0.5,0.248,0],_:[0.5,0.553,0]},
+  "MPS123U-RBW":{rear:[0.445,0.553,0],rear_open:[0.36,0.248,0],_:[0.445,0.553,0]},
+  "LIGHTS:MPS123U-RBW-SMK":{rear:[0.43,0.553,0],rear_open:[0.34,0.248,0],_:[0.43,0.553,0]},
   XSM2:{rear:[0.55,0.55,0],_:[0.55,0.55,0]},
   "XSM2-BRW-US":{rear:[0.28,0.45,0],left:[0.78,0.40,0],right:[0.22,0.40,0],_:[0.28,0.45,0]},
   "416300":{rear:[0.7,0.55,0],_:[0.7,0.55,0]},
@@ -277,9 +277,9 @@ var DEFAULTS={
   "RBC2-TAH21ND":{front:[0.58,0.78,0],hero:[0.44,0.72,0],_:[0.58,0.78,0]},
   "BRACKETS:FPIU20MIR":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.18,0.42,0]},
   "CNSM-RBK1":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
-  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.62,0],rear_open:[0.5,0.58,0],_:[0.5,0.62,0]},
-  "mpsm6-sb2":{rear:[0.38,0.62,0],rear_open:[0.38,0.58,0],_:[0.38,0.62,0]},
-  "BRACKETS:MPSM6-LB":{rear:[0.62,0.62,0],rear_open:[0.62,0.58,0],_:[0.62,0.62,0]}
+  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.553,0],rear_open:[0.5,0.248,0],_:[0.5,0.553,0]},
+  "mpsm6-sb2":{rear:[0.445,0.553,0],rear_open:[0.36,0.248,0],_:[0.445,0.553,0]},
+  "BRACKETS:MPSM6-LB":{rear:[0.555,0.553,0],rear_open:[0.64,0.248,0],_:[0.555,0.553,0]}
 };
 /* Qty-2+ lighting: one catalog click drops the set on Durango mounts. */
 var CLICK_PAIRS={
@@ -287,8 +287,8 @@ var CLICK_PAIRS={
   "MPSW9-BW":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
   "BRACKETS:FPIU20MIR":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
   "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
-  "MPS123U-RBW":{rear:[[0.38,0.62,0],[0.62,0.62,0]],rear_open:[[0.38,0.58,0],[0.62,0.58,0]]},
-  "LIGHTS:MPS123U-RBW-SMK":{rear:[[0.32,0.62,0],[0.68,0.62,0]],rear_open:[[0.32,0.58,0],[0.68,0.58,0]]},
+  "MPS123U-RBW":{rear:[[0.445,0.553,0],[0.555,0.553,0]],rear_open:[[0.36,0.248,0],[0.64,0.248,0]]},
+  "LIGHTS:MPS123U-RBW-SMK":{rear:[[0.43,0.553,0],[0.57,0.553,0]],rear_open:[[0.34,0.248,0],[0.66,0.248,0]]},
   "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]],hero:[[0.36,0.48,0]]},
   ES100C:{front:[[0.38,0.70,0],[0.62,0.70,0]],hero:[[0.36,0.66,0]]}
 };
@@ -343,8 +343,8 @@ var SNAP_BAND_Y=0.016, SNAP_CENTER_X=0.03;
 /* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
 var MOUNT_SNAPS={
   front:[[0.5,0.285,"ILS visor"],[0.5,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"],[0.26,0.74,"bumper L"],[0.38,0.74,"bumper L2"],[0.62,0.74,"bumper R2"],[0.74,0.74,"bumper R"]],
-  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.58,"hatch stick"],[0.38,0.62,"hatch plate L"],[0.62,0.62,"hatch plate R"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"],[0.22,0.76,"bumper L"],[0.32,0.76,"bumper L2"],[0.42,0.76,"bumper L3"],[0.58,0.76,"bumper R3"],[0.68,0.76,"bumper R2"],[0.78,0.76,"bumper R"]],
-  rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"],[0.38,0.58,"hatch plate L"],[0.62,0.58,"hatch plate R"]],
+  rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.58,"hatch stick"],[0.445,0.553,"hatch plate L"],[0.555,0.553,"hatch plate R"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"],[0.22,0.76,"bumper L"],[0.32,0.76,"bumper L2"],[0.42,0.76,"bumper L3"],[0.58,0.76,"bumper R3"],[0.68,0.76,"bumper R2"],[0.78,0.76,"bumper R"]],
+  rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"],[0.36,0.248,"hatch plate L"],[0.64,0.248,"hatch plate R"]],
   left:[[0.45,0.30,"roofline"],[0.28,0.42,"mirror"],[0.78,0.40,"quarter"]],
   right:[[0.55,0.30,"roofline"],[0.72,0.42,"mirror"],[0.22,0.40,"quarter"]],
   hero:[[0.48,0.29,"ILS visor"],[0.48,0.26,"roof"],[0.36,0.52,"grille"]]
