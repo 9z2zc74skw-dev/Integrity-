@@ -650,14 +650,9 @@ function placeSpots(sku, v){
   return [];
 }
 function clickPlace(sku){
+  var home=HOME_VIEW[sku];
+  if(home && home!==view) view=home;
   var spots=placeSpots(sku, view);
-  if(!spots.length){
-    var home=HOME_VIEW[sku];
-    if(home && home!==view){
-      view=home;
-      spots=placeSpots(sku, view);
-    }
-  }
   if(!spots.length){
     var d=defaultFor(sku);
     spots=[{x:d.x,y:d.y,rot:d.rot}];
