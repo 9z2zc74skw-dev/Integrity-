@@ -142,7 +142,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount. At roof/visor height, snap seats — nudge left/right, hold Shift for freeform.</div>
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
-        <img class="vehicle" id="vehicleImg" src="durango_front.png" alt="Vehicle" draggable="false"/>
+        <img class="vehicle" id="vehicleImg" src="durango_front.png?v=ac5173e" alt="Vehicle" draggable="false"/>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         <div class="drop-hint">Drop light here</div>
         <div class="sel-dock" id="selDock" aria-label="Selected light">
@@ -194,6 +194,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Durango-only visualizer. Catalog w ≈ % of vehicle width for FedSig sprites.
    Defaults aligned to compiled-app Durango mounts (+ fixtureNudge dy≈1). */
+var ASSET_V="ac5173e";
 var VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -378,7 +379,7 @@ function catalogWidth(part,p){
 }
 function renderStage(){
   var v=VIEWS.find(function(x){return x.id===view});
-  document.getElementById("vehicleImg").src=bodyColor==="black"?v.imgB:v.imgW;
+  document.getElementById("vehicleImg").src=(bodyColor==="black"?v.imgB:v.imgW)+"?v="+ASSET_V;
   var stage=document.getElementById("stage");
   stage.querySelectorAll(".light,.overlay-pushbar,.overlay-dash,.overlay-hatch").forEach(function(n){n.remove()});
   function placeOverlay(cls, place, src){
