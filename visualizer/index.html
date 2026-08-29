@@ -197,7 +197,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
 var ASSET_V="ppv1";
-var FX_V="smk3";
+var FX_V="max4";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -219,6 +219,7 @@ var TRUCK_VIEWS_F150=[
   {id:"right",label:"Right",imgW:"f150_right.png",imgB:"f150_right_black.png"}
 ];
 var TRUCK_MOUNTS={
+  /* front "roof" Y here is a placeholder — VEHICLES override per plate. */
   front:[[0.5,0.24,"ILS visor"],[0.5,0.175,"roof"],[0.5,0.50,"grille"],[0.38,0.50,"grille L"],[0.62,0.50,"grille R"],[0.5,0.68,"pushbar/lower"],[0.14,0.36,"mirror L"],[0.86,0.36,"mirror R"],[0.26,0.70,"bumper L"],[0.38,0.70,"bumper L2"],[0.62,0.70,"bumper R2"],[0.74,0.70,"bumper R"]],
   rear:[[0.5,0.24,"hatch ILS"],[0.5,0.48,"hatch mid"],[0.5,0.52,"hatch stick"],[0.44,0.65,"hatch plate L"],[0.56,0.65,"hatch plate R"],[0.5,0.16,"spoiler"],[0.22,0.68,"bumper L"],[0.32,0.68,"bumper L2"],[0.42,0.68,"bumper L3"],[0.58,0.68,"bumper R3"],[0.68,0.68,"bumper R2"],[0.78,0.68,"bumper R"]],
   left:[[0.45,0.375,"roofline"],[0.24,0.42,"mirror"],[0.78,0.48,"quarter"]],
@@ -268,10 +269,29 @@ var TRUCK_MULTI={
   },
   "DR6-RBW":{left:[[0.50,0.48,0]],right:[[0.50,0.48,0]]}
 };
+/* Front roof contact (ALGT sitTransform ty=-100 = sprite bottom).
+   Measured on the 1024² plates — do not share one Y across trucks:
+   F-150 white roof peak y=144 (0.141), glass starts y=170 (0.166).
+   Silverado white roof peak y=166 (0.162), glass starts y=188 (0.184).
+   Shared 0.175 sat in F-150 glass. ILS visor stays 0.24 (glass). */
+function withFrontRoof(mounts, roofY){
+  var m=JSON.parse(JSON.stringify(mounts));
+  m.front=m.front.map(function(pt){ return pt[2]==="roof"?[pt[0],roofY,pt[2]]:pt; });
+  return m;
+}
+function withFrontRoofDefaults(defaults, roofY){
+  var d=JSON.parse(JSON.stringify(defaults));
+  ["ALGT","ALGT53JX-P3LB"].forEach(function(sku){
+    if(!d[sku]) return;
+    d[sku].front=[0.5,roofY,0];
+    d[sku]._=[0.5,roofY,0];
+  });
+  return d;
+}
 var VEHICLES={
   durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS},
-  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:TRUCK_MOUNTS,defaults:TRUCK_DEFAULTS,clicks:TRUCK_CLICKS,multi:TRUCK_MULTI},
-  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:TRUCK_MOUNTS,defaults:TRUCK_DEFAULTS,clicks:TRUCK_CLICKS,multi:TRUCK_MULTI}
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.163),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.163),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.144),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.144),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI}
 };
 var vehicleId="durango";
 function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
@@ -727,6 +747,9 @@ function snapTo(x,y,free,skipId,sku){
   // only inside SNAP_CENTER_X (~3%) — never a 18–42% steal to 0.5.
   var bestM=null, bestScore=1e9;
   mounts.forEach(function(m){
+    var name=m[2]||"";
+    /* Roof bars never seat on the ILS visor / glass slot. */
+    if(isRoofBar(sku) && /ILS|visor/i.test(name)) return;
     var dx=Math.abs(x-m[0]), dy=Math.abs(y-m[1]);
     if(dy>=SNAP_BAND_Y) return;
     var score=dy+mountPrefer(m, sku)+dx*0.01;
