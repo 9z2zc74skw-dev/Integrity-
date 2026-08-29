@@ -290,10 +290,13 @@ function withFrontRoofDefaults(defaults, roofY){
   });
   return d;
 }
+/* Front 53" bar width = % of the plate, not catalog w:46 and not bumper span.
+   Measured cab-roof silhouette at the bar's top (tapers; must not hang into sky).
+   53" must stay ≤ DYNA-6 72" catalog w:38. Left/Right stay a short cab mark. */
 var VEHICLES={
-  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS},
-  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI},
-  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI}
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:30},
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:28},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:30}
 };
 var vehicleId="durango";
 function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
@@ -590,10 +593,13 @@ function renderTabs(){
   });
 }
 function catalogWidth(part,p){
-  /* Front roof is a smaller fraction of the stage than the bumper. Catalog
-     ALGT w:46 hangs off both sides of the cap; DYNA-6 72" is only w:38.
-     Keep other views at catalog w so Left/Right/Hero don't shrink. */
-  if(part && isRoofBar(part.sku) && view==="front") return 32;
+  /* Front roof is a smaller fraction of the stage than mirrors/bumper.
+     Catalog ALGT w:46 hangs off the cab; DYNA-6 72" is only w:38.
+     Per-vehicle frontRoofBarW seats a 53" bar on the cab cap. */
+  if(part && isRoofBar(part.sku) && view==="front"){
+    var fw=veh().frontRoofBarW;
+    return fw!=null?fw:30;
+  }
   if(part && isRoofBar(part.sku) && (view==="left"||view==="right")) return 24;
   if(part && part.w!=null) return part.w;
   return (p && p.w)!=null?p.w:10;
