@@ -290,9 +290,15 @@ function withFrontRoofDefaults(defaults, roofY){
   });
   return d;
 }
-/* Front 53" bar width = % of the plate. Fill the cab-roof cap (white metal
-   at the sit line, not mirrors) with a small inset — not a short mid-roof stick.
-   Measured white-run: F-150 50.7%, Silverado 44.1%, Durango 37.0%. */
+/* Front 53" draw width = % of the plate. MUST fill the cab-roof cap
+   (longest white-run of roof metal at the sit line — not mirrors) with a
+   ~1–2% inset per side. Do NOT size to the tapered peak or cap at
+   DYNA-6 w:38 — that left 20%+ gaps and failed QA (too narrow).
+   Measured on the 1024² plates:
+   Durango 37.3% @ y≈0.236 → 35
+   F-150   50.9% @ y=0.162 → 48
+   Silverado 44.1% @ y=0.180 → 42
+   Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
   durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:35},
   silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:42},
