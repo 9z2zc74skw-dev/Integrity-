@@ -290,19 +290,19 @@ function withFrontRoofDefaults(defaults, roofY){
   });
   return d;
 }
-/* Front 53" draw width = % of the plate. MUST fill the cab-roof cap
-   (longest white-run of roof metal at the sit line — not mirrors) with a
-   ~1–2% inset per side. Do NOT size to the tapered peak or cap at
-   DYNA-6 w:38 — that left 20%+ gaps and failed QA (too narrow).
-   Measured on the 1024² plates:
-   Durango 37.3% @ y≈0.236 → 35
-   F-150   50.9% @ y=0.162 → 48
-   Silverado 44.1% @ y=0.180 → 42
+/* Front 53" draw width = % of the plate. Bar ends MUST meet the
+   cab-roof edges at the sit Y (windshield / drip-rail), pillar-to-pillar.
+   Not the tapered peak. Not a white-roof gap. Not hanging into the sky.
+   A hair under (0.3–0.5% total) so a centered bar does not overhang.
+   Measured first-to-last roof metal (not mirrors) on the 1024² plates:
+   Silverado 48.4% @ y=0.180 (264–759) → 48
+   F-150     50.9% @ y=0.162 (249–769) → 50  (right-limited; cab is 3px left)
+   Durango   42.8% @ y=0.248 (283–720) → 40.5 (right-limited; cab is off-center)
    Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
-  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:35},
-  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:42},
-  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:48}
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:40.5},
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:48},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:50}
 };
 var vehicleId="durango";
 function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
@@ -599,7 +599,7 @@ function renderTabs(){
   });
 }
 function catalogWidth(part,p){
-  /* Front 53" bar uses per-vehicle frontRoofBarW so it fills the cab cap. */
+  /* Front 53" bar uses per-vehicle frontRoofBarW — sit-Y drip-rail span. */
   if(part && isRoofBar(part.sku) && view==="front"){
     var fw=veh().frontRoofBarW;
     return fw!=null?fw:30;
