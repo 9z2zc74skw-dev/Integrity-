@@ -273,7 +273,9 @@ var TRUCK_MULTI={
    Measured on the 1024² plates — do not share one Y across trucks:
    F-150 white roof peak y=144 (0.141), glass starts y=170 (0.166).
    Silverado white roof peak y=166 (0.162), glass starts y=188 (0.184).
-   Shared 0.175 sat in F-150 glass. ILS visor stays 0.24 (glass). */
+   0.144 / 0.163 left a sky gap under the visible LED strip; sit on metal
+   (F-150 0.156, Silverado 0.174) without crossing into glass.
+   ILS visor stays 0.24 (glass). */
 function withFrontRoof(mounts, roofY){
   var m=JSON.parse(JSON.stringify(mounts));
   m.front=m.front.map(function(pt){ return pt[2]==="roof"?[pt[0],roofY,pt[2]]:pt; });
@@ -290,8 +292,8 @@ function withFrontRoofDefaults(defaults, roofY){
 }
 var VEHICLES={
   durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS},
-  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.163),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.163),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI},
-  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.144),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.144),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI}
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.174),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.174),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.156),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.156),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI}
 };
 var vehicleId="durango";
 function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
