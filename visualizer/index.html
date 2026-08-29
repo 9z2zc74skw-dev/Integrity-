@@ -117,12 +117,14 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="brand-icon">&#9889;</div>
     <div class="brand-text">
       <strong>Lighting Visualizer</strong>
-      <span>Integrity Upfitters · Durango</span>
+      <span id="brandVehicle">Integrity Upfitters · Durango</span>
     </div>
   </div>
   <div class="header-mid">
     <select id="vehicleSelect" aria-label="Vehicle">
       <option value="durango" selected>2024 Dodge Durango Pursuit</option>
+      <option value="silverado">Chevrolet Silverado PPV</option>
+      <option value="f150">Ford F-150 PPV</option>
     </select>
     <input type="text" id="quoteInput" placeholder="Quote #" style="width:96px"/>
     <button class="btn" id="loadBtn" type="button">Load SKUs</button>
@@ -192,11 +194,11 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 </div>
 <script>
 (function(){
-/* Durango-only visualizer. Catalog w ≈ % of vehicle width for FedSig sprites.
-   Defaults aligned to compiled-app Durango mounts (+ fixtureNudge dy≈1). */
-var ASSET_V="plate1";
+/* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
+   Durango mounts stay as previously signed; trucks have their own snaps. */
+var ASSET_V="ppv1";
 var FX_V="smk3";
-var VIEWS=[
+var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
   {id:"rear_open",label:"Hatch Open",imgW:"durango_rear_open.png",imgB:"durango_rear_open_black.png"},
@@ -204,6 +206,77 @@ var VIEWS=[
   {id:"right",label:"Right",imgW:"durango_right.png",imgB:"durango_right_black.png"},
   {id:"hero",label:"3/4 View",imgW:"durango_hero.png",imgB:"durango_hero_black.png"}
 ];
+var TRUCK_VIEWS_SILVERADO=[
+  {id:"front",label:"Front",imgW:"silverado_front.png",imgB:"silverado_front_black.png"},
+  {id:"rear",label:"Rear",imgW:"silverado_rear.png",imgB:"silverado_rear_black.png"},
+  {id:"left",label:"Left",imgW:"silverado_left.png",imgB:"silverado_left_black.png"},
+  {id:"right",label:"Right",imgW:"silverado_right.png",imgB:"silverado_right_black.png"}
+];
+var TRUCK_VIEWS_F150=[
+  {id:"front",label:"Front",imgW:"f150_front.png",imgB:"f150_front_black.png"},
+  {id:"rear",label:"Rear",imgW:"f150_rear.png",imgB:"f150_rear_black.png"},
+  {id:"left",label:"Left",imgW:"f150_left.png",imgB:"f150_left_black.png"},
+  {id:"right",label:"Right",imgW:"f150_right.png",imgB:"f150_right_black.png"}
+];
+var TRUCK_MOUNTS={
+  front:[[0.5,0.24,"ILS visor"],[0.5,0.175,"roof"],[0.5,0.50,"grille"],[0.38,0.50,"grille L"],[0.62,0.50,"grille R"],[0.5,0.68,"pushbar/lower"],[0.14,0.36,"mirror L"],[0.86,0.36,"mirror R"],[0.26,0.70,"bumper L"],[0.38,0.70,"bumper L2"],[0.62,0.70,"bumper R2"],[0.74,0.70,"bumper R"]],
+  rear:[[0.5,0.24,"hatch ILS"],[0.5,0.48,"hatch mid"],[0.5,0.52,"hatch stick"],[0.44,0.65,"hatch plate L"],[0.56,0.65,"hatch plate R"],[0.5,0.16,"spoiler"],[0.22,0.68,"bumper L"],[0.32,0.68,"bumper L2"],[0.42,0.68,"bumper L3"],[0.58,0.68,"bumper R3"],[0.68,0.68,"bumper R2"],[0.78,0.68,"bumper R"]],
+  left:[[0.45,0.375,"roofline"],[0.24,0.42,"mirror"],[0.78,0.48,"quarter"]],
+  right:[[0.55,0.375,"roofline"],[0.76,0.42,"mirror"],[0.22,0.48,"quarter"]]
+};
+var TRUCK_DEFAULTS={
+  ALGT:{front:[0.5,0.175,0],rear:[0.5,0.16,0],left:[0.45,0.375,0],right:[0.55,0.375,0],_:[0.5,0.175,0]},
+  "ALGT53JX-P3LB":{front:[0.5,0.175,0],rear:[0.5,0.16,0],left:[0.45,0.375,0],right:[0.55,0.375,0],_:[0.5,0.175,0]},
+  SIFMJS:{front:[0.5,0.24,0],_:[0.5,0.24,0]},
+  "MPS63U-RBW":{front:[0.38,0.50,0],_:[0.38,0.50,0]},
+  MPS63:{front:[0.38,0.50,0],_:[0.38,0.50,0]},
+  MPSW9:{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
+  "MPSW9-BW":{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
+  "BRACKETS:FPIU20MIR":{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
+  "DR1-RBK-SMK":{front:[0.38,0.48,0],_:[0.38,0.48,0]},
+  "DR6-RBW":{left:[0.50,0.48,0],right:[0.50,0.48,0],_:[0.50,0.48,0]},
+  "XSM2-BRW-US":{rear:[0.22,0.42,0],left:[0.78,0.48,0],right:[0.22,0.48,0],_:[0.22,0.42,0]},
+  SIFMJH:{rear:[0.5,0.24,0],_:[0.5,0.24,0]},
+  "LIGHTS:SIFMJH-TAH21-P3":{rear:[0.5,0.24,0],_:[0.5,0.24,0]},
+  "STICK-RB":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
+  "CNSMJ8R-P3C":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
+  "CNSM-RBK1":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
+  MPS123:{rear:[0.5,0.65,0],_:[0.5,0.65,0]},
+  "MPS123U-RBW":{rear:[0.44,0.65,0],_:[0.44,0.65,0]},
+  "LIGHTS:MPS123U-RBW-SMK":{rear:[0.42,0.65,0],_:[0.42,0.65,0]},
+  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.65,0],_:[0.5,0.65,0]},
+  "mpsm6-sb2":{rear:[0.44,0.65,0],_:[0.44,0.65,0]},
+  "BRACKETS:MPSM6-LB":{rear:[0.56,0.65,0],_:[0.56,0.65,0]},
+  "416309-RBW-SMK":{front:[0.26,0.70,0],rear:[0.22,0.68,0],_:[0.26,0.70,0]},
+  ES100C:{front:[0.38,0.68,0],_:[0.38,0.68,0]}
+};
+var TRUCK_CLICKS={
+  "MPS63U-RBW":{front:[[0.38,0.50,0],[0.62,0.50,0]]},
+  "MPSW9-BW":{front:[[0.14,0.36,0],[0.86,0.36,0]],left:[[0.24,0.42,0]],right:[[0.76,0.42,0]]},
+  "BRACKETS:FPIU20MIR":{front:[[0.14,0.36,0],[0.86,0.36,0]],left:[[0.24,0.42,0]],right:[[0.76,0.42,0]]},
+  "XSM2-BRW-US":{rear:[[0.22,0.42,0],[0.78,0.42,0]],left:[[0.78,0.48,0]],right:[[0.22,0.48,0]]},
+  "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+  ES100C:{front:[[0.38,0.68,0],[0.62,0.68,0]]}
+};
+var TRUCK_MULTI={
+  "MPS123U-RBW":{rear:[[0.44,0.65,0],[0.56,0.65,0]]},
+  "LIGHTS:MPS123U-RBW-SMK":{rear:[[0.42,0.65,0],[0.58,0.65,0]]},
+  "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.65,0]]},
+  "416309-RBW-SMK":{
+    front:[[0.26,0.70,0],[0.38,0.70,0],[0.62,0.70,0],[0.74,0.70,0]],
+    rear:[[0.22,0.68,0],[0.32,0.68,0],[0.42,0.68,0],[0.58,0.68,0],[0.68,0.68,0],[0.78,0.68,0]]
+  },
+  "DR6-RBW":{left:[[0.50,0.48,0]],right:[[0.50,0.48,0]]}
+};
+var VEHICLES={
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS},
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:TRUCK_MOUNTS,defaults:TRUCK_DEFAULTS,clicks:TRUCK_CLICKS,multi:TRUCK_MULTI},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:TRUCK_MOUNTS,defaults:TRUCK_DEFAULTS,clicks:TRUCK_CLICKS,multi:TRUCK_MULTI}
+};
+var vehicleId="durango";
+function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
+function views(){ return veh().views; }
+function viewExists(id){ return views().some(function(v){return v.id===id}); }
 var CATALOG=[
   {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
   {sku:"ALGT53JX-P3LB",name:"FedSig 53\" MAX tri-color light bar, black top, TD floods, alley, amber directional",group:"Front / Perimeter",fx:"fx_algt_max.png",w:46},
@@ -362,12 +435,24 @@ var MOUNT_SNAPS={
   hero:[[0.48,0.29,"ILS visor"],[0.48,0.26,"roof"],[0.36,0.52,"grille"]]
 };
 
-VIEWS.forEach(function(v){nodes[v.id]=[]});
+var nodesByVehicle={};
+function emptyNodesFor(id){
+  var n={}, list=(VEHICLES[id]||VEHICLES.durango).views;
+  list.forEach(function(v){n[v.id]=[]});
+  return n;
+}
+function bindNodes(){
+  if(!nodesByVehicle[vehicleId]) nodesByVehicle[vehicleId]=emptyNodesFor(vehicleId);
+  nodes=nodesByVehicle[vehicleId];
+  views().forEach(function(v){ if(!Array.isArray(nodes[v.id])) nodes[v.id]=[]; });
+}
+bindNodes();
 var STORE_KEY="iu-visualizer-v1";
 function saveState(){
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify({
-      view:view, bodyColor:bodyColor, scheme:scheme, nodes:nodes,
+      vehicleId:vehicleId, view:view, bodyColor:bodyColor, scheme:scheme,
+      nodes:nodes, nodesByVehicle:nodesByVehicle,
       pushBar:pushBar, dashLighting:dashLighting, rearHatchLights:rearHatchLights,
       snapEnabled:snapEnabled, nid:nid
     }));
@@ -376,12 +461,20 @@ function saveState(){
 function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem(STORE_KEY)||"null");
-    if(!s||!s.nodes) return;
-    view=s.view||view; bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
+    if(!s) return;
+    if(s.vehicleId && VEHICLES[s.vehicleId]) vehicleId=s.vehicleId;
+    if(s.nodesByVehicle && typeof s.nodesByVehicle==="object"){
+      nodesByVehicle=s.nodesByVehicle;
+    } else if(s.nodes){
+      nodesByVehicle.durango=s.nodes;
+    }
+    bindNodes();
+    if(s.view && viewExists(s.view)) view=s.view;
+    else view=views()[0].id;
+    bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
     pushBar=!!s.pushBar; dashLighting=!!s.dashLighting; rearHatchLights=!!s.rearHatchLights;
     if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
     if(s.nid) nid=s.nid;
-    VIEWS.forEach(function(v){ nodes[v.id]=Array.isArray(s.nodes[v.id])?s.nodes[v.id]:[]; });
   }catch(e){}
 }
 
@@ -405,7 +498,8 @@ function resolveDragSku(e){
   return fromDt||dragSku||null;
 }
 function defaultFor(sku){
-  var map=DEFAULTS[sku];
+  var vd=veh().defaults && veh().defaults[sku];
+  var map=vd||DEFAULTS[sku];
   if(!map) return {x:0.5,y:0.4,rot:0};
   var d=map[view]||map._||[0.5,0.4,0];
   return {x:d[0],y:d[1],rot:d[2]||0};
@@ -463,7 +557,8 @@ function renderParts(){
 }
 function renderTabs(){
   var el=document.getElementById("viewTabs"); el.innerHTML="";
-  VIEWS.forEach(function(v){
+  views().forEach(function(v){
+    if(!nodes[v.id]) nodes[v.id]=[];
     var b=document.createElement("button");
     b.type="button";
     b.className="view-tab"+(v.id===view?" active":"");
@@ -477,11 +572,13 @@ function catalogWidth(part,p){
      ALGT w:46 hangs off both sides of the cap; DYNA-6 72" is only w:38.
      Keep other views at catalog w so Left/Right/Hero don't shrink. */
   if(part && isRoofBar(part.sku) && view==="front") return 32;
+  if(part && isRoofBar(part.sku) && (view==="left"||view==="right")) return 24;
   if(part && part.w!=null) return part.w;
   return (p && p.w)!=null?p.w:10;
 }
 function renderStage(){
-  var v=VIEWS.find(function(x){return x.id===view});
+  var v=views().find(function(x){return x.id===view});
+  if(!v){ view=views()[0].id; v=views()[0]; }
   document.getElementById("vehicleImg").src=(bodyColor==="black"?v.imgB:v.imgW)+"?v="+ASSET_V;
   var stage=document.getElementById("stage");
   stage.querySelectorAll(".light,.overlay-pushbar,.overlay-dash,.overlay-hatch").forEach(function(n){n.remove()});
@@ -625,7 +722,7 @@ function mountPrefer(m, sku){
 function snapTo(x,y,free,skipId,sku){
   if(free||!snapEnabled) return {x:x,y:y,vx:[],hy:[]};
   var others=nodes[view].filter(function(n){return n.id!==skipId});
-  var mounts=MOUNT_SNAPS[view]||[];
+  var mounts=(veh().mounts||MOUNT_SNAPS)[view]||[];
   // Y-band seats on roof/visor (no 7% hypot teleport). X snaps to a mount
   // only inside SNAP_CENTER_X (~3%) — never a 18–42% steal to 0.5.
   var bestM=null, bestScore=1e9;
@@ -713,6 +810,7 @@ function addNode(sku,x,y,rot){
 function addNodes(sku, spots, quiet){
   var part=CATALOG.find(function(p){return p.sku===sku});
   if(!part || !spots || !spots.length) return;
+  if(!nodes[view]) nodes[view]=[];
   spots.forEach(function(s){
     var id=nid++;
     nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0});
@@ -721,32 +819,42 @@ function addNodes(sku, spots, quiet){
   if(!quiet){ renderStage(); renderTabs(); renderSum(); }
 }
 function placeSpots(sku, v){
-  var pair=CLICK_PAIRS[sku];
+  var pairs=veh().clicks||CLICK_PAIRS;
+  var pair=pairs[sku];
   if(pair && pair[v]){
     return pair[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
   }
-  var map=DEFAULTS[sku];
+  var map=(veh().defaults && veh().defaults[sku])||DEFAULTS[sku];
   if(map && map[v]){
     var d=map[v];
     return [{x:d[0], y:d[1], rot:d[2]||0}];
   }
   return [];
 }
+function preferView(id){
+  if(id && viewExists(id)) return id;
+  var order=["front","left","rear","right"];
+  for(var i=0;i<order.length;i++) if(viewExists(order[i])) return order[i];
+  return views()[0].id;
+}
 function clickPlace(sku){
-  var multi=CLICK_MULTI[sku];
+  var multi=(veh().multi||CLICK_MULTI)[sku];
   if(multi){
     var last=view;
     Object.keys(multi).forEach(function(v){
+      if(!viewExists(v)) return;
       view=v; last=v;
+      if(!nodes[view]) nodes[view]=[];
       var spots=multi[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
       addNodes(sku, spots, true);
     });
-    view=HOME_VIEW[sku]||last;
+    view=preferView(HOME_VIEW[sku]||last);
     renderStage(); renderTabs(); renderSum();
     return;
   }
-  var home=HOME_VIEW[sku];
+  var home=preferView(HOME_VIEW[sku]);
   if(home && home!==view) view=home;
+  if(!nodes[view]) nodes[view]=[];
   var spots=placeSpots(sku, view);
   if(!spots.length){
     var d=defaultFor(sku);
@@ -776,8 +884,8 @@ function placeFromEvent(e,clamp){
 }
 function renderSum(){
   var total=0,html="";
-  VIEWS.forEach(function(v){
-    var n=nodes[v.id].length; total+=n;
+  views().forEach(function(v){
+    var n=(nodes[v.id]||[]).length; total+=n;
     html+='<div class="sum-row"><span>'+v.label+"</span><b>"+n+"</b></div>";
   });
   html+='<div class="sum-row sum-total"><span>Total</span><b>'+total+"</b></div>";
@@ -865,7 +973,20 @@ document.getElementById("colorScheme").querySelectorAll("button").forEach(functi
   };
 });
 document.getElementById("clearView").onclick=function(){nodes[view]=[]; sel=null; renderStage(); renderTabs(); renderSum()};
-document.getElementById("clearAll").onclick=function(){VIEWS.forEach(function(v){nodes[v.id]=[]}); sel=null; renderStage(); renderTabs(); renderSum()};
+document.getElementById("clearAll").onclick=function(){views().forEach(function(v){nodes[v.id]=[]}); sel=null; renderStage(); renderTabs(); renderSum()};
+function setVehicle(id){
+  if(!VEHICLES[id] || id===vehicleId) return;
+  vehicleId=id;
+  bindNodes();
+  view=viewExists(view)?view:views()[0].id;
+  sel=null;
+  var lab=document.getElementById("brandVehicle");
+  if(lab) lab.textContent="Integrity Upfitters · "+veh().short;
+  var selEl=document.getElementById("vehicleSelect");
+  if(selEl) selEl.value=vehicleId;
+  renderTabs(); renderStage(); renderSum();
+}
+document.getElementById("vehicleSelect").onchange=function(){ setVehicle(this.value); };
 document.getElementById("search").oninput=renderParts;
 document.getElementById("loadBtn").onclick=function(){
   var q=document.getElementById("quoteInput").value.trim();
@@ -874,6 +995,12 @@ document.getElementById("loadBtn").onclick=function(){
 };
 document.getElementById("pdfBtn").onclick=function(){window.print()};
 loadState();
+(function syncVehicleUi(){
+  var selEl=document.getElementById("vehicleSelect");
+  if(selEl) selEl.value=vehicleId;
+  var lab=document.getElementById("brandVehicle");
+  if(lab) lab.textContent="Integrity Upfitters · "+veh().short;
+})();
 (function syncToggles(){
   function setSw(id, on){
     var s=document.getElementById(id); if(!s) return;
