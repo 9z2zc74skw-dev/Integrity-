@@ -66,6 +66,10 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .snap-guides .gx,.snap-guides .gy{position:absolute;background:rgba(147,197,253,.85);box-shadow:0 0 10px rgba(59,130,246,.7)}
 .snap-guides .gx{top:0;bottom:0;width:1px;transform:translateX(-50%)}
 .snap-guides .gy{left:0;right:0;height:1px;transform:translateY(-50%)}
+.ghost-bar{position:absolute;z-index:15;pointer-events:none;transform:translate(-50%,-50%);opacity:.92;filter:drop-shadow(0 0 4px rgba(0,0,0,.5));user-select:none}
+.ghost-bar img{display:block;width:100%;height:auto;pointer-events:none}
+.ghost-bar.endcap{width:22px;height:40px;overflow:hidden;display:flex;align-items:center;justify-content:flex-start}
+.ghost-bar.endcap img{width:auto;height:36px;max-width:none}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
@@ -300,9 +304,9 @@ function withFrontRoofDefaults(defaults, roofY){
    Durango   42.8% @ y=0.248 (283–720) → 42.4 at x=0.490 (cab is 3px left of plate center)
    Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
-  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4},
-  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:48},
-  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:50}
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4}},
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:48,barScale:1,barNudge:{dx:0,dy:0}},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:50,barScale:1,barNudge:{dx:0,dy:0}}
 };
 var vehicleId="durango";
 function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
@@ -613,7 +617,7 @@ function renderStage(){
   if(!v){ view=views()[0].id; v=views()[0]; }
   document.getElementById("vehicleImg").src=(bodyColor==="black"?v.imgB:v.imgW)+"?v="+ASSET_V;
   var stage=document.getElementById("stage");
-  stage.querySelectorAll(".light,.overlay-pushbar,.overlay-dash,.overlay-hatch").forEach(function(n){n.remove()});
+  stage.querySelectorAll(".light,.overlay-pushbar,.overlay-dash,.overlay-hatch,.ghost-bar").forEach(function(n){n.remove()});
   function placeOverlay(cls, place, src){
     if(!place) return;
     var el=document.createElement("div");
@@ -651,6 +655,8 @@ function renderStage(){
     stage.appendChild(el);
   }
   nodes[view].forEach(function(p){
+    /* Front ALGT is the only real lightbar node. Side/rear copies are ghosts. */
+    if(isRoofBar(p.sku) && view!=="front") return;
     var el=document.createElement("div");
     el.className="light"+(p.id===sel?" selected":"");
     el.dataset.id=String(p.id);
@@ -680,8 +686,42 @@ function renderStage(){
     if(img) img.addEventListener("load",function(){ if(p.id===sel) syncSelDock(); });
     stage.appendChild(el);
   });
+  renderGhostBars(stage);
   saveState();
   requestAnimationFrame(syncSelDock);
+}
+/* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable. */
+function ghostSpecForView(){
+  var bn=veh().barNudge||{dx:0,dy:0};
+  var dx=bn.dx||0, dy=bn.dy||0;
+  if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
+  if(view==="left") return {kind:"endcap", x:49+dx, y:35+dy};
+  if(view==="right") return {kind:"endcap", x:51+dx, y:35+dy};
+  return null;
+}
+function renderGhostBars(stage){
+  var spec=ghostSpecForView();
+  if(!spec) return;
+  var front=(nodes.front||[]).filter(function(n){ return isRoofBar(n.sku); });
+  if(!front.length) return;
+  var scale=veh().barScale!=null?veh().barScale:1;
+  var fw=veh().frontRoofBarW;
+  front.forEach(function(src){
+    var part=CATALOG.find(function(c){return c.sku===src.sku});
+    var fx=part?fxFor(part):null;
+    if(!fx) return;
+    var el=document.createElement("div");
+    el.className="ghost-bar"+(spec.kind==="endcap"?" endcap":" full");
+    el.setAttribute("aria-hidden","true");
+    el.style.left=spec.x+"%";
+    el.style.top=spec.y+"%";
+    if(spec.kind==="full"){
+      var w=(fw!=null?fw:(part.w||46))*scale;
+      el.style.width=w+"%";
+    }
+    el.innerHTML='<img src="'+fx+'" alt="" draggable="false"/>';
+    stage.appendChild(el);
+  });
 }
 function selectPlacedLight(el,p){
   /* Do not renderStage() here: removing the mousedown target cancels the pointer
