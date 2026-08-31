@@ -868,9 +868,7 @@ function placeSpots(sku, v){
 }
 function preferView(id){
   if(id && viewExists(id)) return id;
-  var order=["front","left","rear","right"];
-  for(var i=0;i<order.length;i++) if(viewExists(order[i])) return order[i];
-  return views()[0].id;
+  return view;
 }
 function clickPlace(sku){
   var multi=(veh().multi||CLICK_MULTI)[sku];
@@ -887,8 +885,7 @@ function clickPlace(sku){
     renderStage(); renderTabs(); renderSum();
     return;
   }
-  var home=preferView(HOME_VIEW[sku]);
-  if(home && home!==view) view=home;
+  if(HOME_VIEW[sku]) view=preferView(HOME_VIEW[sku]);
   if(!nodes[view]) nodes[view]=[];
   var spots=placeSpots(sku, view);
   if(!spots.length){
