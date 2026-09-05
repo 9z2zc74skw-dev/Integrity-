@@ -300,13 +300,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio15 Valentine one-shot",
+    "# Vector trap log — studio16 hero ghost sit",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
-    `- Ran: \`node visualizer/_src/run-traps.mjs\``,
-    `- ASSET_V: studio16`,
-    `- Signed Durango plate bytes: see T-PLATE-HASHES`,
+    `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
+    `- ASSET_V: studio16 · FX_V: max6`,
+    `- Signed Durango plate bytes: T-PLATE-HASHES`,
+    `- studio16 software: Durango 3/4 GhostBar sits on the cab roof (bottom-origin). Plate bytes not recut.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
