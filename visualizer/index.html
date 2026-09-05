@@ -737,8 +737,9 @@ function ghostSpecForView(){
   if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
   if(view==="left") return {kind:"endcap", x:49+dx, y:35+dy};
   if(view==="right") return {kind:"endcap", x:51+dx, y:35+dy};
-  /* 3/4: perspective-ish full bar on the hero roof (software only; plate unchanged). */
-  if(view==="hero") return {kind:"full", x:48+dx, y:26+dy, rot:-10, wScale:0.62};
+  /* 3/4: perspective-ish full bar on the hero roof (software only; plate unchanged).
+     Do not apply side/rear barNudge — that +4% drops the bar into the windshield. */
+  if(view==="hero") return {kind:"full", x:47, y:26, rot:-12, wScale:0.70, sit:"bottom"};
   return null;
 }
 function renderGhostBars(stage){
@@ -757,7 +758,8 @@ function renderGhostBars(stage){
     el.setAttribute("aria-hidden","true");
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
-    el.style.transform="translate(-50%,-50%)"+(spec.rot?" rotate("+spec.rot+"deg)":"");
+    var ty=spec.sit==="bottom"?"-100%":"-50%";
+    el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
     if(spec.kind==="full"){
       var w=(fw!=null?fw:(part.w||46))*scale;
       if(spec.wScale) w*=spec.wScale;
