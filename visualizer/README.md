@@ -20,6 +20,8 @@ Then open the URL printed in the terminal (usually `http://localhost:3000`).
 
 Or open `index.html` from a static server so `quotes/` and `fx/` load.
 
+A hard refresh starts on a **bare** plate (zero placements, overlay toggles off). Lights appear only after a Parts click, a user-flipped toggle, or Load SKUs. Clear All / Clear View do not re-seed.
+
 ## Usage
 
 1. Pick a vehicle, then a view tab.
