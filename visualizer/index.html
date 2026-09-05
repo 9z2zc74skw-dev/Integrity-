@@ -202,7 +202,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio15";
+var ASSET_V="studio16";
 var FX_V="max6";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -699,9 +699,11 @@ function ghostSpecForView(){
   if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
   if(view==="left") return {kind:"endcap", x:49+dx, y:35+dy};
   if(view==="right") return {kind:"endcap", x:51+dx, y:35+dy};
-  /* 3/4: perspective-ish full bar on the hero roof (software only; plate unchanged).
-     Do not apply side/rear barNudge — that +4% drops the bar into the windshield. */
-  if(view==="hero") return {kind:"full", x:47, y:26, rot:-12, wScale:0.70, sit:"bottom"};
+  /* 3/4: sit the ghost on the hero cab roof (software only; plate unchanged).
+     Plate roof metal at x=0.47 is y≈0.262–0.273; bottom-origin rotate keeps
+     the contact on the roof instead of lifting the LEDs into the sky.
+     Do not apply Durango side/rear barNudge (+4%) — that drops into glass. */
+  if(view==="hero") return {kind:"full", x:48.5, y:28.6, rot:-6, wScale:0.62, sit:"bottom"};
   return null;
 }
 function renderGhostBars(stage){
@@ -721,6 +723,7 @@ function renderGhostBars(stage){
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
     var ty=spec.sit==="bottom"?"-100%":"-50%";
+    if(spec.sit==="bottom") el.style.transformOrigin="50% 100%";
     el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
     if(spec.kind==="full"){
       var w=(fw!=null?fw:(part.w||46))*scale;
@@ -1191,14 +1194,14 @@ window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, fxFor:fxFor, schemeName:schemeName,
+  isRoofBar:isRoofBar, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
   clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent,
   loadSkuList:loadSkuList, parseSkuList:parseSkuList, setVehicle:setVehicle,
   nodes:function(){return nodes;},
   nodesByVehicle:function(){return nodesByVehicle;},
   veh:veh, views:views,
   getView:function(){return view;},
-  setView:function(v){ if(viewExists(v)) view=v; },
+  setView:function(v){ if(viewExists(v)){ view=v; renderStage(); renderTabs(); } },
   getScheme:function(){return scheme;},
   setScheme:function(s){ scheme=s; },
   resetNodes:function(){

@@ -1,12 +1,11 @@
-# Vector trap log — studio15 Valentine one-shot
+# Vector trap log — studio16 hero ghost sit
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio15 · FX_V: max6
-- Signed Durango plate bytes: T-PLATE-HASHES PASS (Front / Right / Rear / Hatch Open / Left / Hero unchanged)
-- Leftover folders: `compiled-app/`, `GitHub-Upload-Small/`, `prototypes/` moved to `archive/` with not-the-shop-tool banners. Live tree no longer presents them as apps.
-- Pages: this branch does not promise a live shop URL. Workflow still deploys `visualizer/` from `main` only.
+- ASSET_V: studio16 · FX_V: max6
+- Signed Durango plate bytes: T-PLATE-HASHES PASS (unchanged)
+- studio16 software: Durango 3/4 GhostBar sits on the cab roof (bottom-origin, y=28.6, rot=-6). Plate bytes not recut.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -16,7 +15,7 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio15 |
+| T-ASSET-V | PASS | ASSET_V=studio16 |
 | T-ARCHIVE-TREE | PASS | leftovers parked under archive/ |
 | T-PAGES-HONEST | PASS | root README does not promise Pages URL |
 | T-PLATE-HASHES | PASS | durango_front.png unchanged; durango_right.png unchanged; durango_rear.png unchanged; durango_rear_open.png unchanged; durango_left.png unchanged; durango_hero.png unchanged |
@@ -25,6 +24,7 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-CHROME-RUNTIME | PASS | evaluated |
 | T-CLICKPLACE-ALL | PASS | durango/front=57 durango/left=57 durango/rear=57 silverado/front=48 silverado/left=48 silverado/rear=48 f150/front=48 f150/left=48 f150/rear=48 |
 | T-ROOF-FRONT-ONLY | PASS | roof nodes only on front after clickPlace from Front/Left/Rear |
+| T-HERO-GHOST-SIT | PASS | {"spec":{"kind":"full","x":48.5,"y":28.6,"rot":-6,"wScale":0.62,"sit":"bottom"},"origin":"50% 100%"} |
 | T-TRUCK-NO-DURANGO-LEAK | PASS | {"d":{"roofY":0.248,"frontBarW":42.4,"clickRoofY":0.248,"skuCount":29,"pushBar":{"cx":50,"cy":56,"w":34,"hs":0.88,"ty":0.45}},"s":{"roofY":0.18,"frontBarW":48,"clickRoofY":0.18,"skuCount":29,"pushBar":{"cx":50,"cy":58,"w":42,"hs":0.88,"ty":0.45}},"f":{"roofY":0.162,"frontBarW":50,"clickRoofY":0.162,"skuCount":29,"pushBar":{"cx":50,"cy":59,"w":44,"hs":0.88,"ty":0.45}}} |
 | T-TRUCK-FULL-MAP | PASS | silverado 29/29 f150 29/29 |
 | T-PUSHBAR-PER-PLATE | PASS | {"d":{"cx":50,"cy":56,"w":34,"hs":0.88,"ty":0.45},"s":{"cx":50,"cy":58,"w":42,"hs":0.88,"ty":0.45},"f":{"cx":50,"cy":59,"w":44,"hs":0.88,"ty":0.45}} |

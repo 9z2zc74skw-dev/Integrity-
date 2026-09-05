@@ -67,7 +67,7 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio15"/.test(html), "ASSET_V=studio15");
+  rec("T-ASSET-V", /ASSET_V="studio16"/.test(html), "ASSET_V=studio16");
   rec("T-ARCHIVE-TREE", fs.existsSync(path.join(ROOT, "archive", "README.md"))
     && !fs.existsSync(path.join(ROOT, "compiled-app"))
     && !fs.existsSync(path.join(ROOT, "GitHub-Upload-Small"))
@@ -222,6 +222,22 @@ async function main() {
       out.toggles.hatchOn = T.skuPresent("STICK-RB");
       document.getElementById("hatchToggle").click();
       out.toggles.hatchOff = T.skuPresent("STICK-RB");
+
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("front");
+      T.clickPlace("ALGT53JX-P3LB");
+      T.setView("hero");
+      var img=document.getElementById("vehicleImg");
+      var ghost=document.querySelector(".ghost-bar");
+      var ir=img&&img.getBoundingClientRect();
+      var gr=ghost&&ghost.getBoundingClientRect();
+      out.heroSit={
+        spec: T.ghostSpecForView && T.ghostSpecForView(),
+        origin: ghost&&ghost.style.transformOrigin,
+        topPct: ir&&gr? (gr.top-ir.top)/ir.height*100 : null,
+        botPct: ir&&gr? (gr.bottom-ir.top)/ir.height*100 : null
+      };
       return out;
     });
     rec("T-CHROME-RUNTIME", !!runtime, runtime ? "evaluated" : "no runtime");
@@ -235,6 +251,11 @@ async function main() {
     rec("T-CLICKPLACE-ALL", runtime.clickPlace.every((row) => row.total > 0), runtime.clickPlace.map((r) => `${r.vid}/${r.from}=${r.total}`).join(" "));
     const roofLeak = runtime.clickPlace.filter((r) => Object.entries(r.roof).some(([v, list]) => v !== "front" && list.length));
     rec("T-ROOF-FRONT-ONLY", roofLeak.length === 0, roofLeak.length ? JSON.stringify(roofLeak) : "roof nodes only on front after clickPlace from Front/Left/Rear");
+    var hs=runtime.heroSit||{};
+    var spec=hs.spec||{};
+    rec("T-HERO-GHOST-SIT",
+      spec.y>=27.5 && spec.sit==="bottom" && spec.rot<=-5 && spec.rot>=-8 && /100%/.test(hs.origin||""),
+      JSON.stringify({spec:hs.spec, origin:hs.origin}));
     rec("T-TRUCK-NO-DURANGO-LEAK",
       runtime.trucks.durango.roofY !== runtime.trucks.silverado.roofY
       && runtime.trucks.durango.roofY !== runtime.trucks.f150.roofY
@@ -284,7 +305,7 @@ function finish(srv) {
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\``,
-    `- ASSET_V: studio15`,
+    `- ASSET_V: studio16`,
     `- Signed Durango plate bytes: see T-PLATE-HASHES`,
     "",
     "| Trap | Result | Detail |",
