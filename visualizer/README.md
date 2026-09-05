@@ -1,10 +1,12 @@
-# Durango Lighting Visualizer
+# Lighting Visualizer
 
-**Open `visualizer/`. Do not open `compiled-app/` or `GitHub-Upload-Small/`.**
+**This folder is the shop tool.** Open it. Do not open `archive/compiled-app`, `archive/GitHub-Upload-Small`, or `archive/prototypes`.
 
-Interactive sales/quote visualizer for **Dodge Durango Pursuit** lighting builds (Integrity Upfitters).
+Interactive sales/quote visualizer for Integrity Upfitters:
 
-This folder is the editable source of truth. Do **not** open or edit `compiled-app/` or `GitHub-Upload-Small/`.
+- 2024 Dodge Durango Pursuit
+- Chevrolet Silverado PPV
+- Ford F-150 PPV
 
 ## Run locally
 
@@ -16,41 +18,31 @@ npx --yes serve visualizer
 
 Then open the URL printed in the terminal (usually `http://localhost:3000`).
 
-Or open `visualizer/index.html` directly in a modern browser (file:// works for placement; a local static server is preferred so assets load reliably).
+Or open `index.html` from a static server so `quotes/` and `fx/` load.
 
 ## Usage
 
-1. Pick a view tab (Front, Rear, Hatch Open, Left, Right, 3/4).
-2. **Drag** a FedSig SKU from the left list onto the vehicle, or **click** a SKU to place it at the default mount for the current view.
+1. Pick a vehicle, then a view tab.
+2. **Drag** a FedSig SKU onto the vehicle, or **click** a SKU to place it on its click-map mounts.
 3. Select a placed light to move, rotate, scale, or delete it.
-4. Toggle body color (White / Black) and department color scheme as needed.
-5. **Print** opens the browser print dialog. Load SKUs / quote import is not available.
+4. Body color is White / Black. Color scheme is Red/Blue, Blue/White, Red/White, R/B/W — each loads real sprites.
+5. **Load SKUs** imports a `.json` / `.txt` / `.csv` list, or type `1236` / `demo-1236` to load `quotes/demo-1236.json`. Placement uses the same click rules as a manual click. Live QuickBooks is not connected.
+6. **Print** opens the browser print dialog (current view). It is not a multi-page sign-off PDF.
 
-## Scale & placement notes
+## Roof bar
 
-Catalog `w` values are percent of stage/vehicle width, tuned for Durango against compiled-app mounts:
+One type: `ALGT53JX-P3LB`. Stored on Front only. Left / Right / Rear / 3/4 draw a ghost from that Front node. Off-front ALGT nodes are purged on load.
 
-- Allegiant 53" roof bar (`ALGT`) ≈ 48%
-- MicroPulse grille (`MPS63`) ≈ 4.5%
-- SpectraLux ILS visor (`SIFMJS`) ≈ 28%
+## Toggles
 
-Click-to-place defaults are **view-aware** (front/rear/hero/side) and include Durango `fixtureNudge` (+1% Y) from the Perplexity reference.
+- **Interior Dash** places or removes `SIFMJS` (visor ILS — two shrouds with a mirror gap). Not a second overlay.
+- **Rear Hatch Lights** places or removes `STICK-RB`. Not a decoration overlay.
+- **Push Bar** is a measured per-vehicle overlay on Front (and Durango 3/4).
 
-White/black **Front** plates (`durango_front.png`, `durango_front_black.png`) were rebuilt to close internal alpha holes in the fascia under the grille (jagged stage bleed). Studio guidance came from DHC-ICEv2 page-02 front photo; other views remain as previously synced. `compiled-app/` Front is left untouched as reference capital.
+## Pages
 
-If you downloaded a zip of this branch earlier, **re-download** after this Front fix — a hard refresh is not enough for a local zip extract.
+GitHub Pages, when enabled, publishes this `visualizer/` folder from `main` / `master`. This feature branch does not publish a live shop URL.
 
-## Out of scope (this milestone)
+## Trap log
 
-- GitHub Pages deploy changes
-- Live QuickBooks OAuth / quote import
-- Multi-vehicle (PIU / Tahoe)
-- Polished multi-page PDF export
-
-## Asset provenance (reuse, not redesign)
-
-- **Durango vehicle PNGs**: non-Front views match prior sync; **Front** white/black plates were hole-filled from DHC-ICEv2 page-02 (fascia alpha repair). Do not re-run blanket despill.
-- **FedSig fx cutouts**: MicroPulse / ALGT / ILS / Dyna / stick sprites in `visualizer/fx/` are the editable source cutouts.
-- **Round lightheads**: higher-res hard-alpha sprites reused from `compiled-app/fx/fx_round_*.png`.
-- **Chrome tokens**: colors, 288px panels, 4:3 stage cradle, and density cues ported from `compiled-app/assets/index-CqPjqCI_.css` (`.dark`) into this file’s CSS.
-- **Default mounts**: per-view x/y/rot mined from the compiled catalog (plus Durango `fixtureNudge` dy≈1%).
+See `TRAP-LOG.md` in this folder.

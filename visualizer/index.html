@@ -35,7 +35,6 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .btn{height:32px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0 12px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer}
 .btn:hover{background:var(--elevate)}.btn-primary{background:var(--primary);border-color:color-mix(in srgb,var(--primary) 80%,#000);color:var(--primary-fg);font-weight:600}
 .btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;pointer-events:none}
-#colorScheme [data-s="rbw"]{display:none}
 .btn-primary:hover{filter:brightness(1.06)}
 /* compiled-app: lg:w-72 panels */
 .layout{flex:1;display:grid;grid-template-columns:288px 1fr 288px;min-height:0}
@@ -132,8 +131,9 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
       <option value="silverado">Chevrolet Silverado PPV</option>
       <option value="f150">Ford F-150 PPV</option>
     </select>
-    <input type="text" id="quoteInput" placeholder="Quote #" style="width:96px"/>
-    <button class="btn" id="loadBtn" type="button" disabled title="Quote import is not available">Load SKUs (soon)</button>
+    <input type="text" id="quoteInput" placeholder="Quote #" style="width:96px" title="Optional label, or demo-1236"/>
+    <input type="file" id="loadFile" accept=".json,.txt,.csv,application/json,text/plain" hidden/>
+    <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
@@ -172,8 +172,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
       <div class="toggles">
         <div class="toggle"><div class="lbl">Snap / align<small>Seats on roof/visor when at that height. Short center magnet; hold Shift for freeform</small></div><button type="button" class="sw on" id="snapToggle" data-on="true" aria-label="Snap / align"></button></div>
         <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" id="pushBarToggle" data-on="false" aria-label="Push Bar"></button></div>
-        <div class="toggle"><div class="lbl">Interior Dash<small>Windshield warning</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
-        <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Liftgate glass stick</small></div><button type="button" class="sw" id="hatchToggle" data-on="false" aria-label="Rear Hatch Lights"></button></div>
+        <div class="toggle"><div class="lbl">Interior Dash<small>Places SIFMJS visor ILS — same SKU, not a second overlay</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
+        <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Places STICK-RB on hatch — same SKU, not a decoration overlay</small></div><button type="button" class="sw" id="hatchToggle" data-on="false" aria-label="Rear Hatch Lights"></button></div>
       </div>
     </div>
     <div class="section">
@@ -202,8 +202,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio14";
-var FX_V="max4";
+var ASSET_V="studio15";
+var FX_V="max6";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -232,48 +232,72 @@ var TRUCK_MOUNTS={
   right:[[0.55,0.375,"roofline"],[0.76,0.42,"mirror"],[0.22,0.48,"quarter"]]
 };
 var TRUCK_DEFAULTS={
-  ALGT:{front:[0.5,0.175,0],rear:[0.5,0.16,0],left:[0.45,0.375,0],right:[0.55,0.375,0],_:[0.5,0.175,0]},
-  "ALGT53JX-P3LB":{front:[0.5,0.175,0],rear:[0.5,0.16,0],left:[0.45,0.375,0],right:[0.55,0.375,0],_:[0.5,0.175,0]},
+  "ALGT53JX-P3LB":{front:[0.5,0.175,0],_:[0.5,0.175,0]},
   SIFMJS:{front:[0.5,0.24,0],_:[0.5,0.24,0]},
-  "MPS63U-RBW":{front:[0.38,0.50,0],_:[0.38,0.50,0]},
-  MPS63:{front:[0.38,0.50,0],_:[0.38,0.50,0]},
-  MPSW9:{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
-  "MPSW9-BW":{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
-  "BRACKETS:FPIU20MIR":{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
+  "DYNA-1":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
+  "DYNA-2":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
+  "DYNA-5":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
+  "DYNA-6":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
   "DR1-RBK-SMK":{front:[0.38,0.48,0],_:[0.38,0.48,0]},
   "DR6-RBW":{left:[0.50,0.48,0],right:[0.50,0.48,0],_:[0.50,0.48,0]},
-  "XSM2-BRW-US":{rear:[0.22,0.42,0],left:[0.78,0.48,0],right:[0.22,0.48,0],_:[0.22,0.42,0]},
-  SIFMJH:{rear:[0.5,0.24,0],_:[0.5,0.24,0]},
-  "LIGHTS:SIFMJH-TAH21-P3":{rear:[0.5,0.24,0],_:[0.5,0.24,0]},
-  "STICK-RB":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
-  "CNSMJ8R-P3C":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
-  "CNSM-RBK1":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
-  MPS123:{rear:[0.5,0.65,0],_:[0.5,0.65,0]},
+  "MPS63U-RBW":{front:[0.38,0.50,0],_:[0.38,0.50,0]},
+  "MPSW9-BW":{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
+  "BRACKETS:FPIU20MIR":{front:[0.14,0.36,0],left:[0.24,0.42,0],right:[0.76,0.42,0],_:[0.14,0.36,0]},
+  "416309-RBW-SMK":{front:[0.26,0.70,0],rear:[0.22,0.68,0],_:[0.26,0.70,0]},
   "MPS123U-RBW":{rear:[0.44,0.65,0],_:[0.44,0.65,0]},
-  "LIGHTS:MPS123U-RBW-SMK":{rear:[0.42,0.65,0],_:[0.42,0.65,0]},
   "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.65,0],_:[0.5,0.65,0]},
   "mpsm6-sb2":{rear:[0.44,0.65,0],_:[0.44,0.65,0]},
   "BRACKETS:MPSM6-LB":{rear:[0.56,0.65,0],_:[0.56,0.65,0]},
-  "416309-RBW-SMK":{front:[0.26,0.70,0],rear:[0.22,0.68,0],_:[0.26,0.70,0]},
-  ES100C:{front:[0.38,0.68,0],_:[0.38,0.68,0]}
+  SIFMJH:{rear:[0.5,0.24,0],_:[0.5,0.24,0]},
+  "STICK-RB":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
+  "CNSMJ8R-P3C":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
+  "CNSM-RBK1":{rear:[0.5,0.52,0],_:[0.5,0.52,0]},
+  "XSM2-BRW-US":{rear:[0.22,0.42,0],left:[0.78,0.48,0],right:[0.22,0.48,0],_:[0.22,0.42,0]},
+  "416300":{rear:[0.70,0.55,0],_:[0.70,0.55,0]},
+  ES100C:{front:[0.38,0.68,0],_:[0.38,0.68,0]},
+  "ESBL-FPIU20":{front:[0.38,0.68,0],_:[0.38,0.68,0]},
+  "ESBL2-TAH21ND":{front:[0.50,0.68,0],_:[0.50,0.68,0]},
+  RBKIT1:{front:[0.42,0.74,0],_:[0.42,0.74,0]},
+  "BRACKETS:RBS-FPIU20":{front:[0.42,0.74,0],_:[0.42,0.74,0]},
+  "RBKIT2-COMPACT":{front:[0.58,0.74,0],_:[0.58,0.74,0]},
+  "RBC2-TAH21ND":{front:[0.58,0.74,0],_:[0.58,0.74,0]}
 };
-var TRUCK_CLICKS={
-  "MPS63U-RBW":{front:[[0.38,0.50,0],[0.62,0.50,0]]},
-  "MPSW9-BW":{front:[[0.14,0.36,0],[0.86,0.36,0]],left:[[0.24,0.42,0]],right:[[0.76,0.42,0]]},
-  "BRACKETS:FPIU20MIR":{front:[[0.14,0.36,0],[0.86,0.36,0]],left:[[0.24,0.42,0]],right:[[0.76,0.42,0]]},
-  "XSM2-BRW-US":{rear:[[0.22,0.42,0],[0.78,0.42,0]],left:[[0.78,0.48,0]],right:[[0.22,0.48,0]]},
-  "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
-  ES100C:{front:[[0.38,0.68,0],[0.62,0.68,0]]}
-};
-var TRUCK_MULTI={
-  "MPS123U-RBW":{rear:[[0.44,0.65,0],[0.56,0.65,0]]},
-  "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.65,0]]},
-  "416309-RBW-SMK":{
-    front:[[0.26,0.70,0],[0.38,0.70,0],[0.62,0.70,0],[0.74,0.70,0]],
-    rear:[[0.22,0.68,0],[0.32,0.68,0],[0.42,0.68,0],[0.58,0.68,0],[0.68,0.68,0],[0.78,0.68,0]]
-  },
-  "DR6-RBW":{left:[[0.50,0.48,0]],right:[[0.50,0.48,0]]}
-};
+function truckClicks(roofY){
+  return {
+    "ALGT53JX-P3LB":{front:[[0.5,roofY,0]]},
+    SIFMJS:{front:[[0.5,0.24,0]]},
+    "DYNA-1":{front:[[0.5,0.68,0]]},
+    "DYNA-2":{front:[[0.5,0.68,0]]},
+    "DYNA-5":{front:[[0.5,0.68,0]]},
+    "DYNA-6":{front:[[0.5,0.68,0]]},
+    "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+    "DR6-RBW":{left:[[0.50,0.48,0]],right:[[0.50,0.48,0]]},
+    "MPS63U-RBW":{front:[[0.38,0.50,0],[0.62,0.50,0]]},
+    "MPSW9-BW":{front:[[0.14,0.36,0],[0.86,0.36,0]]},
+    "BRACKETS:FPIU20MIR":{front:[[0.14,0.36,0],[0.86,0.36,0]]},
+    "416309-RBW-SMK":{
+      front:[[0.26,0.70,0],[0.38,0.70,0],[0.62,0.70,0],[0.74,0.70,0]],
+      rear:[[0.22,0.68,0],[0.32,0.68,0],[0.42,0.68,0],[0.58,0.68,0],[0.68,0.68,0],[0.78,0.68,0]]
+    },
+    "MPS123U-RBW":{rear:[[0.44,0.65,0],[0.56,0.65,0]]},
+    "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.65,0]]},
+    "mpsm6-sb2":{rear:[[0.44,0.65,0]]},
+    "BRACKETS:MPSM6-LB":{rear:[[0.56,0.65,0]]},
+    SIFMJH:{rear:[[0.5,0.24,0]]},
+    "STICK-RB":{rear:[[0.5,0.52,0]]},
+    "CNSMJ8R-P3C":{rear:[[0.5,0.52,0]]},
+    "CNSM-RBK1":{rear:[[0.5,0.52,0]]},
+    "XSM2-BRW-US":{rear:[[0.22,0.42,0],[0.78,0.42,0]],left:[[0.78,0.48,0]],right:[[0.22,0.48,0]]},
+    "416300":{rear:[[0.70,0.55,0]]},
+    ES100C:{front:[[0.38,0.68,0],[0.62,0.68,0]]},
+    "ESBL-FPIU20":{front:[[0.38,0.68,0]]},
+    "ESBL2-TAH21ND":{front:[[0.50,0.68,0]]},
+    RBKIT1:{front:[[0.42,0.74,0]]},
+    "BRACKETS:RBS-FPIU20":{front:[[0.42,0.74,0]]},
+    "RBKIT2-COMPACT":{front:[[0.58,0.74,0]]},
+    "RBC2-TAH21ND":{front:[[0.58,0.74,0]]}
+  };
+}
 /* Front roof contact (ALGT sitTransform ty=-100 = sprite bottom).
    Measured on the 1024² plates — do not share one Y across trucks:
    F-150 white roof peak y=144 (0.141), glass starts y=170 (0.166).
@@ -288,7 +312,7 @@ function withFrontRoof(mounts, roofY){
 }
 function withFrontRoofDefaults(defaults, roofY){
   var d=JSON.parse(JSON.stringify(defaults));
-  ["ALGT","ALGT53JX-P3LB"].forEach(function(sku){
+  ["ALGT53JX-P3LB"].forEach(function(sku){
     if(!d[sku]) return;
     d[sku].front=[0.5,roofY,0];
     d[sku]._=[0.5,roofY,0];
@@ -305,170 +329,133 @@ function withFrontRoofDefaults(defaults, roofY){
    Durango   42.8% @ y=0.248 (283–720) → 42.4 at x=0.490 (cab is 3px left of plate center)
    Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
-  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4}},
-  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:48,barScale:1,barNudge:{dx:0,dy:0}},
-  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:TRUCK_CLICKS,multi:TRUCK_MULTI,frontRoofBarW:50,barScale:1,barNudge:{dx:0,dy:0}}
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4},clicks:null,
+    pushBar:{front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}}},
+  silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:truckClicks(0.180),frontRoofBarW:48,barScale:1,barNudge:{dx:0,dy:0},
+    pushBar:{front:{cx:50,cy:58,w:42,hs:0.88,ty:0.45}}},
+  f150:{label:"Ford F-150 PPV",short:"F-150 PPV",views:TRUCK_VIEWS_F150,mounts:withFrontRoof(TRUCK_MOUNTS,0.162),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.162),clicks:truckClicks(0.162),frontRoofBarW:50,barScale:1,barNudge:{dx:0,dy:0},
+    pushBar:{front:{cx:50,cy:59,w:44,hs:0.88,ty:0.45}}}
 };
 var vehicleId="durango";
 function veh(){ return VEHICLES[vehicleId]||VEHICLES.durango; }
 function views(){ return veh().views; }
 function viewExists(id){ return views().some(function(v){return v.id===id}); }
 var CATALOG=[
-  {sku:"ALGT",name:"Allegiant Roof Lightbar (53\")",group:"Front / Perimeter",fx:"fx_algt_rb.png",w:46},
-  {sku:"ALGT53JX-P3LB",name:"FedSig 53\" MAX tri-color light bar, black top, TD floods, alley, amber directional",group:"Front / Perimeter",fx:"fx_algt_max.png",w:46},
-  {sku:"SIFMJS",name:"SpectraLux ILS Visor (Front)",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:20},
+  {sku:"ALGT53JX-P3LB",name:"Allegiant 53\" MAX roof bar (ALGT)",group:"Front / Perimeter",fx:"fx_algt_max.png",w:46},
+  {sku:"SIFMJS",name:"SpectraLux ILS Visor — two shrouds, mirror gap",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:32},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14},
   {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32},
   {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38},
-  {sku:"DR1-RBK-SMK",name:"DynaFlare 1 ft smoked, behind grille, B/W",group:"Front / Perimeter",fx:"fx_dyna_1ft_smk.png",w:8},
-  {sku:"DR6-RBW",name:"DynaFlare 60 inch R/B/W exterior stick",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:28},
-  {sku:"MPS63",name:"MicroPulse 6-3 Grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
+  {sku:"DR1-RBK-SMK",name:"DynaFlare 1 ft smoked, behind grille",group:"Front / Perimeter",fx:"fx_dyna_1ft_smk.png",w:8},
+  {sku:"DR6-RBW",name:"DynaFlare 60 inch exterior stick",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:28},
   {sku:"MPS63U-RBW",name:"MicroPulse behind front grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
-  {sku:"MPSW9",name:"MicroPulse Wide 9 Mirror",group:"Front / Perimeter",fx:"fx_mps123_rb.png",w:6},
-  {sku:"MPSW9-BW",name:"MicroPulse Wide Angle B/W, side lighting / mirror",group:"Front / Perimeter",fx:"fx_mps_bw.png",w:6},
-  {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9 (Ford PI)",group:"Front / Perimeter",fx:"fx_bracket_l.png",w:5},
-  {sku:"416309-RBW-SMK",name:"1 in round B/W smoked (front bumper ×4, rear bumper ×6)",group:"Front / Perimeter",fx:"fx_round_smk.png",w:2.6},
-  {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7,hidden:true},
+  {sku:"MPSW9-BW",name:"MicroPulse Wide Angle, side / mirror",group:"Front / Perimeter",fx:"fx_mps_rb.png",w:6},
+  {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9",group:"Front / Perimeter",fx:"fx_bracket_l.png",w:5},
+  {sku:"416309-RBW-SMK",name:"1 in round smoked (front bumper ×4, rear ×6)",group:"Front / Perimeter",fx:"fx_round_smk.png",w:2.6},
   {sku:"MPS123U-RBW",name:"MicroPulse 1200-series rear hatch face / plate",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
-  {sku:"LIGHTS:MPS123U-RBW-SMK",name:"MicroPulse 1200 plate side smoked",group:"Rear Hatch",fx:"fx_mps123_smk.png",w:7},
-  {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series (MPS123U)",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
+  {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
   {sku:"mpsm6-sb2",name:"MicroPulse swivel bracket (1200-series)",group:"Rear Hatch",fx:"fx_bracket_l.png",w:5},
   {sku:"BRACKETS:MPSM6-LB",name:"MicroPulse L bracket",group:"Rear Hatch",fx:"fx_bracket_l.png",w:5},
   {sku:"SIFMJH",name:"SpectraLux ILS (Rear Hatch)",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
-  {sku:"LIGHTS:SIFMJH-TAH21-P3",name:"Rear hatch ILS, FS Join, brake/reverse",group:"Rear Hatch",fx:"fx_ils_rb.png",w:20},
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
-  {sku:"CNSMJ8R-P3C",name:"SignalMaster 8-head rear stick, Red/Amber + Blue/Amber",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
+  {sku:"CNSMJ8R-P3C",name:"SignalMaster 8-head rear stick",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"CNSM-RBK1",name:"SignalMaster 8-head mount bracket",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
-  {sku:"XSM2",name:"SpectraLux XSM2 Module",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"XSM2-BRW-US",name:"SpectraLux XSM2 rear quarter glass",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
   {sku:"ES100C",name:"100W speaker",group:"Siren / Control",fx:"fx_speaker.png",w:6},
-  {sku:"ESBL-FPIU20",name:"EC100 speaker bracket Ford PI",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},
-  {sku:"ESBL2-TAH21ND",name:"Dual ESB speaker/light mount Tahoe 21+",group:"Siren / Control",fx:"fx_speaker.png",w:7},
+  {sku:"ESBL-FPIU20",name:"EC100 speaker bracket",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},
+  {sku:"ESBL2-TAH21ND",name:"Dual ESB speaker/light mount",group:"Siren / Control",fx:"fx_speaker.png",w:7},
   {sku:"RBKIT1",name:"Rumbler",group:"Siren / Control",fx:"fx_rumbler.png",w:5},
-  {sku:"BRACKETS:RBS-FPIU20",name:"Rumbler bracket Ford PI",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},
+  {sku:"BRACKETS:RBS-FPIU20",name:"Rumbler bracket",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},
   {sku:"RBKIT2-COMPACT",name:"Compact rumbler",group:"Siren / Control",fx:"fx_rumbler.png",w:4.5},
-  {sku:"RBC2-TAH21ND",name:"2 compact rumbler brackets Tahoe 21+",group:"Siren / Control",fx:"fx_bracket_l.png",w:5}
+  {sku:"RBC2-TAH21ND",name:"2 compact rumbler brackets",group:"Siren / Control",fx:"fx_bracket_l.png",w:5}
 ];
 /* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
-  ALGT:{front:[0.490,0.248,0],rear:[0.5,0.22,0],left:[0.45,0.30,0],right:[0.55,0.30,0],hero:[0.48,0.26,0],_:[0.490,0.248,0]},
-  "ALGT53JX-P3LB":{front:[0.490,0.248,0],rear:[0.5,0.22,0],left:[0.45,0.30,0],right:[0.55,0.30,0],hero:[0.48,0.26,0],_:[0.490,0.248,0]},
+  "ALGT53JX-P3LB":{front:[0.490,0.248,0],_:[0.490,0.248,0]},
   SIFMJS:{front:[0.5,0.285,0],hero:[0.47,0.29,0],_:[0.5,0.285,0]},
-  MPS63:{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
-  "MPS63U-RBW":{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
-  MPSW9:{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
-  "MPSW9-BW":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
   "DYNA-1":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-2":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-5":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-6":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DR1-RBK-SMK":{front:[0.38,0.48,0],hero:[0.36,0.48,0],_:[0.38,0.48,0]},
-  "DR6-RBW":{left:[0.50,0.42,0],right:[0.50,0.42,0],hero:[0.42,0.40,0],_:[0.50,0.42,0]},
+  "DR6-RBW":{left:[0.50,0.42,0],right:[0.50,0.42,0],_:[0.50,0.42,0]},
+  "MPS63U-RBW":{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
+  "MPSW9-BW":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.2,0.42,0]},
+  "BRACKETS:FPIU20MIR":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.18,0.42,0]},
+  "416309-RBW-SMK":{front:[0.26,0.74,0],rear:[0.22,0.76,0],_:[0.26,0.74,0]},
+  "MPS123U-RBW":{rear:[0.445,0.553,0],rear_open:[0.36,0.248,0],_:[0.445,0.553,0]},
+  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.553,0],rear_open:[0.5,0.248,0],_:[0.5,0.553,0]},
+  "mpsm6-sb2":{rear:[0.445,0.553,0],rear_open:[0.36,0.248,0],_:[0.445,0.553,0]},
+  "BRACKETS:MPSM6-LB":{rear:[0.555,0.553,0],rear_open:[0.64,0.248,0],_:[0.555,0.553,0]},
   SIFMJH:{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
-  "LIGHTS:SIFMJH-TAH21-P3":{rear:[0.5,0.36,0],rear_open:[0.5,0.34,0],_:[0.5,0.36,0]},
   "STICK-RB":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   "CNSMJ8R-P3C":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
-  MPS123:{rear:[0.5,0.553,0],rear_open:[0.5,0.248,0],_:[0.5,0.553,0]},
-  "MPS123U-RBW":{rear:[0.445,0.553,0],rear_open:[0.36,0.248,0],_:[0.445,0.553,0]},
-  "LIGHTS:MPS123U-RBW-SMK":{rear:[0.43,0.553,0],rear_open:[0.34,0.248,0],_:[0.43,0.553,0]},
-  XSM2:{rear:[0.55,0.55,0],_:[0.55,0.55,0]},
+  "CNSM-RBK1":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
   "XSM2-BRW-US":{rear:[0.28,0.45,0],left:[0.78,0.40,0],right:[0.22,0.40,0],_:[0.28,0.45,0]},
   "416300":{rear:[0.7,0.55,0],_:[0.7,0.55,0]},
-  "416309-RBW-SMK":{front:[0.26,0.74,0],rear:[0.22,0.76,0],_:[0.26,0.74,0]},
   ES100C:{front:[0.38,0.70,0],hero:[0.36,0.66,0],_:[0.38,0.70,0]},
   "ESBL-FPIU20":{front:[0.38,0.70,0],hero:[0.36,0.66,0],_:[0.38,0.70,0]},
   "ESBL2-TAH21ND":{front:[0.50,0.70,0],hero:[0.42,0.66,0],_:[0.50,0.70,0]},
   RBKIT1:{front:[0.42,0.78,0],hero:[0.38,0.72,0],_:[0.42,0.78,0]},
   "BRACKETS:RBS-FPIU20":{front:[0.42,0.78,0],hero:[0.38,0.72,0],_:[0.42,0.78,0]},
   "RBKIT2-COMPACT":{front:[0.58,0.78,0],hero:[0.44,0.72,0],_:[0.58,0.78,0]},
-  "RBC2-TAH21ND":{front:[0.58,0.78,0],hero:[0.44,0.72,0],_:[0.58,0.78,0]},
-  "BRACKETS:FPIU20MIR":{front:[0.18,0.42,0],left:[0.28,0.42,0],right:[0.72,0.42,0],hero:[0.30,0.40,0],_:[0.18,0.42,0]},
-  "CNSM-RBK1":{rear:[0.5,0.58,0],rear_open:[0.5,0.55,0],_:[0.5,0.58,0]},
-  "BRACKETS:MPSM6-LPH1":{rear:[0.5,0.553,0],rear_open:[0.5,0.248,0],_:[0.5,0.553,0]},
-  "mpsm6-sb2":{rear:[0.445,0.553,0],rear_open:[0.36,0.248,0],_:[0.445,0.553,0]},
-  "BRACKETS:MPSM6-LB":{rear:[0.555,0.553,0],rear_open:[0.64,0.248,0],_:[0.555,0.553,0]}
+  "RBC2-TAH21ND":{front:[0.58,0.78,0],hero:[0.44,0.72,0],_:[0.58,0.78,0]}
 };
-/* Qty-2+ lighting: one catalog click drops the set on Durango mounts. */
-var CLICK_PAIRS={
-  "MPS63U-RBW":{front:[[0.38,0.52,0],[0.62,0.52,0]],hero:[[0.36,0.52,0]]},
-  "MPSW9-BW":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
-  "BRACKETS:FPIU20MIR":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
-  "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
-  "MPS123U-RBW":{rear:[[0.445,0.553,0],[0.555,0.553,0]],rear_open:[[0.36,0.248,0],[0.64,0.248,0]]},
-  "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]],hero:[[0.36,0.48,0]]},
-  ES100C:{front:[[0.38,0.70,0],[0.62,0.70,0]],hero:[[0.36,0.66,0]]}
-};
-/* SKUs that drop onto more than one view at once (front×4 + rear×6, side pair). */
-var CLICK_MULTI={
-  "MPS123U-RBW":{
-    rear:[[0.445,0.553,0],[0.555,0.553,0]],
-    rear_open:[[0.36,0.248,0],[0.64,0.248,0]]
-  },
-  "BRACKETS:MPSM6-LPH1":{
-    rear:[[0.5,0.553,0]],
-    rear_open:[[0.5,0.248,0]]
-  },
+/* One click map per vehicle. Durango map. Trucks use veh().clicks. */
+var CLICK={
+  "ALGT53JX-P3LB":{front:[[0.490,0.248,0]]},
+  SIFMJS:{front:[[0.5,0.285,0]]},
+  "DYNA-1":{front:[[0.5,0.66,0]]},
+  "DYNA-2":{front:[[0.5,0.66,0]]},
+  "DYNA-5":{front:[[0.5,0.66,0]]},
+  "DYNA-6":{front:[[0.5,0.66,0]]},
+  "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+  "DR6-RBW":{left:[[0.50,0.42,0]],right:[[0.50,0.42,0]]},
+  "MPS63U-RBW":{front:[[0.38,0.52,0],[0.62,0.52,0]]},
+  "MPSW9-BW":{front:[[0.18,0.42,0],[0.82,0.42,0]]},
+  "BRACKETS:FPIU20MIR":{front:[[0.18,0.42,0],[0.82,0.42,0]]},
   "416309-RBW-SMK":{
     front:[[0.26,0.74,0],[0.38,0.74,0],[0.62,0.74,0],[0.74,0.74,0]],
     rear:[[0.22,0.76,0],[0.32,0.76,0],[0.42,0.76,0],[0.58,0.76,0],[0.68,0.76,0],[0.78,0.76,0]]
   },
-  "DR6-RBW":{
-    left:[[0.50,0.42,0]],
-    right:[[0.50,0.42,0]]
-  }
+  "MPS123U-RBW":{rear:[[0.445,0.553,0],[0.555,0.553,0]],rear_open:[[0.36,0.248,0],[0.64,0.248,0]]},
+  "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.553,0]],rear_open:[[0.5,0.248,0]]},
+  "mpsm6-sb2":{rear:[[0.445,0.553,0]],rear_open:[[0.36,0.248,0]]},
+  "BRACKETS:MPSM6-LB":{rear:[[0.555,0.553,0]],rear_open:[[0.64,0.248,0]]},
+  SIFMJH:{rear:[[0.5,0.36,0]],rear_open:[[0.5,0.34,0]]},
+  "STICK-RB":{rear:[[0.5,0.58,0]],rear_open:[[0.5,0.55,0]]},
+  "CNSMJ8R-P3C":{rear:[[0.5,0.58,0]],rear_open:[[0.5,0.55,0]]},
+  "CNSM-RBK1":{rear:[[0.5,0.58,0]],rear_open:[[0.5,0.55,0]]},
+  "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
+  "416300":{rear:[[0.7,0.55,0]]},
+  ES100C:{front:[[0.38,0.70,0],[0.62,0.70,0]]},
+  "ESBL-FPIU20":{front:[[0.38,0.70,0]]},
+  "ESBL2-TAH21ND":{front:[[0.50,0.70,0]]},
+  RBKIT1:{front:[[0.42,0.78,0]]},
+  "BRACKETS:RBS-FPIU20":{front:[[0.42,0.78,0]]},
+  "RBKIT2-COMPACT":{front:[[0.58,0.78,0]]},
+  "RBC2-TAH21ND":{front:[[0.58,0.78,0]]}
 };
-/* Every CATALOG sku must have a home. clickPlace jumps here (preferView). */
 var HOME_VIEW={
-  ALGT:"front",
-  "ALGT53JX-P3LB":"front",
-  SIFMJS:"front",
-  "DYNA-1":"front",
-  "DYNA-2":"front",
-  "DYNA-5":"front",
-  "DYNA-6":"front",
-  "DR1-RBK-SMK":"front",
-  "DR6-RBW":"left",
-  MPS63:"front",
-  "MPS63U-RBW":"front",
-  MPSW9:"front",
-  "MPSW9-BW":"front",
-  "BRACKETS:FPIU20MIR":"front",
-  "416309-RBW-SMK":"front",
-  MPS123:"rear",
-  "MPS123U-RBW":"rear",
-  "LIGHTS:MPS123U-RBW-SMK":"rear",
-  "BRACKETS:MPSM6-LPH1":"rear",
-  "mpsm6-sb2":"rear",
-  "BRACKETS:MPSM6-LB":"rear",
-  SIFMJH:"rear",
-  "LIGHTS:SIFMJH-TAH21-P3":"rear",
-  "STICK-RB":"rear",
-  "CNSMJ8R-P3C":"rear",
-  "CNSM-RBK1":"rear",
-  XSM2:"rear",
-  "XSM2-BRW-US":"rear",
-  "416300":"rear",
-  ES100C:"front",
-  "ESBL-FPIU20":"front",
-  "ESBL2-TAH21ND":"front",
-  RBKIT1:"front",
-  "BRACKETS:RBS-FPIU20":"front",
-  "RBKIT2-COMPACT":"front",
-  "RBC2-TAH21ND":"front"
+  "ALGT53JX-P3LB":"front",SIFMJS:"front","DYNA-1":"front","DYNA-2":"front","DYNA-5":"front","DYNA-6":"front",
+  "DR1-RBK-SMK":"front","DR6-RBW":"left","MPS63U-RBW":"front","MPSW9-BW":"front","BRACKETS:FPIU20MIR":"front",
+  "416309-RBW-SMK":"front","MPS123U-RBW":"rear","BRACKETS:MPSM6-LPH1":"rear","mpsm6-sb2":"rear","BRACKETS:MPSM6-LB":"rear",
+  SIFMJH:"rear","STICK-RB":"rear","CNSMJ8R-P3C":"rear","CNSM-RBK1":"rear","XSM2-BRW-US":"rear","416300":"rear",
+  ES100C:"front","ESBL-FPIU20":"front","ESBL2-TAH21ND":"front",RBKIT1:"front","BRACKETS:RBS-FPIU20":"front",
+  "RBKIT2-COMPACT":"front","RBC2-TAH21ND":"front"
 };
-/* Generic ALGT click/drag places the quote MAX bar. Generic 1200 → quote SKU. */
-var SKU_ALIAS={ALGT:"ALGT53JX-P3LB", MPS123:"MPS123U-RBW"};
-/* Smoked 1200 keeps its sprite; shares the quote SKU click map (no second coords). */
-var CLICK_MAP_OWNER={"LIGHTS:MPS123U-RBW-SMK":"MPS123U-RBW"};
-function placeSku(sku){ return SKU_ALIAS[sku]||sku; }
-function mapSku(sku){ return CLICK_MAP_OWNER[sku]||SKU_ALIAS[sku]||sku; }
+/* Import-only names from quotes. Not a second click map. */
+var QUOTE_IMPORT={ALGT:"ALGT53JX-P3LB",MPS63:"MPS63U-RBW",MPSW9:"MPSW9-BW",MPS123:"MPS123U-RBW",
+  "LIGHTS:MPS123U-RBW-SMK":"MPS123U-RBW","LIGHTS:SIFMJH-TAH21-P3":"SIFMJH",XSM2:"XSM2-BRW-US"};
+function catalogSku(sku){ return QUOTE_IMPORT[sku]||sku; }
+VEHICLES.durango.clicks=CLICK;
+
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var pushBar=false,dashLighting=false,rearHatchLights=false;
 /* Durango placement from compiled-app (percent of stage) */
-var PUSH_BAR={front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}};
-var DASH_SPRITES={front:{cx:50,cy:22.5,w:34},hero:{cx:44,cy:20.5,w:22,rot:-3}};
+var PUSH_BAR=null; /* per-vehicle: veh().pushBar */
 var dragSku=null,dragClearTimer=null,emptyDragImg=null;
 /* Front plate (1024², vehicle y≈0.220–0.790): roof peak ~0.220, header ~0.236,
    visor glass under the header ~0.285. Seat Y in the roof/visor band (no 7%
@@ -523,7 +510,6 @@ function loadState(){
     if(s.view && viewExists(s.view)) view=s.view;
     else view=views()[0].id;
     bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
-    if(scheme==="rbw") scheme="rb";
     pushBar=!!s.pushBar; dashLighting=!!s.dashLighting; rearHatchLights=!!s.rearHatchLights;
     if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
     if(s.nid) nid=s.nid;
@@ -556,35 +542,28 @@ function defaultFor(sku){
   var d=map[view]||map._||[0.5,0.4,0];
   return {x:d[0],y:d[1],rot:d[2]||0};
 }
-/* Scheme swaps that actually exist under fx/. Missing files fall back to the catalog art. */
-var FX_HAVE={
-  "fx_algt_bw.png":1,"fx_algt_max.png":1,"fx_algt_rb.png":1,
-  "fx_bracket_l.png":1,"fx_bracket_plate.png":1,
-  "fx_dyna_1ft_rb.png":1,"fx_dyna_1ft_smk.png":1,"fx_dyna_2ft_rb.png":1,
-  "fx_dyna_5ft_rb.png":1,"fx_dyna_6ft_rb.png":1,"fx_dyna_b.png":1,"fx_dyna_rb.png":1,"fx_dyna_r.png":1,
-  "fx_ils_bw.png":1,"fx_ils_rb.png":1,
-  "fx_mps123_rb.png":1,"fx_mps123_smk.png":1,"fx_mps63_b.png":1,"fx_mps63_rb.png":1,
-  "fx_mps_bw.png":1,"fx_mps_small_rb.png":1,"fx_pushbar_front.png":1,
-  "fx_round_b.png":1,"fx_round_bw.png":1,"fx_round_rb.png":1,"fx_round_r.png":1,"fx_round_smk.png":1,"fx_round_w.png":1,
-  "fx_rumbler.png":1,"fx_speaker.png":1,
-  "fx_stick_amber.png":1,"fx_stick_bw.png":1,"fx_stick_rb.png":1
-};
+function schemeName(base){
+  if(base==="fx_algt_max.png"){
+    if(scheme==="bw") return "fx_algt_max_bw.png";
+    if(scheme==="rw") return "fx_algt_max_rw.png";
+    if(scheme==="rbw") return "fx_algt_max_rbw.png";
+    return base;
+  }
+  if(!/_rb\./.test(base)) return base;
+  if(scheme==="bw") return base.replace("_rb.","_bw.");
+  if(scheme==="rw") return base.replace("_rb.","_rw.");
+  if(scheme==="rbw") return base.replace("_rb.","_rbw.");
+  return base;
+}
 function fxFor(part){
   if(!part||!part.fx) return null;
-  var base=part.fx, f=base;
-  /* Only scheme-swap the _rb family. Dedicated smoked/MAX/BW files keep their colors. */
-  if(/_rb\./.test(f)){
-    if(scheme==="bw") f=f.replace("_rb.","_bw.");
-    else if(scheme==="rw") f=f.replace("_rb.","_r.");
-  }
-  if(f!==base && !FX_HAVE[f]) f=base;
+  var f=schemeName(part.fx);
   return "fx/"+f+"?v="+FX_V;
 }
 function renderParts(){
   var q=(document.getElementById("search").value||"").toLowerCase();
   var groups={},count=0;
   CATALOG.forEach(function(p){
-    if(p.hidden) return;
     if(q&&p.sku.toLowerCase().indexOf(q)<0&&p.name.toLowerCase().indexOf(q)<0) return;
     (groups[p.group]=groups[p.group]||[]).push(p);
   });
@@ -640,7 +619,6 @@ function catalogWidth(part,p){
     var fw=veh().frontRoofBarW;
     return fw!=null?fw:30;
   }
-  if(part && isRoofBar(part.sku) && (view==="left"||view==="right")) return 24;
   if(part && part.w!=null) return part.w;
   return (p && p.w)!=null?p.w:10;
 }
@@ -668,27 +646,11 @@ function renderStage(){
     stage.appendChild(el);
   }
   if(pushBar){
-    var pb=PUSH_BAR[view==="hero"?"hero":(view==="front"?"front":null)];
-    if(pb) placeOverlay("overlay-pushbar", pb, "fx/fx_pushbar_front.png");
-  }
-  if(dashLighting){
-    var ds=DASH_SPRITES[view==="hero"?"hero":(view==="front"?"front":null)];
-    var dsrc=(scheme==="bw"||scheme==="rw")?"fx/fx_ils_bw.png":"fx/fx_ils_rb.png";
-    if(ds) placeOverlay("overlay-dash", ds, dsrc);
-  }
-  if(rearHatchLights && (view==="rear"||view==="hero")){
-    var el=document.createElement("div");
-    el.className="overlay-hatch light";
-    el.style.left=(view==="rear"?50:76)+"%";
-    el.style.top=(view==="rear"?27:28)+"%";
-    el.style.width=(view==="rear"?22:13)+"%";
-    el.style.transform="translate(-50%,-50%)";
-    el.innerHTML='<img src="fx/fx_stick_rb.png" alt="hatch" draggable="false"/>';
-    stage.appendChild(el);
+    var pmap=veh().pushBar||{};
+    var pb=pmap[view]||(view==="hero"?pmap.hero:null)||(view==="front"?pmap.front:null);
+    if(pb) placeOverlay("overlay-pushbar", pb, "fx/fx_pushbar_front.png?v="+FX_V);
   }
   nodes[view].forEach(function(p){
-    /* Front ALGT is the only real lightbar node. Side/rear copies are ghosts. */
-    if(isRoofBar(p.sku) && view!=="front") return;
     var el=document.createElement("div");
     el.className="light"+(p.id===sel?" selected":"");
     el.dataset.id=String(p.id);
@@ -805,7 +767,7 @@ function syncSelDock(){
   dock.style.top=top+"px";
 }
 function isRoofBar(sku){
-  return sku==="ALGT" || sku==="ALGT53JX-P3LB";
+  return sku==="ALGT53JX-P3LB";
 }
 function sitTransform(p){
   /* Front ALGT: stored y is the roof contact (sprite bottom), not the bbox center.
@@ -823,13 +785,13 @@ function mountPrefer(m, sku){
   if(!sku) return 0;
   var name=m[2]||"";
   if(isRoofBar(sku) && /roof/i.test(name)) return -0.006;
-  if((sku==="SIFMJS"||sku==="SIFMJH"||sku==="LIGHTS:SIFMJH-TAH21-P3") && /ILS|visor/i.test(name)) return -0.006;
+  if((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)) return -0.006;
   if((sku==="MPS63U-RBW"||sku==="DR1-RBK-SMK") && /grille/i.test(name)) return -0.006;
   if(sku==="MPSW9-BW" && /mirror/i.test(name)) return -0.006;
   if(sku==="XSM2-BRW-US" && /pillar|quarter/i.test(name)) return -0.006;
   if(sku==="CNSMJ8R-P3C" && /hatch stick/i.test(name)) return -0.006;
   if(sku==="CNSM-RBK1" && /hatch stick/i.test(name)) return -0.006;
-  if((sku==="MPS123U-RBW"||sku==="LIGHTS:MPS123U-RBW-SMK"||sku==="mpsm6-sb2"||sku==="BRACKETS:MPSM6-LB") && /hatch plate/i.test(name)) return -0.006;
+  if((sku==="MPS123U-RBW"||sku==="mpsm6-sb2"||sku==="BRACKETS:MPSM6-LB") && /hatch plate/i.test(name)) return -0.006;
   if(sku==="BRACKETS:MPSM6-LPH1" && /hatch plate/i.test(name)) return -0.006;
   if(sku==="BRACKETS:FPIU20MIR" && /mirror/i.test(name)) return -0.006;
   if(sku==="416309-RBW-SMK" && /bumper/i.test(name)) return -0.006;
@@ -929,25 +891,24 @@ function addNode(sku,x,y,rot){
   addNodes(sku,[{x:x,y:y,rot:rot||0}]);
 }
 function addNodes(sku, spots, quiet){
-  sku=placeSku(sku);
+  sku=catalogSku(sku);
   var part=CATALOG.find(function(p){return p.sku===sku});
   if(!part || !spots || !spots.length) return;
-  if(isRoofBar(sku) && view!=="front") view=preferView("front");
+  if(isRoofBar(sku)) view=preferView("front");
   if(!nodes[view]) nodes[view]=[];
-  /* Roof bars live on Front only — never store an invisible Left/Right/Rear copy. */
   if(isRoofBar(sku) && view!=="front") return;
   spots.forEach(function(s){
     var id=nid++;
     nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0});
     sel=id;
   });
-  if(!quiet){ renderStage(); renderTabs(); renderSum(); }
+  if(!quiet){ renderStage(); renderTabs(); renderSum(); syncSkuToggles(); }
 }
+function clickMap(){ return veh().clicks||CLICK; }
 function placeSpots(sku, v){
-  var pairs=veh().clicks||CLICK_PAIRS;
-  var pair=pairs[sku];
-  if(pair && pair[v]){
-    return pair[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
+  var click=clickMap()[sku];
+  if(click && click[v]){
+    return click[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
   }
   var map=(veh().defaults && veh().defaults[sku])||DEFAULTS[sku];
   if(map && map[v]){
@@ -961,45 +922,43 @@ function preferView(id){
   return view;
 }
 function clickPlace(sku){
-  var placed=placeSku(sku);
-  var key=mapSku(sku);
-  var multi=(veh().multi||CLICK_MULTI)[key];
-  if(isRoofBar(placed)){
+  sku=catalogSku(sku);
+  if(!CATALOG.some(function(p){return p.sku===sku})) return;
+  if(isRoofBar(sku)){
     view=preferView("front");
     if(!nodes.front) nodes.front=[];
-    var roofSpots=placeSpots(placed, "front");
+    var roofSpots=placeSpots(sku, "front");
     if(!roofSpots.length){
-      var rd=((veh().defaults&&veh().defaults[placed])||DEFAULTS[placed]||{}).front||[0.490,0.248,0];
+      var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
       roofSpots=[{x:rd[0],y:rd[1],rot:rd[2]||0}];
     }
-    addNodes(placed, roofSpots);
+    addNodes(sku, roofSpots);
     return;
   }
-  if(multi){
+  var click=clickMap()[sku];
+  if(click){
     var last=view;
-    Object.keys(multi).forEach(function(v){
+    Object.keys(click).forEach(function(v){
       if(!viewExists(v)) return;
       view=v; last=v;
       if(!nodes[view]) nodes[view]=[];
-      var spots=multi[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
-      addNodes(placed, spots, true);
+      addNodes(sku, click[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; }), true);
     });
-    view=preferView(HOME_VIEW[sku]||HOME_VIEW[placed]||last);
-    renderStage(); renderTabs(); renderSum();
+    view=preferView(HOME_VIEW[sku]||last);
+    renderStage(); renderTabs(); renderSum(); syncSkuToggles();
     return;
   }
-  if(HOME_VIEW[sku]||HOME_VIEW[placed]) view=preferView(HOME_VIEW[sku]||HOME_VIEW[placed]);
+  if(HOME_VIEW[sku]) view=preferView(HOME_VIEW[sku]);
   if(!nodes[view]) nodes[view]=[];
-  var spots=placeSpots(key, view);
-  if(!spots.length) spots=placeSpots(placed, view);
+  var spots=placeSpots(sku, view);
   if(!spots.length){
-    var d=defaultFor(placed);
+    var d=defaultFor(sku);
     spots=[{x:d.x,y:d.y,rot:d.rot}];
   }
-  addNodes(placed, spots);
+  addNodes(sku, spots);
 }
 function placeFromEvent(e,clamp){
-  var sku=placeSku(resolveDragSku(e));
+  var sku=catalogSku(resolveDragSku(e));
   if(!sku) return false;
   if(isRoofBar(sku) && view!=="front"){
     view=preferView("front");
@@ -1098,8 +1057,8 @@ document.querySelectorAll(".sw").forEach(function(s){
     s.classList.toggle("on",!on);
     if(s.id==="snapToggle"){ snapEnabled=!on; saveState(); }
     else if(s.id==="pushBarToggle"){ pushBar=!on; renderStage(); }
-    else if(s.id==="dashToggle"){ dashLighting=!on; renderStage(); }
-    else if(s.id==="hatchToggle"){ rearHatchLights=!on; renderStage(); }
+    else if(s.id==="dashToggle"){ setOwnedSku("SIFMJS", !on); }
+    else if(s.id==="hatchToggle"){ setOwnedSku("STICK-RB", !on); }
   };
 });
 document.getElementById("bodyColor").querySelectorAll("button").forEach(function(btn){
@@ -1111,7 +1070,7 @@ document.getElementById("bodyColor").querySelectorAll("button").forEach(function
 });
 document.getElementById("colorScheme").querySelectorAll("button").forEach(function(btn){
   btn.onclick=function(){
-    if(!btn.dataset.s || btn.dataset.s==="rbw") return;
+    if(!btn.dataset.s) return;
     scheme=btn.dataset.s;
     document.querySelectorAll("#colorScheme button").forEach(function(b){b.classList.toggle("active",b===btn)});
     renderStage();
@@ -1133,9 +1092,82 @@ function setVehicle(id){
 }
 document.getElementById("vehicleSelect").onchange=function(){ setVehicle(this.value); };
 document.getElementById("search").oninput=renderParts;
-document.getElementById("loadBtn").onclick=function(){ return; };
+function skuPresent(sku){
+  return views().some(function(v){ return (nodes[v.id]||[]).some(function(n){return n.sku===sku}); });
+}
+function setOwnedSku(sku, on){
+  if(on){
+    if(!skuPresent(sku)) clickPlace(sku);
+  } else {
+    views().forEach(function(v){ nodes[v.id]=(nodes[v.id]||[]).filter(function(n){return n.sku!==sku}); });
+    sel=null; renderStage(); renderTabs(); renderSum();
+  }
+  syncSkuToggles();
+}
+function syncSkuToggles(){
+  dashLighting=skuPresent("SIFMJS");
+  rearHatchLights=skuPresent("STICK-RB");
+  var d=document.getElementById("dashToggle");
+  var h=document.getElementById("hatchToggle");
+  if(d){ d.dataset.on=String(dashLighting); d.classList.toggle("on", dashLighting); }
+  if(h){ h.dataset.on=String(rearHatchLights); h.classList.toggle("on", rearHatchLights); }
+}
+function purgeOffFrontBars(){
+  views().forEach(function(v){
+    if(v.id==="front") return;
+    nodes[v.id]=(nodes[v.id]||[]).filter(function(n){ return !isRoofBar(n.sku); });
+  });
+}
+function parseSkuList(text){
+  text=(text||"").trim();
+  if(!text) return [];
+  try{
+    var j=JSON.parse(text);
+    if(Array.isArray(j)) return j;
+    if(j && Array.isArray(j.skus)) return j.skus;
+  }catch(e){}
+  return text.split(/[\s,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function loadSkuList(list, quote){
+  var placed=0, unknown=[];
+  list.forEach(function(raw){
+    var sku=catalogSku(String(raw).trim());
+    if(!CATALOG.some(function(p){return p.sku===sku})){ unknown.push(raw); return; }
+    clickPlace(sku);
+    placed++;
+  });
+  if(quote) document.getElementById("quoteInput").value=quote;
+  document.getElementById("hintBar").textContent=placed
+    ? ("Loaded "+placed+" SKU"+(placed===1?"":"s")+(unknown.length?" · skipped "+unknown.join(", "):""))
+    : (unknown.length?"No catalog match for: "+unknown.join(", "):"No SKUs in file");
+}
+document.getElementById("loadBtn").onclick=function(){
+  var q=(document.getElementById("quoteInput").value||"").trim();
+  if(/^demo-?1236$/i.test(q) || q==="1236"){
+    fetch("quotes/demo-1236.json?v="+ASSET_V).then(function(r){ return r.text(); }).then(function(t){
+      var j=JSON.parse(t);
+      loadSkuList(j.skus||[], j.quote||q);
+    }).catch(function(){ document.getElementById("loadFile").click(); });
+    return;
+  }
+  document.getElementById("loadFile").click();
+};
+document.getElementById("loadFile").onchange=function(){
+  var f=this.files && this.files[0];
+  this.value="";
+  if(!f) return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    var list=parseSkuList(String(reader.result||""));
+    var quote=(document.getElementById("quoteInput").value||"").trim()||f.name.replace(/\.[^.]+$/,"");
+    loadSkuList(list, quote);
+  };
+  reader.readAsText(f);
+};
 document.getElementById("pdfBtn").onclick=function(){window.print()};
 loadState();
+purgeOffFrontBars();
+syncSkuToggles();
 (function syncVehicleUi(){
   var selEl=document.getElementById("vehicleSelect");
   if(selEl) selEl.value=vehicleId;
@@ -1155,6 +1187,41 @@ loadState();
   document.querySelectorAll("#colorScheme button").forEach(function(b){b.classList.toggle("active", b.dataset.s===scheme)});
 })();
 renderParts(); renderTabs(); renderStage(); renderSum();
+window.__IU_TEST__={
+  ASSET_V:ASSET_V, FX_V:FX_V,
+  CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
+  VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
+  isRoofBar:isRoofBar, fxFor:fxFor, schemeName:schemeName,
+  clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent,
+  loadSkuList:loadSkuList, parseSkuList:parseSkuList, setVehicle:setVehicle,
+  nodes:function(){return nodes;},
+  nodesByVehicle:function(){return nodesByVehicle;},
+  veh:veh, views:views,
+  getView:function(){return view;},
+  setView:function(v){ if(viewExists(v)) view=v; },
+  getScheme:function(){return scheme;},
+  setScheme:function(s){ scheme=s; },
+  resetNodes:function(){
+    nodesByVehicle={}; bindNodes(); nid=1; sel=null;
+    dashLighting=false; rearHatchLights=false; pushBar=false;
+  },
+  roofBarNodes:function(){
+    var out={};
+    Object.keys(nodesByVehicle).forEach(function(vid){
+      var bag=nodesByVehicle[vid]||{};
+      Object.keys(bag).forEach(function(v){
+        (bag[v]||[]).forEach(function(n){
+          if(isRoofBar(n.sku)){
+            out[vid]=out[vid]||{};
+            out[vid][v]=out[vid][v]||[];
+            out[vid][v].push(n.sku);
+          }
+        });
+      });
+    });
+    return out;
+  }
+};
 })();
 </script>
 </body>
