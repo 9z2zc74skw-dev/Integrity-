@@ -202,7 +202,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio16";
+var ASSET_V="studio17";
 var FX_V="max6";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -485,14 +485,12 @@ function bindNodes(){
   views().forEach(function(v){ if(!Array.isArray(nodes[v.id])) nodes[v.id]=[]; });
 }
 bindNodes();
-var STORE_KEY="iu-visualizer-v1";
+var STORE_KEY="iu-visualizer-v2";
 function saveState(){
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify({
       vehicleId:vehicleId, view:view, bodyColor:bodyColor, scheme:scheme,
-      nodes:nodes, nodesByVehicle:nodesByVehicle,
-      pushBar:pushBar, dashLighting:dashLighting, rearHatchLights:rearHatchLights,
-      snapEnabled:snapEnabled, nid:nid
+      snapEnabled:snapEnabled
     }));
   }catch(e){}
 }
@@ -501,19 +499,17 @@ function loadState(){
     var s=JSON.parse(localStorage.getItem(STORE_KEY)||"null");
     if(!s) return;
     if(s.vehicleId && VEHICLES[s.vehicleId]) vehicleId=s.vehicleId;
-    if(s.nodesByVehicle && typeof s.nodesByVehicle==="object"){
-      nodesByVehicle=s.nodesByVehicle;
-    } else if(s.nodes){
-      nodesByVehicle.durango=s.nodes;
-    }
     bindNodes();
     if(s.view && viewExists(s.view)) view=s.view;
     else view=views()[0].id;
     bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
-    pushBar=!!s.pushBar; dashLighting=!!s.dashLighting; rearHatchLights=!!s.rearHatchLights;
     if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
-    if(s.nid) nid=s.nid;
   }catch(e){}
+  /* Hard rule: cold load is a bare plate. Never restore placements or overlay toggles. */
+  nodesByVehicle={};
+  bindNodes();
+  nid=1; sel=null;
+  pushBar=false; dashLighting=false; rearHatchLights=false;
 }
 
 function getEmptyDragImage(){
@@ -1079,8 +1075,24 @@ document.getElementById("colorScheme").querySelectorAll("button").forEach(functi
     renderStage();
   };
 });
-document.getElementById("clearView").onclick=function(){nodes[view]=[]; sel=null; renderStage(); renderTabs(); renderSum()};
-document.getElementById("clearAll").onclick=function(){views().forEach(function(v){nodes[v.id]=[]}); sel=null; renderStage(); renderTabs(); renderSum()};
+function bareAllVehicles(){
+  Object.keys(VEHICLES).forEach(function(id){ nodesByVehicle[id]=emptyNodesFor(id); });
+  bindNodes();
+  nid=1; sel=null;
+  pushBar=false; dashLighting=false; rearHatchLights=false;
+  syncSkuToggles();
+  var pb=document.getElementById("pushBarToggle");
+  if(pb){ pb.dataset.on="false"; pb.classList.remove("on"); }
+}
+document.getElementById("clearView").onclick=function(){
+  nodes[view]=[]; sel=null;
+  syncSkuToggles();
+  renderStage(); renderTabs(); renderSum();
+};
+document.getElementById("clearAll").onclick=function(){
+  bareAllVehicles();
+  renderStage(); renderTabs(); renderSum();
+};
 function setVehicle(id){
   if(!VEHICLES[id] || id===vehicleId) return;
   vehicleId=id;
@@ -1205,11 +1217,23 @@ window.__IU_TEST__={
   getScheme:function(){return scheme;},
   setScheme:function(s){ scheme=s; },
   resetNodes:function(){
-    nodesByVehicle={}; bindNodes(); nid=1; sel=null;
-    dashLighting=false; rearHatchLights=false; pushBar=false;
-    syncSkuToggles();
+    bareAllVehicles();
   },
   syncSkuToggles:syncSkuToggles,
+  placementCount:function(){
+    var n=0;
+    Object.keys(nodesByVehicle).forEach(function(vid){
+      var bag=nodesByVehicle[vid]||{};
+      Object.keys(bag).forEach(function(v){ n+=(bag[v]||[]).length; });
+    });
+    return n;
+  },
+  stageLightCount:function(){ return document.querySelectorAll("#stage .light").length; },
+  ghostCount:function(){ return document.querySelectorAll("#stage .ghost-bar").length; },
+  overlayCount:function(){ return document.querySelectorAll("#stage .overlay-pushbar,#stage .overlay-dash,#stage .overlay-hatch").length; },
+  pushBarOn:function(){ return !!pushBar; },
+  clearAll:function(){ document.getElementById("clearAll").click(); },
+  toggleOn:function(id){ var s=document.getElementById(id); return !!(s&&s.dataset.on==="true"); },
   roofBarNodes:function(){
     var out={};
     Object.keys(nodesByVehicle).forEach(function(vid){

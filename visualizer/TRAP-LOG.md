@@ -1,11 +1,11 @@
-# Vector trap log — studio16 hero ghost sit
+# Vector trap log — studio17 bare default
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio16 · FX_V: max6
-- Signed Durango plate bytes: T-PLATE-HASHES PASS (unchanged)
-- studio16 software: Durango 3/4 GhostBar sits on the cab roof (bottom-origin, y=28.6, rot=-6). Plate bytes not recut.
+- ASSET_V: studio17 · FX_V: max6
+- Signed Durango plate bytes: T-PLATE-HASHES
+- studio17 software: cold load is a bare plate. Lights come from Parts (or a user-flipped toggle). No restore of placements.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -15,13 +15,15 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio16 |
+| T-ASSET-V | PASS | ASSET_V=studio17 |
+| T-NO-RESTORE-NODES | PASS | loadState does not rehydrate placements |
 | T-ARCHIVE-TREE | PASS | leftovers parked under archive/ |
 | T-PAGES-HONEST | PASS | root README does not promise Pages URL |
 | T-PLATE-HASHES | PASS | durango_front.png unchanged; durango_right.png unchanged; durango_rear.png unchanged; durango_rear_open.png unchanged; durango_left.png unchanged; durango_hero.png unchanged |
 | T-FX-HEAD | PASS | 55 fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false}} |
 | T-CLICKPLACE-ALL | PASS | durango/front=57 durango/left=57 durango/rear=57 silverado/front=48 silverado/left=48 silverado/rear=48 f150/front=48 f150/left=48 f150/rear=48 |
 | T-ROOF-FRONT-ONLY | PASS | roof nodes only on front after clickPlace from Front/Left/Rear |
 | T-HERO-GHOST-SIT | PASS | {"spec":{"kind":"full","x":48.5,"y":28.6,"rot":-6,"wScale":0.62,"sit":"bottom"},"origin":"50% 100%"} |
@@ -36,5 +38,7 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-TOGGLES-ONE-OWNER | PASS | {"dashOn":true,"dashOff":false,"hatchOn":true,"hatchOff":false} |
 | T-PRINT-RUNTIME | PASS | button=Print |
 | T-LOAD-LABEL | PASS | button=Load SKUs |
+| T-ONE-PARTS-CLICK | PASS | {"one":{"unique":["ALGT53JX-P3LB"],"placements":1,"lights":1},"left":1,"hero":1} |
+| T-CLEAR-ALL-BARE | PASS | {"placements":0,"lights":0,"ghosts":0,"overlays":0,"dash":false,"hatch":false,"push":false} |
 
 All named traps PASS.

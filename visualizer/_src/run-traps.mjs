@@ -67,7 +67,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio16"/.test(html), "ASSET_V=studio16");
+  rec("T-ASSET-V", /ASSET_V="studio17"/.test(html), "ASSET_V=studio17");
+  rec("T-NO-RESTORE-NODES",
+    /Never restore placements/.test(html) && !/nodesByVehicle=s\.nodesByVehicle/.test(html),
+    "loadState does not rehydrate placements");
   rec("T-ARCHIVE-TREE", fs.existsSync(path.join(ROOT, "archive", "README.md"))
     && !fs.existsSync(path.join(ROOT, "compiled-app"))
     && !fs.existsSync(path.join(ROOT, "GitHub-Upload-Small"))
@@ -116,7 +119,41 @@ async function chromeEval(base, fnBody) {
     const page = await browser.newPage();
     await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForFunction(() => window.__IU_TEST__, { timeout: 10000 });
-    return await page.evaluate(fnBody);
+    const snap = () => page.evaluate(() => {
+      const T = window.__IU_TEST__;
+      return {
+        placements: T.placementCount(),
+        lights: T.stageLightCount(),
+        ghosts: T.ghostCount(),
+        overlays: T.overlayCount(),
+        push: T.pushBarOn(),
+        dash: T.toggleOn("dashToggle"),
+        hatch: T.toggleOn("hatchToggle"),
+        pushSw: T.toggleOn("pushBarToggle"),
+      };
+    });
+    const bareCold = await snap();
+    await page.evaluate(() => {
+      const poison = JSON.stringify({
+        vehicleId: "durango",
+        nodesByVehicle: {
+          durango: {
+            front: [{ id: 99, sku: "ALGT53JX-P3LB", x: 0.5, y: 0.25, scale: 1, rot: 0 }],
+            hero: [{ id: 100, sku: "ALGT53JX-P3LB", x: 0.47, y: 0.26, scale: 1, rot: 0 }],
+          },
+        },
+        pushBar: true,
+        dashLighting: true,
+        rearHatchLights: true,
+      });
+      localStorage.setItem("iu-visualizer-v1", poison);
+      localStorage.setItem("iu-visualizer-v2", poison);
+    });
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(() => window.__IU_TEST__, { timeout: 10000 });
+    const afterPoison = await snap();
+    const runtime = await page.evaluate(fnBody);
+    return { bareCold, afterPoison, runtime };
   } finally {
     await browser.close();
   }
@@ -238,15 +275,50 @@ async function main() {
         topPct: ir&&gr? (gr.top-ir.top)/ir.height*100 : null,
         botPct: ir&&gr? (gr.bottom-ir.top)/ir.height*100 : null
       };
+
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("front");
+      T.clickPlace("ALGT53JX-P3LB");
+      out.oneSku={
+        unique:[...new Set(Object.values(T.nodes()).flat().map(function(n){return n.sku;}))],
+        placements:T.placementCount(),
+        lights:T.stageLightCount()
+      };
+      T.setView("left");
+      out.oneSkuGhostLeft=T.ghostCount();
+      T.setView("hero");
+      out.oneSkuGhostHero=T.ghostCount();
+      T.clearAll();
+      T.setView("front");
+      out.afterClear={
+        placements:T.placementCount(),
+        lights:T.stageLightCount(),
+        ghosts:T.ghostCount(),
+        overlays:T.overlayCount(),
+        dash:T.toggleOn("dashToggle"),
+        hatch:T.toggleOn("hatchToggle"),
+        push:T.pushBarOn()
+      };
       return out;
     });
-    rec("T-CHROME-RUNTIME", !!runtime, runtime ? "evaluated" : "no runtime");
+    rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
   } catch (e) {
     rec("T-CHROME-RUNTIME", false, e && e.message);
     finish(srv);
     return;
   }
 
+  if (runtime && runtime.bareCold) {
+    var bareOk = function(s){
+      return s && s.placements===0 && s.lights===0 && s.ghosts===0 && s.overlays===0
+        && !s.push && !s.dash && !s.hatch && !s.pushSw;
+    };
+    rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
+      JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
+  }
+
+  runtime = runtime && runtime.runtime;
   if (runtime) {
     rec("T-CLICKPLACE-ALL", runtime.clickPlace.every((row) => row.total > 0), runtime.clickPlace.map((r) => `${r.vid}/${r.from}=${r.total}`).join(" "));
     const roofLeak = runtime.clickPlace.filter((r) => Object.entries(r.roof).some(([v, list]) => v !== "front" && list.length));
@@ -291,6 +363,15 @@ async function main() {
     rec("T-TOGGLES-ONE-OWNER", runtime.toggles.dashOn && !runtime.toggles.dashOff && runtime.toggles.hatchOn && !runtime.toggles.hatchOff, JSON.stringify(runtime.toggles));
     rec("T-PRINT-RUNTIME", runtime.print === "Print", "button=" + runtime.print);
     rec("T-LOAD-LABEL", runtime.loadLabel === "Load SKUs", "button=" + runtime.loadLabel);
+    rec("T-ONE-PARTS-CLICK",
+      runtime.oneSku && runtime.oneSku.unique.length===1 && runtime.oneSku.unique[0]==="ALGT53JX-P3LB"
+      && runtime.oneSku.placements>=1 && runtime.oneSkuGhostHero>=1 && runtime.oneSkuGhostLeft>=1,
+      JSON.stringify({one:runtime.oneSku, left:runtime.oneSkuGhostLeft, hero:runtime.oneSkuGhostHero}));
+    rec("T-CLEAR-ALL-BARE",
+      runtime.afterClear && runtime.afterClear.placements===0 && runtime.afterClear.lights===0
+      && runtime.afterClear.ghosts===0 && runtime.afterClear.overlays===0
+      && !runtime.afterClear.dash && !runtime.afterClear.hatch && !runtime.afterClear.push,
+      JSON.stringify(runtime.afterClear));
   }
 
   finish(srv);
@@ -300,14 +381,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio16 hero ghost sit",
+    "# Vector trap log — studio17 bare default",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio16 · FX_V: max6`,
+    `- ASSET_V: studio17 · FX_V: max6`,
     `- Signed Durango plate bytes: T-PLATE-HASHES`,
-    `- studio16 software: Durango 3/4 GhostBar sits on the cab roof (bottom-origin). Plate bytes not recut.`,
+    `- studio17 software: cold load is a bare plate. Lights come from Parts (or a user-flipped toggle). No restore of placements.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
