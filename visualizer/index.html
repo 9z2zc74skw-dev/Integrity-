@@ -34,6 +34,8 @@ select,input[type=text]{height:32px;background:var(--bg);border:1px solid var(--
 select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 55%,transparent)}
 .btn{height:32px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0 12px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer}
 .btn:hover{background:var(--elevate)}.btn-primary{background:var(--primary);border-color:color-mix(in srgb,var(--primary) 80%,#000);color:var(--primary-fg);font-weight:600}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;pointer-events:none}
+#colorScheme [data-s="rbw"]{display:none}
 .btn-primary:hover{filter:brightness(1.06)}
 /* compiled-app: lg:w-72 panels */
 .layout{flex:1;display:grid;grid-template-columns:288px 1fr 288px;min-height:0}
@@ -131,10 +133,10 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
       <option value="f150">Ford F-150 PPV</option>
     </select>
     <input type="text" id="quoteInput" placeholder="Quote #" style="width:96px"/>
-    <button class="btn" id="loadBtn" type="button">Load SKUs</button>
+    <button class="btn" id="loadBtn" type="button" disabled title="Quote import is not available">Load SKUs (soon)</button>
   </div>
   <div class="header-right">
-    <button class="btn btn-primary" id="pdfBtn" type="button">PDF Sign-off</button>
+    <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
 <div class="layout">
@@ -200,7 +202,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio13";
+var ASSET_V="studio14";
 var FX_V="max4";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -265,7 +267,6 @@ var TRUCK_CLICKS={
 };
 var TRUCK_MULTI={
   "MPS123U-RBW":{rear:[[0.44,0.65,0],[0.56,0.65,0]]},
-  "LIGHTS:MPS123U-RBW-SMK":{rear:[[0.42,0.65,0],[0.58,0.65,0]]},
   "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.65,0]]},
   "416309-RBW-SMK":{
     front:[[0.26,0.70,0],[0.38,0.70,0],[0.62,0.70,0],[0.74,0.70,0]],
@@ -328,7 +329,7 @@ var CATALOG=[
   {sku:"MPSW9-BW",name:"MicroPulse Wide Angle B/W, side lighting / mirror",group:"Front / Perimeter",fx:"fx_mps_bw.png",w:6},
   {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9 (Ford PI)",group:"Front / Perimeter",fx:"fx_bracket_l.png",w:5},
   {sku:"416309-RBW-SMK",name:"1 in round B/W smoked (front bumper ×4, rear bumper ×6)",group:"Front / Perimeter",fx:"fx_round_smk.png",w:2.6},
-  {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
+  {sku:"MPS123",name:"MicroPulse 12-3",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7,hidden:true},
   {sku:"MPS123U-RBW",name:"MicroPulse 1200-series rear hatch face / plate",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
   {sku:"LIGHTS:MPS123U-RBW-SMK",name:"MicroPulse 1200 plate side smoked",group:"Rear Hatch",fx:"fx_mps123_smk.png",w:7},
   {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series (MPS123U)",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
@@ -396,7 +397,6 @@ var CLICK_PAIRS={
   "BRACKETS:FPIU20MIR":{front:[[0.18,0.42,0],[0.82,0.42,0]],left:[[0.28,0.42,0]],right:[[0.72,0.42,0]],hero:[[0.30,0.40,0]]},
   "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
   "MPS123U-RBW":{rear:[[0.445,0.553,0],[0.555,0.553,0]],rear_open:[[0.36,0.248,0],[0.64,0.248,0]]},
-  "LIGHTS:MPS123U-RBW-SMK":{rear:[[0.43,0.553,0],[0.57,0.553,0]],rear_open:[[0.34,0.248,0],[0.66,0.248,0]]},
   "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]],hero:[[0.36,0.48,0]]},
   ES100C:{front:[[0.38,0.70,0],[0.62,0.70,0]],hero:[[0.36,0.66,0]]}
 };
@@ -405,10 +405,6 @@ var CLICK_MULTI={
   "MPS123U-RBW":{
     rear:[[0.445,0.553,0],[0.555,0.553,0]],
     rear_open:[[0.36,0.248,0],[0.64,0.248,0]]
-  },
-  "LIGHTS:MPS123U-RBW-SMK":{
-    rear:[[0.43,0.553,0],[0.57,0.553,0]],
-    rear_open:[[0.34,0.248,0],[0.66,0.248,0]]
   },
   "BRACKETS:MPSM6-LPH1":{
     rear:[[0.5,0.553,0]],
@@ -423,23 +419,37 @@ var CLICK_MULTI={
     right:[[0.50,0.42,0]]
   }
 };
+/* Every CATALOG sku must have a home. clickPlace jumps here (preferView). */
 var HOME_VIEW={
+  ALGT:"front",
   "ALGT53JX-P3LB":"front",
-  "MPS63U-RBW":"front",
-  "MPSW9-BW":"front",
-  "BRACKETS:FPIU20MIR":"front",
+  SIFMJS:"front",
+  "DYNA-1":"front",
+  "DYNA-2":"front",
+  "DYNA-5":"front",
+  "DYNA-6":"front",
   "DR1-RBK-SMK":"front",
   "DR6-RBW":"left",
+  MPS63:"front",
+  "MPS63U-RBW":"front",
+  MPSW9:"front",
+  "MPSW9-BW":"front",
+  "BRACKETS:FPIU20MIR":"front",
   "416309-RBW-SMK":"front",
-  "XSM2-BRW-US":"rear",
-  "CNSMJ8R-P3C":"rear",
-  "CNSM-RBK1":"rear",
+  MPS123:"rear",
   "MPS123U-RBW":"rear",
   "LIGHTS:MPS123U-RBW-SMK":"rear",
-  "LIGHTS:SIFMJH-TAH21-P3":"rear",
   "BRACKETS:MPSM6-LPH1":"rear",
   "mpsm6-sb2":"rear",
   "BRACKETS:MPSM6-LB":"rear",
+  SIFMJH:"rear",
+  "LIGHTS:SIFMJH-TAH21-P3":"rear",
+  "STICK-RB":"rear",
+  "CNSMJ8R-P3C":"rear",
+  "CNSM-RBK1":"rear",
+  XSM2:"rear",
+  "XSM2-BRW-US":"rear",
+  "416300":"rear",
   ES100C:"front",
   "ESBL-FPIU20":"front",
   "ESBL2-TAH21ND":"front",
@@ -448,6 +458,12 @@ var HOME_VIEW={
   "RBKIT2-COMPACT":"front",
   "RBC2-TAH21ND":"front"
 };
+/* Generic ALGT click/drag places the quote MAX bar. Generic 1200 → quote SKU. */
+var SKU_ALIAS={ALGT:"ALGT53JX-P3LB", MPS123:"MPS123U-RBW"};
+/* Smoked 1200 keeps its sprite; shares the quote SKU click map (no second coords). */
+var CLICK_MAP_OWNER={"LIGHTS:MPS123U-RBW-SMK":"MPS123U-RBW"};
+function placeSku(sku){ return SKU_ALIAS[sku]||sku; }
+function mapSku(sku){ return CLICK_MAP_OWNER[sku]||SKU_ALIAS[sku]||sku; }
 var view="front",bodyColor="white",scheme="rb",nodes={},sel=null,nid=1;
 var pushBar=false,dashLighting=false,rearHatchLights=false;
 /* Durango placement from compiled-app (percent of stage) */
@@ -507,6 +523,7 @@ function loadState(){
     if(s.view && viewExists(s.view)) view=s.view;
     else view=views()[0].id;
     bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
+    if(scheme==="rbw") scheme="rb";
     pushBar=!!s.pushBar; dashLighting=!!s.dashLighting; rearHatchLights=!!s.rearHatchLights;
     if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
     if(s.nid) nid=s.nid;
@@ -539,20 +556,35 @@ function defaultFor(sku){
   var d=map[view]||map._||[0.5,0.4,0];
   return {x:d[0],y:d[1],rot:d[2]||0};
 }
+/* Scheme swaps that actually exist under fx/. Missing files fall back to the catalog art. */
+var FX_HAVE={
+  "fx_algt_bw.png":1,"fx_algt_max.png":1,"fx_algt_rb.png":1,
+  "fx_bracket_l.png":1,"fx_bracket_plate.png":1,
+  "fx_dyna_1ft_rb.png":1,"fx_dyna_1ft_smk.png":1,"fx_dyna_2ft_rb.png":1,
+  "fx_dyna_5ft_rb.png":1,"fx_dyna_6ft_rb.png":1,"fx_dyna_b.png":1,"fx_dyna_rb.png":1,"fx_dyna_r.png":1,
+  "fx_ils_bw.png":1,"fx_ils_rb.png":1,
+  "fx_mps123_rb.png":1,"fx_mps123_smk.png":1,"fx_mps63_b.png":1,"fx_mps63_rb.png":1,
+  "fx_mps_bw.png":1,"fx_mps_small_rb.png":1,"fx_pushbar_front.png":1,
+  "fx_round_b.png":1,"fx_round_bw.png":1,"fx_round_rb.png":1,"fx_round_r.png":1,"fx_round_smk.png":1,"fx_round_w.png":1,
+  "fx_rumbler.png":1,"fx_speaker.png":1,
+  "fx_stick_amber.png":1,"fx_stick_bw.png":1,"fx_stick_rb.png":1
+};
 function fxFor(part){
-  if(!part.fx) return null;
-  var f=part.fx;
+  if(!part||!part.fx) return null;
+  var base=part.fx, f=base;
   /* Only scheme-swap the _rb family. Dedicated smoked/MAX/BW files keep their colors. */
   if(/_rb\./.test(f)){
-    if(scheme==="bw") f=f.replace("_rb.","_bw.").replace("_r.","_bw.").replace("_b.","_bw.");
-    else if(scheme==="rw") f=f.replace("_rb.","_r.").replace("_bw.","_r.").replace("_b.","_r.");
+    if(scheme==="bw") f=f.replace("_rb.","_bw.");
+    else if(scheme==="rw") f=f.replace("_rb.","_r.");
   }
+  if(f!==base && !FX_HAVE[f]) f=base;
   return "fx/"+f+"?v="+FX_V;
 }
 function renderParts(){
   var q=(document.getElementById("search").value||"").toLowerCase();
   var groups={},count=0;
   CATALOG.forEach(function(p){
+    if(p.hidden) return;
     if(q&&p.sku.toLowerCase().indexOf(q)<0&&p.name.toLowerCase().indexOf(q)<0) return;
     (groups[p.group]=groups[p.group]||[]).push(p);
   });
@@ -669,6 +701,14 @@ function renderStage(){
     var src=part?fxFor(part):null;
     if(src){
       el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div>';
+      var limg=el.querySelector("img");
+      if(limg && part && part.fx){
+        limg.addEventListener("error",function(){
+          if(this.dataset.fb) return;
+          this.dataset.fb="1";
+          this.src="fx/"+part.fx+"?v="+FX_V;
+        });
+      }
     } else {
       el.innerHTML='<div style="background:linear-gradient(135deg,#2a2a30,#1a1a1e);color:#c4c4cc;font-size:10px;padding:5px 9px;border-radius:5px;border:1px solid #3f3f46;white-space:nowrap">'+p.sku+'</div><div class="tag">'+p.sku+'</div>';
     }
@@ -697,6 +737,8 @@ function ghostSpecForView(){
   if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
   if(view==="left") return {kind:"endcap", x:49+dx, y:35+dy};
   if(view==="right") return {kind:"endcap", x:51+dx, y:35+dy};
+  /* 3/4: perspective-ish full bar on the hero roof (software only; plate unchanged). */
+  if(view==="hero") return {kind:"full", x:48+dx, y:26+dy, rot:-10, wScale:0.62};
   return null;
 }
 function renderGhostBars(stage){
@@ -715,8 +757,10 @@ function renderGhostBars(stage){
     el.setAttribute("aria-hidden","true");
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
+    el.style.transform="translate(-50%,-50%)"+(spec.rot?" rotate("+spec.rot+"deg)":"");
     if(spec.kind==="full"){
       var w=(fw!=null?fw:(part.w||46))*scale;
+      if(spec.wScale) w*=spec.wScale;
       el.style.width=w+"%";
     }
     el.innerHTML='<img src="'+fx+'" alt="" draggable="false"/>';
@@ -883,9 +927,13 @@ function addNode(sku,x,y,rot){
   addNodes(sku,[{x:x,y:y,rot:rot||0}]);
 }
 function addNodes(sku, spots, quiet){
+  sku=placeSku(sku);
   var part=CATALOG.find(function(p){return p.sku===sku});
   if(!part || !spots || !spots.length) return;
+  if(isRoofBar(sku) && view!=="front") view=preferView("front");
   if(!nodes[view]) nodes[view]=[];
+  /* Roof bars live on Front only — never store an invisible Left/Right/Rear copy. */
+  if(isRoofBar(sku) && view!=="front") return;
   spots.forEach(function(s){
     var id=nid++;
     nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0});
@@ -911,7 +959,20 @@ function preferView(id){
   return view;
 }
 function clickPlace(sku){
-  var multi=(veh().multi||CLICK_MULTI)[sku];
+  var placed=placeSku(sku);
+  var key=mapSku(sku);
+  var multi=(veh().multi||CLICK_MULTI)[key];
+  if(isRoofBar(placed)){
+    view=preferView("front");
+    if(!nodes.front) nodes.front=[];
+    var roofSpots=placeSpots(placed, "front");
+    if(!roofSpots.length){
+      var rd=((veh().defaults&&veh().defaults[placed])||DEFAULTS[placed]||{}).front||[0.490,0.248,0];
+      roofSpots=[{x:rd[0],y:rd[1],rot:rd[2]||0}];
+    }
+    addNodes(placed, roofSpots);
+    return;
+  }
   if(multi){
     var last=view;
     Object.keys(multi).forEach(function(v){
@@ -919,24 +980,33 @@ function clickPlace(sku){
       view=v; last=v;
       if(!nodes[view]) nodes[view]=[];
       var spots=multi[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
-      addNodes(sku, spots, true);
+      addNodes(placed, spots, true);
     });
-    view=preferView(HOME_VIEW[sku]||last);
+    view=preferView(HOME_VIEW[sku]||HOME_VIEW[placed]||last);
     renderStage(); renderTabs(); renderSum();
     return;
   }
-  if(HOME_VIEW[sku]) view=preferView(HOME_VIEW[sku]);
+  if(HOME_VIEW[sku]||HOME_VIEW[placed]) view=preferView(HOME_VIEW[sku]||HOME_VIEW[placed]);
   if(!nodes[view]) nodes[view]=[];
-  var spots=placeSpots(sku, view);
+  var spots=placeSpots(key, view);
+  if(!spots.length) spots=placeSpots(placed, view);
   if(!spots.length){
-    var d=defaultFor(sku);
+    var d=defaultFor(placed);
     spots=[{x:d.x,y:d.y,rot:d.rot}];
   }
-  addNodes(sku, spots);
+  addNodes(placed, spots);
 }
 function placeFromEvent(e,clamp){
-  var sku=resolveDragSku(e);
+  var sku=placeSku(resolveDragSku(e));
   if(!sku) return false;
+  if(isRoofBar(sku) && view!=="front"){
+    view=preferView("front");
+    var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
+    addNode(sku, rd[0], rd[1], rd[2]||0);
+    setDragSku(null);
+    renderTabs();
+    return true;
+  }
   var stage=document.getElementById("stage");
   var r=stage.getBoundingClientRect();
   var g=snapTo((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,isFreePlace(e)||!snapEnabled,null,sku);
@@ -1039,6 +1109,7 @@ document.getElementById("bodyColor").querySelectorAll("button").forEach(function
 });
 document.getElementById("colorScheme").querySelectorAll("button").forEach(function(btn){
   btn.onclick=function(){
+    if(!btn.dataset.s || btn.dataset.s==="rbw") return;
     scheme=btn.dataset.s;
     document.querySelectorAll("#colorScheme button").forEach(function(b){b.classList.toggle("active",b===btn)});
     renderStage();
@@ -1060,11 +1131,7 @@ function setVehicle(id){
 }
 document.getElementById("vehicleSelect").onchange=function(){ setVehicle(this.value); };
 document.getElementById("search").oninput=renderParts;
-document.getElementById("loadBtn").onclick=function(){
-  var q=document.getElementById("quoteInput").value.trim();
-  if(!q) return alert("Enter a quote number");
-  alert("Quote "+q+" — SKU import when catalog is connected.");
-};
+document.getElementById("loadBtn").onclick=function(){ return; };
 document.getElementById("pdfBtn").onclick=function(){window.print()};
 loadState();
 (function syncVehicleUi(){

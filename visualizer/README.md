@@ -1,8 +1,10 @@
 # Durango Lighting Visualizer
 
+**Open `visualizer/`. Do not open `compiled-app/` or `GitHub-Upload-Small/`.**
+
 Interactive sales/quote visualizer for **Dodge Durango Pursuit** lighting builds (Integrity Upfitters).
 
-This folder is the editable source of truth for the Durango milestone. Do **not** edit `compiled-app/` as source — that Vite bundle is reference-only (UX/asset mining).
+This folder is the editable source of truth. Do **not** open or edit `compiled-app/` or `GitHub-Upload-Small/`.
 
 ## Run locally
 
@@ -22,7 +24,7 @@ Or open `visualizer/index.html` directly in a modern browser (file:// works for 
 2. **Drag** a FedSig SKU from the left list onto the vehicle, or **click** a SKU to place it at the default mount for the current view.
 3. Select a placed light to move, rotate, scale, or delete it.
 4. Toggle body color (White / Black) and department color scheme as needed.
-5. PDF Sign-off opens the browser print dialog (stub for this milestone).
+5. **Print** opens the browser print dialog. Load SKUs / quote import is not available.
 
 ## Scale & placement notes
 
