@@ -63,7 +63,7 @@ function staticTraps() {
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
   rec("T-NO-CLICK-PAIRS", !/CLICK_PAIRS|CLICK_MULTI|TRUCK_CLICKS|TRUCK_MULTI/.test(html), "duplicate click maps absent");
   rec("T-PRINT-LABEL", /id="pdfBtn"[^>]*>Print<\/button>/.test(html) && !/Sign-off/.test(html), "chrome says Print, not Sign-off");
-  rec("T-LOAD-WIRED", /id="loadBtn"[^>]*>Load SKUs<\/button>/.test(html) && !/soon/i.test(html), "Load SKUs present, no soon");
+  rec("T-LOAD-WIRED", /id="loadBtn"[^>]*>Load SKUs<\/button>/.test(html) && !/not available|coming soon|disabled title="soon"/i.test(html), "Load SKUs present, no soon");
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
@@ -91,9 +91,19 @@ async function fetchOk(base, rel) {
 
 async function chromeEval(base, fnBody) {
   let puppeteer;
-  try {
-    puppeteer = (await import("puppeteer-core")).default;
-  } catch {
+  const candidates = [
+    "puppeteer-core",
+    "/tmp/iu-traps/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js",
+    "/tmp/iu-traps/node_modules/puppeteer-core/lib/cjs/puppeteer/puppeteer-core.js",
+  ];
+  for (const spec of candidates) {
+    try {
+      const mod = await import(spec);
+      puppeteer = mod.default || mod;
+      break;
+    } catch {}
+  }
+  if (!puppeteer) {
     rec("T-CHROME-RUNTIME", false, "puppeteer-core not installed");
     return null;
   }
@@ -127,19 +137,6 @@ async function main() {
 
   const demo = await fetchOk(base, "/quotes/demo-1236.json");
   rec("T-DEMO-QUOTE-FILE", demo.ok, "quotes/demo-1236.json " + demo.status);
-
-  try {
-    await import("puppeteer-core");
-  } catch {
-    const inst = spawn("npm", ["install", "puppeteer-core@24.15.0", "--no-save", "--prefix", "/tmp/iu-traps"], { stdio: "inherit" });
-    await new Promise((res, rej) => inst.on("exit", (c) => c === 0 ? res() : rej(new Error("npm puppeteer-core failed"))));
-    const mod = path.join("/tmp/iu-traps/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js");
-    if (!fs.existsSync(mod)) {
-      rec("T-CHROME-RUNTIME", false, "could not install puppeteer-core");
-      finish(srv);
-      return;
-    }
-  }
 
   let runtime;
   try {

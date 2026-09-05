@@ -1204,7 +1204,9 @@ window.__IU_TEST__={
   resetNodes:function(){
     nodesByVehicle={}; bindNodes(); nid=1; sel=null;
     dashLighting=false; rearHatchLights=false; pushBar=false;
+    syncSkuToggles();
   },
+  syncSkuToggles:syncSkuToggles,
   roofBarNodes:function(){
     var out={};
     Object.keys(nodesByVehicle).forEach(function(vid){
