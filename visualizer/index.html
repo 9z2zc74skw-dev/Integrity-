@@ -59,8 +59,9 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .view-tab:hover{background:var(--elevate)}.view-tab.active{background:var(--pd);border-color:rgba(59,130,246,.35);color:#93c5fd;font-weight:600}
 /* Stage shrink-wraps the vehicle so light % coords match the truck (no letterbox drift). */
 .stage-area{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;min-height:0}
-.stage{position:relative;max-width:100%;max-height:100%;background:radial-gradient(ellipse at center,#1a1a1e,#0a0a0c);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.stage{position:relative;width:fit-content;max-width:100%;max-height:100%;margin:0 auto;background:radial-gradient(ellipse at center,#1a1a1e,#0a0a0c);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
 .stage img.vehicle{display:block;max-width:100%;max-height:calc(100vh - 160px);width:auto;height:auto;user-select:none;pointer-events:none}
+.plate-stack{position:relative;display:block;width:fit-content;max-width:100%;line-height:0}
 .stage img.vehicle-patch{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:2;display:none}
 .stage img.vehicle-patch.on{display:block}
 .stage.drag-over{outline:2px dashed var(--primary);outline-offset:-4px}
@@ -154,8 +155,10 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount. At roof/visor height, snap seats — nudge left/right, hold Shift for freeform.</div>
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
-        <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio19" alt="Vehicle" draggable="false"/>
-        <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
+        <div class="plate-stack" id="plateStack">
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio19" alt="Vehicle" draggable="false"/>
+          <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
+        </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         <div class="drop-hint">Drop light here</div>
         <div class="sel-dock" id="selDock" aria-label="Selected light">

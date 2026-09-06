@@ -4,7 +4,7 @@
 Does not rewrite signed plates. Writes fx/oem_hide_durango_front.png.
 """
 from pathlib import Path
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 VIZ = Path(__file__).resolve().parent.parent
 FX = VIZ / "fx"
@@ -43,7 +43,7 @@ def edge_fade(xf, x0=0.262, x1=0.738, fade=0.028):
     return 1.0
 
 
-def build_white(src, dest, depth=11, fade_h=5):
+def build_white(src, dest, depth=14, fade_h=6):
     im = Image.open(src).convert("RGB")
     w, h = im.size
     px = im.load()
@@ -72,31 +72,60 @@ def build_white(src, dest, depth=11, fade_h=5):
     contact = smooth(contact, 21)
     samples = [s for s in sample if s]
     fallback = samples[len(samples) // 2] if samples else (252, 252, 252)
-    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    op = out.load()
-    painted = 0
+    # Rasterize at 3× so the windshield curve is anti-aliased, then downscale.
+    scale = 3
+    W, H = w * scale, h * scale
+    big = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(big)
+    top, bot = [], []
     for x in range(x0, x1):
         if contact[x] is None:
             continue
-        fade = edge_fade(x / w)
-        if fade <= 0:
+        if edge_fade(x / w) <= 0:
             continue
-        col = sample[x] or fallback
         y_top = contact[x] + 1
-        for dy in range(depth):
-            y = y_top + dy
-            if y >= h:
+        top.append((x * scale, y_top * scale))
+        bot.append((x * scale, (y_top + depth) * scale))
+    if len(top) < 8:
+        Image.new("RGBA", (w, h), (0, 0, 0, 0)).save(dest)
+        return 0
+    poly = top + list(reversed(bot))
+    col = fallback
+    draw.polygon(poly, fill=(col[0], col[1], col[2], 255))
+    # vertical alpha fade on the lower third of the band
+    pix = big.load()
+    band_h = depth * scale
+    fade_px = fade_h * scale
+    for x in range(x0 * scale, x1 * scale):
+        xf = (x / scale) / w
+        ef = edge_fade(xf)
+        if ef <= 0:
+            continue
+        # find first painted y in this column
+        y_hit = None
+        for y in range(int(H * 0.20), int(H * 0.30)):
+            if pix[x, y][3] > 0:
+                y_hit = y
                 break
-            a = 255
-            if dy >= depth - fade_h:
-                a = int(255 * (depth - dy) / fade_h)
-            a = int(max(0, min(255, a * fade)))
-            if a <= 0:
+        if y_hit is None:
+            continue
+        for y in range(y_hit, min(H, y_hit + band_h + 2)):
+            r, g, b, a = pix[x, y]
+            if a == 0:
                 continue
-            op[x, y] = (col[0], col[1], col[2], a)
-            painted += 1
-    out = out.filter(ImageFilter.GaussianBlur(radius=0.7))
+            dy = y - y_hit
+            va = 255
+            if dy >= band_h - fade_px:
+                va = int(255 * max(0, (band_h - dy) / fade_px))
+            va = int(va * ef)
+            pix[x, y] = (r, g, b, va)
+    big = big.filter(ImageFilter.GaussianBlur(radius=1.6))
+    out = big.resize((w, h), Image.Resampling.LANCZOS)
     out.save(dest)
+    bb = out.getbbox()
+    painted = 0
+    if bb:
+        painted = (bb[2] - bb[0]) * (bb[3] - bb[1])
     return painted
 
 

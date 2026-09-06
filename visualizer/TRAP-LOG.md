@@ -1,11 +1,11 @@
-# Vector trap log — studio18 cold-load / OEM ridge
+# Vector trap log — studio19 OEM-hide overlay
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio18 · FX_V: max6
+- ASSET_V: studio19 · FX_V: max6
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)
-- studio18: cold load draws zero overlay sprites. The grey Front windshield-header is OEM plate pixels, not ALGT.
+- studio19: software overlay hides the Front OEM header strip. Signed plates unchanged.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -15,20 +15,22 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio18 |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio18 |
+| T-ASSET-V | PASS | ASSET_V=studio19 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio19 |
 | T-PACK-STAMP | PASS | header pack stamp present |
+| T-OEM-HIDE-FILE | PASS | Front OEM-hide overlay present |
 | T-URL-NO-SEED | PASS | no URL/hash auto-place |
 | T-NO-RESTORE-NODES | PASS | loadState does not rehydrate placements; v1 wiped; empty boot strips sprites |
 | T-BARE-PLATE-PIXELS | PASS | signed+black plates LED/amber pixels=0 durango_front.png=0 durango_front_black.png=0 durango_hero.png=0 durango_hero_black.png=0 |
 | T-ARCHIVE-TREE | PASS | leftovers parked under archive/ |
 | T-PAGES-HONEST | PASS | root README does not promise Pages URL |
 | T-PLATE-HASHES | PASS | durango_front.png unchanged; durango_right.png unchanged; durango_rear.png unchanged; durango_rear_open.png unchanged; durango_left.png unchanged; durango_hero.png unchanged |
-| T-FX-HEAD | PASS | 55 fx 200 |
+| T-FX-HEAD | PASS | 56 fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio18","plateSrc":"durango_front.png?v=studio18","asset":"studio18"},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio18","plateSrc":"durango_front.png?v=studio18","asset":"studio18"}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio18","src":"durango_front.png?v=studio18","asset":"studio18"} |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio19","plateSrc":"durango_front.png?v=studio19","asset":"studio19","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio19","plateSrc":"durango_front.png?v=studio19","asset":"studio19","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio19","src":"durango_front.png?v=studio19","asset":"studio19"} |
+| T-OEM-HIDE-ON | PASS | {"patchOn":true} |
 | T-CLICKPLACE-ALL | PASS | durango/front=57 durango/left=57 durango/rear=57 silverado/front=48 silverado/left=48 silverado/rear=48 f150/front=48 f150/left=48 f150/rear=48 |
 | T-ROOF-FRONT-ONLY | PASS | roof nodes only on front after clickPlace from Front/Left/Rear |
 | T-HERO-GHOST-SIT | PASS | {"spec":{"kind":"full","x":48.5,"y":28.6,"rot":-6,"wScale":0.62,"sit":"bottom"},"origin":"50% 100%"} |
