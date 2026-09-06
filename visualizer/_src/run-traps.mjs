@@ -60,11 +60,10 @@ function startServer() {
 }
 
 function plateLedCounts() {
+  /* Front + Hero roof-contact band only. Rear CHMSL / taillights are OEM red, not ALGT. */
   const plates = [
     "durango_front.png", "durango_front_black.png",
     "durango_hero.png", "durango_hero_black.png",
-    "durango_left.png", "durango_right.png",
-    "durango_rear.png", "durango_rear_open.png",
   ].map((n) => path.join(VIZ, n)).filter((p) => fs.existsSync(p));
   const py = [
     "from PIL import Image",
@@ -72,12 +71,14 @@ function plateLedCounts() {
     "out=[]",
     "for p in sys.argv[1:]:",
     "    im=Image.open(p).convert('RGB'); w,h=im.size; px=im.load(); n=0",
-    "    for y in range(int(h*0.16), int(h*0.34)):",
-    "        for x in range(int(w*0.16), int(w*0.84)):",
+    "    y0,y1,x0,x1=(int(h*0.228), int(h*0.268), int(w*0.22), int(w*0.78))",
+    "    for y in range(y0, y1):",
+    "        for x in range(x0, x1):",
     "            r,g,b=px[x,y]; mx=max(r,g,b); mn=min(r,g,b)",
-    "            if mx<90 or mx-mn<70: continue",
-    "            if (r>140 and r>b+50 and r>g+20) or (b>140 and b>r+50) or (r>140 and g>90 and b<80 and r>b+40):",
-    "                n+=1",
+    "            if mx<110 or mx-mn<80: continue",
+    "            red=r>150 and r>b+55 and r>g+35",
+    "            blu=b>150 and b>r+55 and b>g+20",
+    "            if red or blu: n+=1",
     "    out.append({'file':p.rsplit('/',1)[-1],'led':n,'w':w,'h':h})",
     "print(json.dumps(out))",
   ].join("\n");
