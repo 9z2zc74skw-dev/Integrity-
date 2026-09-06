@@ -43,7 +43,7 @@ def edge_fade(xf, x0=0.262, x1=0.738, fade=0.028):
     return 1.0
 
 
-def build_white(src, dest, depth=14, fade_h=6):
+def build_white(src, dest, depth=8, fade_h=5):
     im = Image.open(src).convert("RGB")
     w, h = im.size
     px = im.load()
