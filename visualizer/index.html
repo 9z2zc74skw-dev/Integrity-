@@ -30,6 +30,7 @@ body{font-family:Geist,Inter,system-ui,sans-serif;background:var(--bg);color:var
 header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:color-mix(in srgb,var(--bg) 95%,transparent);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(8px)}
 .brand{display:flex;align-items:center;gap:10px}.brand-icon{width:36px;height:36px;border-radius:calc(var(--radius) + 2px);background:var(--primary);color:var(--primary-fg);display:grid;place-items:center;font-size:16px}
 .brand-text strong{font-size:13px;display:block;font-weight:600}.brand-text span{font-size:11px;color:var(--muted)}.header-mid,.header-right{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pack-stamp{font-size:10px;color:var(--faint);font-weight:600;letter-spacing:.06em;user-select:all;white-space:nowrap}
 select,input[type=text]{height:32px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0 10px;font-size:12px;font-weight:500;font-family:inherit;outline:none}
 select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 55%,transparent)}
 .btn{height:32px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0 12px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer}
@@ -136,6 +137,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio18 you are on a stale pack">pack studio18</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -150,7 +152,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="hint-bar" id="hintBar">Drag a part onto the vehicle, or click a part to place at its default mount. At roof/visor height, snap seats — nudge left/right, hold Shift for freeform.</div>
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
-        <img class="vehicle" id="vehicleImg" src="durango_front.png?v=ac5173e" alt="Vehicle" draggable="false"/>
+        <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio18" alt="Vehicle" draggable="false"/>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         <div class="drop-hint">Drop light here</div>
         <div class="sel-dock" id="selDock" aria-label="Selected light">
@@ -202,7 +204,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio17";
+var ASSET_V="studio18";
 var FX_V="max6";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -495,20 +497,39 @@ function saveState(){
   }catch(e){}
 }
 function loadState(){
+  try{ localStorage.removeItem("iu-visualizer-v1"); }catch(e){}
   try{
     var s=JSON.parse(localStorage.getItem(STORE_KEY)||"null");
-    if(!s) return;
-    if(s.vehicleId && VEHICLES[s.vehicleId]) vehicleId=s.vehicleId;
-    bindNodes();
-    if(s.view && viewExists(s.view)) view=s.view;
-    else view=views()[0].id;
-    bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
-    if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
+    if(s){
+      if(s.vehicleId && VEHICLES[s.vehicleId]) vehicleId=s.vehicleId;
+      if(s.view && viewExists(s.view)) view=s.view;
+      else if(s.view) view=views()[0].id;
+      bodyColor=s.bodyColor||bodyColor; scheme=s.scheme||scheme;
+      if(typeof s.snapEnabled==="boolean") snapEnabled=s.snapEnabled;
+    }
   }catch(e){}
   /* Hard rule: cold load is a bare plate. Never restore placements or overlay toggles. */
   nodesByVehicle={};
   bindNodes();
   nid=1; sel=null;
+  pushBar=false; dashLighting=false; rearHatchLights=false;
+}
+function totalPlacements(){
+  var n=0;
+  Object.keys(nodesByVehicle).forEach(function(vid){
+    var bag=nodesByVehicle[vid]||{};
+    Object.keys(bag).forEach(function(v){ n+=(bag[v]||[]).length; });
+  });
+  return n;
+}
+function stripStageSprites(){
+  var stage=document.getElementById("stage");
+  if(!stage) return;
+  stage.querySelectorAll(".light,.ghost-bar,.overlay-pushbar,.overlay-dash,.overlay-hatch").forEach(function(el){el.remove();});
+}
+function assertBareIfEmpty(){
+  if(totalPlacements()>0) return;
+  stripStageSprites();
   pushBar=false; dashLighting=false; rearHatchLights=false;
 }
 
@@ -1180,9 +1201,14 @@ document.getElementById("loadFile").onchange=function(){
   reader.readAsText(f);
 };
 document.getElementById("pdfBtn").onclick=function(){window.print()};
+/* Cold load ignores location.search / hash. Quote # + Load SKUs is the only import path. */
 loadState();
 purgeOffFrontBars();
 syncSkuToggles();
+(function syncPackStamp(){
+  var stamp=document.getElementById("packStamp");
+  if(stamp) stamp.textContent="pack "+ASSET_V;
+})();
 (function syncVehicleUi(){
   var selEl=document.getElementById("vehicleSelect");
   if(selEl) selEl.value=vehicleId;
@@ -1202,6 +1228,8 @@ syncSkuToggles();
   document.querySelectorAll("#colorScheme button").forEach(function(b){b.classList.toggle("active", b.dataset.s===scheme)});
 })();
 renderParts(); renderTabs(); renderStage(); renderSum();
+assertBareIfEmpty();
+if(totalPlacements()===0){ renderTabs(); renderSum(); }
 window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
@@ -1220,14 +1248,9 @@ window.__IU_TEST__={
     bareAllVehicles();
   },
   syncSkuToggles:syncSkuToggles,
-  placementCount:function(){
-    var n=0;
-    Object.keys(nodesByVehicle).forEach(function(vid){
-      var bag=nodesByVehicle[vid]||{};
-      Object.keys(bag).forEach(function(v){ n+=(bag[v]||[]).length; });
-    });
-    return n;
-  },
+  placementCount:totalPlacements,
+  packStamp:function(){ var e=document.getElementById("packStamp"); return e?e.textContent.trim():""; },
+  plateSrc:function(){ var e=document.getElementById("vehicleImg"); return e?e.getAttribute("src")||e.src:""; },
   stageLightCount:function(){ return document.querySelectorAll("#stage .light").length; },
   ghostCount:function(){ return document.querySelectorAll("#stage .ghost-bar").length; },
   overlayCount:function(){ return document.querySelectorAll("#stage .overlay-pushbar,#stage .overlay-dash,#stage .overlay-hatch").length; },

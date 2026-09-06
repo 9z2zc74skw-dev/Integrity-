@@ -8,7 +8,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,6 +59,39 @@ function startServer() {
   });
 }
 
+function plateLedCounts() {
+  const plates = [
+    "durango_front.png", "durango_front_black.png",
+    "durango_hero.png", "durango_hero_black.png",
+    "durango_left.png", "durango_right.png",
+    "durango_rear.png", "durango_rear_open.png",
+  ].map((n) => path.join(VIZ, n)).filter((p) => fs.existsSync(p));
+  const py = [
+    "from PIL import Image",
+    "import json, sys",
+    "out=[]",
+    "for p in sys.argv[1:]:",
+    "    im=Image.open(p).convert('RGB'); w,h=im.size; px=im.load(); n=0",
+    "    for y in range(int(h*0.16), int(h*0.34)):",
+    "        for x in range(int(w*0.16), int(w*0.84)):",
+    "            r,g,b=px[x,y]; mx=max(r,g,b); mn=min(r,g,b)",
+    "            if mx<90 or mx-mn<70: continue",
+    "            if (r>140 and r>b+50 and r>g+20) or (b>140 and b>r+50) or (r>140 and g>90 and b<80 and r>b+40):",
+    "                n+=1",
+    "    out.append({'file':p.rsplit('/',1)[-1],'led':n,'w':w,'h':h})",
+    "print(json.dumps(out))",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, ...plates], { encoding: "utf8", maxBuffer: 4 * 1024 * 1024 });
+  if (r.status !== 0) return { ok: false, err: (r.stderr || r.stdout || "python fail").slice(0, 240) };
+  try {
+    const rows = JSON.parse(r.stdout || "[]");
+    const maxLed = rows.reduce((m, x) => Math.max(m, x.led || 0), 0);
+    return { ok: true, maxLed, detail: rows.map((x) => x.file + "=" + x.led).join(" ") };
+  } catch (e) {
+    return { ok: false, err: String(e.message || e) };
+  }
+}
+
 function staticTraps() {
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
   rec("T-NO-CLICK-PAIRS", !/CLICK_PAIRS|CLICK_MULTI|TRUCK_CLICKS|TRUCK_MULTI/.test(html), "duplicate click maps absent");
@@ -67,10 +100,17 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio17"/.test(html), "ASSET_V=studio17");
+  rec("T-ASSET-V", /ASSET_V="studio18"/.test(html), "ASSET_V=studio18");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio18"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio18");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio18/.test(html), "header pack stamp present");
+  rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
-    /Never restore placements/.test(html) && !/nodesByVehicle=s\.nodesByVehicle/.test(html),
-    "loadState does not rehydrate placements");
+    /Never restore placements/.test(html) && !/nodesByVehicle=s\.nodesByVehicle/.test(html)
+    && /removeItem\("iu-visualizer-v1"\)/.test(html) && /assertBareIfEmpty/.test(html),
+    "loadState does not rehydrate placements; v1 wiped; empty boot strips sprites");
+  const led = plateLedCounts();
+  rec("T-BARE-PLATE-PIXELS", !!(led && led.ok && led.maxLed === 0),
+    led && led.ok ? ("signed+black plates LED/amber pixels=" + led.maxLed + " " + led.detail) : (led && led.err) || "scan failed");
   rec("T-ARCHIVE-TREE", fs.existsSync(path.join(ROOT, "archive", "README.md"))
     && !fs.existsSync(path.join(ROOT, "compiled-app"))
     && !fs.existsSync(path.join(ROOT, "GitHub-Upload-Small"))
@@ -111,7 +151,7 @@ async function chromeEval(base, fnBody) {
     return null;
   }
   const browser = await puppeteer.launch({
-    executablePath: process.env.CHROME || "/usr/bin/google-chrome",
+    executablePath: process.env.CHROME || (fs.existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : "/usr/local/bin/google-chrome"),
     headless: "new",
     args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
   });
@@ -130,6 +170,9 @@ async function chromeEval(base, fnBody) {
         dash: T.toggleOn("dashToggle"),
         hatch: T.toggleOn("hatchToggle"),
         pushSw: T.toggleOn("pushBarToggle"),
+        pack: T.packStamp(),
+        plateSrc: T.plateSrc(),
+        asset: T.ASSET_V,
       };
     });
     const bareCold = await snap();
@@ -316,6 +359,11 @@ async function main() {
     };
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
+    rec("T-COLD-NO-SPRITE",
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio18"
+        && /pack studio18/.test(runtime.bareCold.pack||"")
+        && /studio18/.test(runtime.bareCold.plateSrc||""),
+      JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
   }
 
   runtime = runtime && runtime.runtime;
@@ -381,14 +429,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio17 bare default",
+    "# Vector trap log — studio18 cold-load / OEM ridge",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio17 · FX_V: max6`,
-    `- Signed Durango plate bytes: T-PLATE-HASHES`,
-    `- studio17 software: cold load is a bare plate. Lights come from Parts (or a user-flipped toggle). No restore of placements.`,
+    `- ASSET_V: studio18 · FX_V: max6`,
+    `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
+    `- studio18: cold load draws zero overlay sprites. The grey Front windshield-header is OEM plate pixels, not ALGT.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
