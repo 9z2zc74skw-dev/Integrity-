@@ -101,9 +101,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio18"/.test(html), "ASSET_V=studio18");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio18"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio18");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio18/.test(html), "header pack stamp present");
+  rec("T-ASSET-V", /ASSET_V="studio19"/.test(html), "ASSET_V=studio19");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio19"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio19");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio19/.test(html), "header pack stamp present");
+  rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
     /Never restore placements/.test(html) && !/nodesByVehicle=s\.nodesByVehicle/.test(html)
@@ -174,6 +175,7 @@ async function chromeEval(base, fnBody) {
         pack: T.packStamp(),
         plateSrc: T.plateSrc(),
         asset: T.ASSET_V,
+        patchOn: T.platePatchOn(),
       };
     });
     const bareCold = await snap();
@@ -361,10 +363,12 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio18"
-        && /pack studio18/.test(runtime.bareCold.pack||"")
-        && /studio18/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio19"
+        && /pack studio19/.test(runtime.bareCold.pack||"")
+        && /studio19/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
+    rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
+      JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
   }
 
   runtime = runtime && runtime.runtime;
@@ -430,14 +434,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio18 cold-load / OEM ridge",
+    "# Vector trap log — studio19 OEM-hide overlay",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio18 · FX_V: max6`,
+    `- ASSET_V: studio19 · FX_V: max6`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio18: cold load draws zero overlay sprites. The grey Front windshield-header is OEM plate pixels, not ALGT.`,
+    `- studio19: software overlay hides the Front OEM header strip. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
