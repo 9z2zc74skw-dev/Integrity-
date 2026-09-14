@@ -138,6 +138,7 @@ async function chromeEval(base, fnBody) {
   let puppeteer;
   const candidates = [
     "puppeteer-core",
+    "/tmp/iu-traps/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js",
     "/tmp/iu-traps/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js",
     "/tmp/iu-traps/node_modules/puppeteer-core/lib/cjs/puppeteer/puppeteer-core.js",
   ];
