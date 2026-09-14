@@ -101,9 +101,9 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio19"/.test(html), "ASSET_V=studio19");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio19"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio19");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio19/.test(html), "header pack stamp present");
+  rec("T-ASSET-V", /ASSET_V="studio20"/.test(html), "ASSET_V=studio20");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio20"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio20");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio20/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -234,6 +234,7 @@ async function main() {
         trucks: {},
         load: {},
         visor: {},
+        visorSplit: {},
         toggles: {},
         print: document.getElementById("pdfBtn") && document.getElementById("pdfBtn").textContent.trim(),
         loadLabel: document.getElementById("loadBtn") && document.getElementById("loadBtn").textContent.trim(),
@@ -296,8 +297,47 @@ async function main() {
       T.resetNodes();
       T.setVehicle("durango");
       T.setView("front");
+      T.clickPlace("SIFMJS");
+      var sifFront = (T.nodes().front || []).filter(function(n){ return n.sku === "SIFMJS"; });
+      var xs = sifFront.map(function(n){ return n.x; }).sort(function(a,b){ return a-b; });
+      var vw = (sifFront[0] && sifFront[0].w) || (sif && sif.w) || 0;
+      var hw = vw / 200;
+      var leftN = sifFront.reduce(function(a,n){ return n.x < a.x ? n : a; }, sifFront[0] || {x:0.5});
+      var rightN = sifFront.reduce(function(a,n){ return n.x > a.x ? n : a; }, sifFront[0] || {x:0.5});
+      var gap = (sifFront.length >= 2) ? ((rightN.x - hw) - (leftN.x + hw)) : null;
+      var sides = sifFront.map(function(n){ return n.side || T.visorSide(n); }).sort();
+      var lightCls = Array.prototype.map.call(document.querySelectorAll("#stage .light"), function(el){ return el.className; });
+      var partsCount = sifFront.length;
+      var dashWhileParts = T.toggleOn("dashToggle");
+      T.setOwnedSku("SIFMJS", true);
+      var afterOwnOn = (T.nodes().front || []).filter(function(n){ return n.sku === "SIFMJS"; }).length;
+      T.setOwnedSku("SIFMJS", false);
+      var afterOwnOff = (T.nodes().front || []).filter(function(n){ return n.sku === "SIFMJS"; }).length;
+      document.getElementById("dashToggle").click();
+      var afterDashOn = (T.nodes().front || []).filter(function(n){ return n.sku === "SIFMJS"; }).length;
+      document.getElementById("dashToggle").click();
+      var afterDashOff = (T.nodes().front || []).filter(function(n){ return n.sku === "SIFMJS"; }).length;
+      out.visorSplit = {
+        count: partsCount,
+        xs: xs,
+        w: vw,
+        gap: gap,
+        sides: sides,
+        lights: lightCls,
+        dashWhileParts: dashWhileParts,
+        afterOwnOn: afterOwnOn,
+        afterOwnOff: afterOwnOff,
+        afterDashOn: afterDashOn,
+        afterDashOff: afterDashOff,
+        centered: xs.length === 1 && Math.abs(xs[0] - 0.5) < 0.04
+      };
+
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("front");
       document.getElementById("dashToggle").click();
       out.toggles.dashOn = T.skuPresent("SIFMJS");
+      out.toggles.dashOnCount = (T.nodes().front || []).filter(function(n){ return n.sku === "SIFMJS"; }).length;
       document.getElementById("dashToggle").click();
       out.toggles.dashOff = T.skuPresent("SIFMJS");
       T.setView("rear");
@@ -363,9 +403,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio19"
-        && /pack studio19/.test(runtime.bareCold.pack||"")
-        && /studio19/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio20"
+        && /pack studio20/.test(runtime.bareCold.pack||"")
+        && /studio20/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -412,8 +452,20 @@ async function main() {
     rec("T-SCHEME-PIXEL-OWNER", changed, "each scheme requests different sprite set");
     rec("T-RBW-CONTROL", runtime.rbwBtn && !runtime.rbwHidden, `btn=${runtime.rbwBtn} hidden=${runtime.rbwHidden}`);
     rec("T-LOAD-SKUS", runtime.load.present.every(([, ok]) => ok), JSON.stringify(runtime.load.present));
-    rec("T-VISOR-W", runtime.visor.w >= 30, `SIFMJS w=${runtime.visor.w}`);
-    rec("T-TOGGLES-ONE-OWNER", runtime.toggles.dashOn && !runtime.toggles.dashOff && runtime.toggles.hatchOn && !runtime.toggles.hatchOff, JSON.stringify(runtime.toggles));
+    rec("T-VISOR-W", runtime.visor.w >= 10 && runtime.visor.w <= 16, `SIFMJS w=${runtime.visor.w} (per shroud)`);
+    var vs = runtime.visorSplit || {};
+    var splitOk = vs.count === 2
+      && vs.xs && vs.xs[0] < 0.45 && vs.xs[1] > 0.55
+      && vs.gap != null && vs.gap >= 0.06
+      && vs.sides && vs.sides.indexOf("L") >= 0 && vs.sides.indexOf("R") >= 0
+      && vs.afterOwnOn === 2 && vs.afterOwnOff === 0
+      && vs.afterDashOn === 2 && vs.afterDashOff === 0
+      && vs.dashWhileParts === true
+      && !vs.centered
+      && (vs.lights || []).some((c) => /\bils-L\b/.test(c))
+      && (vs.lights || []).some((c) => /\bils-R\b/.test(c));
+    rec("T-VISOR-SPLIT", splitOk, JSON.stringify(vs));
+    rec("T-TOGGLES-ONE-OWNER", runtime.toggles.dashOn && runtime.toggles.dashOnCount===2 && !runtime.toggles.dashOff && runtime.toggles.hatchOn && !runtime.toggles.hatchOff, JSON.stringify(runtime.toggles));
     rec("T-PRINT-RUNTIME", runtime.print === "Print", "button=" + runtime.print);
     rec("T-LOAD-LABEL", runtime.loadLabel === "Load SKUs", "button=" + runtime.loadLabel);
     rec("T-ONE-PARTS-CLICK",
@@ -434,14 +486,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio19 OEM-hide overlay",
+    "# Vector trap log — studio20 ILS visor split",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio19 · FX_V: max6`,
+    `- ASSET_V: studio20 · FX_V: max6`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio19: software overlay hides the Front OEM header strip. Signed plates unchanged.`,
+    `- studio20: SIFMJS visor ILS is two shrouds (L/R) with a mirror gap. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

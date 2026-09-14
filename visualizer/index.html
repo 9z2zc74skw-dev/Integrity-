@@ -77,6 +77,10 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .ghost-bar.endcap img{width:auto;height:36px;max-width:none}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+/* ILS visor: one sprite file, two nodes. Clip to a single shroud per visor. */
+.light.ils-half{overflow:hidden}
+.light.ils-L img,.light.ils-R img{width:200%;max-width:none;height:auto}
+.light.ils-R img{margin-left:-100%}
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .light .tag{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0}
 .light.selected .tag,.light:hover .tag{opacity:1}
@@ -140,7 +144,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio19 you are on a stale pack">pack studio19</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio20 you are on a stale pack">pack studio20</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -156,7 +160,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio19" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio20" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -180,7 +184,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
       <div class="toggles">
         <div class="toggle"><div class="lbl">Snap / align<small>Seats on roof/visor when at that height. Short center magnet; hold Shift for freeform</small></div><button type="button" class="sw on" id="snapToggle" data-on="true" aria-label="Snap / align"></button></div>
         <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" id="pushBarToggle" data-on="false" aria-label="Push Bar"></button></div>
-        <div class="toggle"><div class="lbl">Interior Dash<small>Places SIFMJS visor ILS — same SKU, not a second overlay</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
+        <div class="toggle"><div class="lbl">Interior Dash<small>Places SIFMJS visor ILS pair (L+R shrouds) — same SKU, not a second overlay</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
         <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Places STICK-RB on hatch — same SKU, not a decoration overlay</small></div><button type="button" class="sw" id="hatchToggle" data-on="false" aria-label="Rear Hatch Lights"></button></div>
       </div>
     </div>
@@ -210,7 +214,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio19";
+var ASSET_V="studio20";
 var FX_V="max6";
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -234,14 +238,14 @@ var TRUCK_VIEWS_F150=[
 ];
 var TRUCK_MOUNTS={
   /* front "roof" Y here is a placeholder — VEHICLES override per plate. */
-  front:[[0.5,0.24,"ILS visor"],[0.5,0.175,"roof"],[0.5,0.50,"grille"],[0.38,0.50,"grille L"],[0.62,0.50,"grille R"],[0.5,0.68,"pushbar/lower"],[0.14,0.36,"mirror L"],[0.86,0.36,"mirror R"],[0.26,0.70,"bumper L"],[0.38,0.70,"bumper L2"],[0.62,0.70,"bumper R2"],[0.74,0.70,"bumper R"]],
+  front:[[0.38,0.24,"ILS visor L"],[0.62,0.24,"ILS visor R"],[0.5,0.175,"roof"],[0.5,0.50,"grille"],[0.38,0.50,"grille L"],[0.62,0.50,"grille R"],[0.5,0.68,"pushbar/lower"],[0.14,0.36,"mirror L"],[0.86,0.36,"mirror R"],[0.26,0.70,"bumper L"],[0.38,0.70,"bumper L2"],[0.62,0.70,"bumper R2"],[0.74,0.70,"bumper R"]],
   rear:[[0.5,0.24,"hatch ILS"],[0.5,0.48,"hatch mid"],[0.5,0.52,"hatch stick"],[0.44,0.65,"hatch plate L"],[0.56,0.65,"hatch plate R"],[0.5,0.16,"spoiler"],[0.22,0.68,"bumper L"],[0.32,0.68,"bumper L2"],[0.42,0.68,"bumper L3"],[0.58,0.68,"bumper R3"],[0.68,0.68,"bumper R2"],[0.78,0.68,"bumper R"]],
   left:[[0.45,0.375,"roofline"],[0.24,0.42,"mirror"],[0.78,0.48,"quarter"]],
   right:[[0.55,0.375,"roofline"],[0.76,0.42,"mirror"],[0.22,0.48,"quarter"]]
 };
 var TRUCK_DEFAULTS={
   "ALGT53JX-P3LB":{front:[0.5,0.175,0],_:[0.5,0.175,0]},
-  SIFMJS:{front:[0.5,0.24,0],_:[0.5,0.24,0]},
+  SIFMJS:{front:[0.38,0.24,0],_:[0.38,0.24,0]},
   "DYNA-1":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
   "DYNA-2":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
   "DYNA-5":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
@@ -273,7 +277,7 @@ var TRUCK_DEFAULTS={
 function truckClicks(roofY){
   return {
     "ALGT53JX-P3LB":{front:[[0.5,roofY,0]]},
-    SIFMJS:{front:[[0.5,0.24,0]]},
+    SIFMJS:{front:[[0.38,0.24,0,"L"],[0.62,0.24,0,"R"]]},
     "DYNA-1":{front:[[0.5,0.68,0]]},
     "DYNA-2":{front:[[0.5,0.68,0]]},
     "DYNA-5":{front:[[0.5,0.68,0]]},
@@ -312,7 +316,7 @@ function truckClicks(roofY){
    Silverado white roof peak y=166 (0.162), glass starts y=188 (0.184).
    0.144 / 0.163 left a sky gap under the visible LED strip; sit on metal
    (F-150 0.162, Silverado 0.180) without crossing into glass.
-   ILS visor stays 0.24 (glass). */
+   ILS visor stays 0.24 (glass), split L/R with a mirror gap. */
 function withFrontRoof(mounts, roofY){
   var m=JSON.parse(JSON.stringify(mounts));
   m.front=m.front.map(function(pt){ return pt[2]==="roof"?[pt[0],roofY,pt[2]]:pt; });
@@ -351,7 +355,7 @@ function views(){ return veh().views; }
 function viewExists(id){ return views().some(function(v){return v.id===id}); }
 var CATALOG=[
   {sku:"ALGT53JX-P3LB",name:"Allegiant 53\" MAX roof bar (ALGT)",group:"Front / Perimeter",fx:"fx_algt_max.png",w:46},
-  {sku:"SIFMJS",name:"SpectraLux ILS Visor — two shrouds, mirror gap",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:32},
+  {sku:"SIFMJS",name:"SpectraLux ILS Visor — two shrouds, mirror gap",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:14},
   {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8},
   {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14},
   {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32},
@@ -383,7 +387,7 @@ var CATALOG=[
 /* Simple per-SKU defaults as fraction of the vehicle stage (shrink-wrapped). */
 var DEFAULTS={
   "ALGT53JX-P3LB":{front:[0.490,0.248,0],_:[0.490,0.248,0]},
-  SIFMJS:{front:[0.5,0.285,0],hero:[0.47,0.29,0],_:[0.5,0.285,0]},
+  SIFMJS:{front:[0.370,0.285,0],hero:[0.42,0.29,0],_:[0.370,0.285,0]},
   "DYNA-1":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-2":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-5":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
@@ -415,7 +419,7 @@ var DEFAULTS={
 /* One click map per vehicle. Durango map. Trucks use veh().clicks. */
 var CLICK={
   "ALGT53JX-P3LB":{front:[[0.490,0.248,0]]},
-  SIFMJS:{front:[[0.5,0.285,0]]},
+  SIFMJS:{front:[[0.370,0.285,0,"L"],[0.610,0.285,0,"R"]]},
   "DYNA-1":{front:[[0.5,0.66,0]]},
   "DYNA-2":{front:[[0.5,0.66,0]]},
   "DYNA-5":{front:[[0.5,0.66,0]]},
@@ -472,14 +476,14 @@ var dragSku=null,dragClearTimer=null,emptyDragImg=null;
    yanked the bar to 0.5 while dragging. */
 var snapEnabled=true, SNAP_STEP=0.005, SNAP_MAG=0.012, SNAP_MOUNT=0.010;
 var SNAP_BAND_Y=0.016, SNAP_CENTER_X=0.03;
-/* Good placement anchors (fractions). ILS = thin stick on glass under visor. */
+/* Good placement anchors (fractions). ILS = two shrouds under L/R visors, mirror gap. */
 var MOUNT_SNAPS={
-  front:[[0.5,0.285,"ILS visor"],[0.490,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"],[0.26,0.74,"bumper L"],[0.38,0.74,"bumper L2"],[0.62,0.74,"bumper R2"],[0.74,0.74,"bumper R"]],
+  front:[[0.370,0.285,"ILS visor L"],[0.610,0.285,"ILS visor R"],[0.490,0.248,"roof"],[0.5,0.52,"grille"],[0.38,0.52,"grille L"],[0.62,0.52,"grille R"],[0.5,0.68,"pushbar/lower"],[0.18,0.42,"mirror L"],[0.82,0.42,"mirror R"],[0.26,0.74,"bumper L"],[0.38,0.74,"bumper L2"],[0.62,0.74,"bumper R2"],[0.74,0.74,"bumper R"]],
   rear:[[0.5,0.36,"hatch ILS"],[0.5,0.55,"hatch mid"],[0.5,0.58,"hatch stick"],[0.445,0.553,"hatch plate L"],[0.555,0.553,"hatch plate R"],[0.5,0.22,"spoiler"],[0.28,0.45,"pillar L"],[0.72,0.45,"pillar R"],[0.22,0.76,"bumper L"],[0.32,0.76,"bumper L2"],[0.42,0.76,"bumper L3"],[0.58,0.76,"bumper R3"],[0.68,0.76,"bumper R2"],[0.78,0.76,"bumper R"]],
   rear_open:[[0.5,0.34,"hatch ILS"],[0.5,0.50,"hatch mid"],[0.36,0.248,"hatch plate L"],[0.64,0.248,"hatch plate R"]],
   left:[[0.45,0.30,"roofline"],[0.28,0.42,"mirror"],[0.78,0.40,"quarter"]],
   right:[[0.55,0.30,"roofline"],[0.72,0.42,"mirror"],[0.22,0.40,"quarter"]],
-  hero:[[0.48,0.29,"ILS visor"],[0.48,0.26,"roof"],[0.36,0.52,"grille"]]
+  hero:[[0.40,0.29,"ILS visor L"],[0.54,0.29,"ILS visor R"],[0.48,0.26,"roof"],[0.36,0.52,"grille"]]
 };
 
 var nodesByVehicle={};
@@ -699,6 +703,7 @@ function renderStage(){
     el.style.top=(p.y*100)+"%";
     el.style.width=(catW*p.scale)+"%";
     el.style.transform=sitTransform(p);
+    if(isVisorIls(p.sku)) el.classList.add("ils-half","ils-"+visorSide(p));
     var src=part?fxFor(part):null;
     if(src){
       el.innerHTML='<img src="'+src+'" alt="'+p.sku+'" draggable="false"/><div class="tag">'+p.sku+'</div>';
@@ -810,6 +815,17 @@ function syncSelDock(){
 }
 function isRoofBar(sku){
   return sku==="ALGT53JX-P3LB";
+}
+function isVisorIls(sku){
+  return sku==="SIFMJS";
+}
+function visorSide(p){
+  if(p && (p.side==="L" || p.side==="R")) return p.side;
+  if(p && p.x!=null) return p.x<0.5?"L":"R";
+  return "L";
+}
+function clickSpot(d){
+  return {x:d[0], y:d[1], rot:d[2]||0, side:d[3]||null};
 }
 function sitTransform(p){
   /* Front ALGT: stored y is the roof contact (sprite bottom), not the bbox center.
@@ -941,7 +957,7 @@ function addNodes(sku, spots, quiet){
   if(isRoofBar(sku) && view!=="front") return;
   spots.forEach(function(s){
     var id=nid++;
-    nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0});
+    nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0,side:s.side||null});
     sel=id;
   });
   if(!quiet){ renderStage(); renderTabs(); renderSum(); syncSkuToggles(); }
@@ -950,7 +966,7 @@ function clickMap(){ return veh().clicks||CLICK; }
 function placeSpots(sku, v){
   var click=clickMap()[sku];
   if(click && click[v]){
-    return click[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; });
+    return click[v].map(clickSpot);
   }
   var map=(veh().defaults && veh().defaults[sku])||DEFAULTS[sku];
   if(map && map[v]){
@@ -984,7 +1000,7 @@ function clickPlace(sku){
       if(!viewExists(v)) return;
       view=v; last=v;
       if(!nodes[view]) nodes[view]=[];
-      addNodes(sku, click[v].map(function(d){ return {x:d[0], y:d[1], rot:d[2]||0}; }), true);
+      addNodes(sku, click[v].map(clickSpot), true);
     });
     view=preferView(HOME_VIEW[sku]||last);
     renderStage(); renderTabs(); renderSum(); syncSkuToggles();
@@ -1002,6 +1018,11 @@ function clickPlace(sku){
 function placeFromEvent(e,clamp){
   var sku=catalogSku(resolveDragSku(e));
   if(!sku) return false;
+  if(isVisorIls(sku)){
+    clickPlace(sku);
+    setDragSku(null);
+    return true;
+  }
   if(isRoofBar(sku) && view!=="front"){
     view=preferView("front");
     var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
@@ -1256,8 +1277,8 @@ window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
-  clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent,
+  isRoofBar:isRoofBar, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
+  clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent, setOwnedSku:setOwnedSku,
   loadSkuList:loadSkuList, parseSkuList:parseSkuList, setVehicle:setVehicle,
   nodes:function(){return nodes;},
   nodesByVehicle:function(){return nodesByVehicle;},
