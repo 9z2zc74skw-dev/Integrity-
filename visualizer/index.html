@@ -81,6 +81,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .light.ils-half{overflow:hidden}
 .light.ils-L img,.light.ils-R img{width:200%;max-width:none;height:auto}
 .light.ils-R img{margin-left:-100%}
+/* DynaFlare: constant thickness (piu pattern). Width grows with length; height does not. */
+.light.dyna-stick img{width:100%;height:100%;object-fit:fill}
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .light .tag{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0}
 .light.selected .tag,.light:hover .tag{opacity:1}
@@ -144,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio20 you are on a stale pack">pack studio20</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio21 you are on a stale pack">pack studio21</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -160,7 +162,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio20" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio21" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -214,8 +216,9 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio20";
-var FX_V="max6";
+var ASSET_V="studio21";
+var FX_V="max7";
+var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
   {id:"rear",label:"Rear",imgW:"durango_rear.png",imgB:"durango_rear_black.png"},
@@ -250,6 +253,8 @@ var TRUCK_DEFAULTS={
   "DYNA-2":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
   "DYNA-5":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
   "DYNA-6":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
+  "DYNA-S":{front:[0.38,0.48,0],_:[0.38,0.48,0]},
+  "DYNA-X":{front:[0.5,0.68,0],_:[0.5,0.68,0]},
   "DR1-RBK-SMK":{front:[0.38,0.48,0],_:[0.38,0.48,0]},
   "DR6-RBW":{left:[0.50,0.48,0],right:[0.50,0.48,0],_:[0.50,0.48,0]},
   "MPS63U-RBW":{front:[0.38,0.50,0],_:[0.38,0.50,0]},
@@ -282,6 +287,8 @@ function truckClicks(roofY){
     "DYNA-2":{front:[[0.5,0.68,0]]},
     "DYNA-5":{front:[[0.5,0.68,0]]},
     "DYNA-6":{front:[[0.5,0.68,0]]},
+    "DYNA-S":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+    "DYNA-X":{front:[[0.5,0.68,0]]},
     "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
     "DR6-RBW":{left:[[0.50,0.48,0]],right:[[0.50,0.48,0]]},
     "MPS63U-RBW":{front:[[0.38,0.50,0],[0.62,0.50,0]]},
@@ -356,12 +363,14 @@ function viewExists(id){ return views().some(function(v){return v.id===id}); }
 var CATALOG=[
   {sku:"ALGT53JX-P3LB",name:"Allegiant 53\" MAX roof bar (ALGT)",group:"Front / Perimeter",fx:"fx_algt_max.png",w:46},
   {sku:"SIFMJS",name:"SpectraLux ILS Visor — two shrouds, mirror gap",group:"Front / Perimeter",fx:"fx_ils_rb.png",w:14},
-  {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8},
-  {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14},
-  {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32},
-  {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38},
-  {sku:"DR1-RBK-SMK",name:"DynaFlare 1 ft smoked, behind grille",group:"Front / Perimeter",fx:"fx_dyna_1ft_smk.png",w:8},
-  {sku:"DR6-RBW",name:"DynaFlare 60 inch exterior stick",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:28},
+  {sku:"DYNA-1",name:"DynaFlare 1 ft",group:"Front / Perimeter",fx:"fx_dyna_1ft_rb.png",w:8,dyna:1},
+  {sku:"DYNA-2",name:"DynaFlare 2 ft",group:"Front / Perimeter",fx:"fx_dyna_2ft_rb.png",w:14,dyna:1},
+  {sku:"DYNA-5",name:"DynaFlare 5 ft",group:"Front / Perimeter",fx:"fx_dyna_5ft_rb.png",w:32,dyna:1},
+  {sku:"DYNA-6",name:"DynaFlare 6 ft",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38,dyna:1},
+  {sku:"DYNA-S",name:"DynaFlare smoked, behind grille",group:"Front / Perimeter",fx:"fx_dyna_1ft_smk_rb.png",w:8,dyna:1},
+  {sku:"DYNA-X",name:"DynaFlare extra-length (6 ft)",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:38,dyna:1},
+  {sku:"DR1-RBK-SMK",name:"DynaFlare 1 ft smoked, behind grille",group:"Front / Perimeter",fx:"fx_dyna_1ft_smk_rb.png",w:8,dyna:1},
+  {sku:"DR6-RBW",name:"DynaFlare 60 inch exterior stick",group:"Front / Perimeter",fx:"fx_dyna_6ft_rb.png",w:28,dyna:1},
   {sku:"MPS63U-RBW",name:"MicroPulse behind front grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9-BW",name:"MicroPulse Wide Angle, side / mirror",group:"Front / Perimeter",fx:"fx_mps_rb.png",w:6},
   {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9",group:"Front / Perimeter",fx:"fx_bracket_l.png",w:5},
@@ -392,6 +401,8 @@ var DEFAULTS={
   "DYNA-2":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-5":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DYNA-6":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
+  "DYNA-S":{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
+  "DYNA-X":{front:[0.5,0.66,0],_:[0.5,0.66,0]},
   "DR1-RBK-SMK":{front:[0.38,0.48,0],hero:[0.36,0.48,0],_:[0.38,0.48,0]},
   "DR6-RBW":{left:[0.50,0.42,0],right:[0.50,0.42,0],_:[0.50,0.42,0]},
   "MPS63U-RBW":{front:[0.38,0.52,0],hero:[0.36,0.52,0],_:[0.38,0.52,0]},
@@ -424,6 +435,8 @@ var CLICK={
   "DYNA-2":{front:[[0.5,0.66,0]]},
   "DYNA-5":{front:[[0.5,0.66,0]]},
   "DYNA-6":{front:[[0.5,0.66,0]]},
+  "DYNA-S":{front:[[0.38,0.52,0],[0.62,0.52,0]]},
+  "DYNA-X":{front:[[0.5,0.66,0]]},
   "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
   "DR6-RBW":{left:[[0.50,0.42,0]],right:[[0.50,0.42,0]]},
   "MPS63U-RBW":{front:[[0.38,0.52,0],[0.62,0.52,0]]},
@@ -453,6 +466,7 @@ var CLICK={
 };
 var HOME_VIEW={
   "ALGT53JX-P3LB":"front",SIFMJS:"front","DYNA-1":"front","DYNA-2":"front","DYNA-5":"front","DYNA-6":"front",
+  "DYNA-S":"front","DYNA-X":"front",
   "DR1-RBK-SMK":"front","DR6-RBW":"left","MPS63U-RBW":"front","MPSW9-BW":"front","BRACKETS:FPIU20MIR":"front",
   "416309-RBW-SMK":"front","MPS123U-RBW":"rear","BRACKETS:MPSM6-LPH1":"rear","mpsm6-sb2":"rear","BRACKETS:MPSM6-LB":"rear",
   SIFMJH:"rear","STICK-RB":"rear","CNSMJ8R-P3C":"rear","CNSM-RBK1":"rear","XSM2-BRW-US":"rear","416300":"rear",
@@ -702,6 +716,10 @@ function renderStage(){
     el.style.left=(p.x*100)+"%";
     el.style.top=(p.y*100)+"%";
     el.style.width=(catW*p.scale)+"%";
+    if(part && part.dyna){
+      el.classList.add("dyna-stick");
+      el.style.height=(DYNA_H*p.scale)+"%";
+    }
     el.style.transform=sitTransform(p);
     if(isVisorIls(p.sku)) el.classList.add("ils-half","ils-"+visorSide(p));
     var src=part?fxFor(part):null;
@@ -813,6 +831,9 @@ function syncSelDock(){
   dock.style.left=left+"px";
   dock.style.top=top+"px";
 }
+function isDyna(sku){
+  return /^(DYNA-|DR[1-6]-)/.test(sku||"");
+}
 function isRoofBar(sku){
   return sku==="ALGT53JX-P3LB";
 }
@@ -844,7 +865,7 @@ function mountPrefer(m, sku){
   var name=m[2]||"";
   if(isRoofBar(sku) && /roof/i.test(name)) return -0.006;
   if((sku==="SIFMJS"||sku==="SIFMJH") && /ILS|visor/i.test(name)) return -0.006;
-  if((sku==="MPS63U-RBW"||sku==="DR1-RBK-SMK") && /grille/i.test(name)) return -0.006;
+  if((sku==="MPS63U-RBW"||sku==="DR1-RBK-SMK"||sku==="DYNA-S") && /grille/i.test(name)) return -0.006;
   if(sku==="MPSW9-BW" && /mirror/i.test(name)) return -0.006;
   if(sku==="XSM2-BRW-US" && /pillar|quarter/i.test(name)) return -0.006;
   if(sku==="CNSMJ8R-P3C" && /hatch stick/i.test(name)) return -0.006;
@@ -853,7 +874,7 @@ function mountPrefer(m, sku){
   if(sku==="BRACKETS:MPSM6-LPH1" && /hatch plate/i.test(name)) return -0.006;
   if(sku==="BRACKETS:FPIU20MIR" && /mirror/i.test(name)) return -0.006;
   if(sku==="416309-RBW-SMK" && /bumper/i.test(name)) return -0.006;
-  if(sku==="DR6-RBW" && /roofline|mirror/i.test(name)) return -0.006;
+  if((sku==="DR6-RBW"||sku==="DYNA-X") && /roofline|mirror|pushbar|lower/i.test(name)) return -0.006;
   if((sku==="ES100C"||sku==="ESBL-FPIU20"||sku==="ESBL2-TAH21ND"||sku==="RBKIT1"||sku==="BRACKETS:RBS-FPIU20"||sku==="RBKIT2-COMPACT"||sku==="RBC2-TAH21ND") && /pushbar|lower|bumper/i.test(name)) return -0.006;
   return 0;
 }
@@ -1277,7 +1298,7 @@ window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
+  isRoofBar:isRoofBar, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
   clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent, setOwnedSku:setOwnedSku,
   loadSkuList:loadSkuList, parseSkuList:parseSkuList, setVehicle:setVehicle,
   nodes:function(){return nodes;},

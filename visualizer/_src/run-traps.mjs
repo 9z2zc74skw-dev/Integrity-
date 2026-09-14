@@ -101,9 +101,9 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio20"/.test(html), "ASSET_V=studio20");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio20"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio20");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio20/.test(html), "header pack stamp present");
+  rec("T-ASSET-V", /ASSET_V="studio21"/.test(html), "ASSET_V=studio21");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio21"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio21");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio21/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -217,6 +217,9 @@ async function main() {
   for (const f of fxFiles) heads.push(await fetchOk(base, "/fx/" + f));
   const miss = heads.filter((h) => !h.ok);
   rec("T-FX-HEAD", miss.length === 0, miss.length ? miss.map((m) => m.rel + ":" + m.status).join(",") : heads.length + " fx 200");
+  const dynaHeads = heads.filter((h) => /\/fx_dyna/.test(h.rel));
+  rec("T-DYNA-HEAD", dynaHeads.length > 0 && dynaHeads.every((h) => h.ok),
+    dynaHeads.length === 0 ? "no fx_dyna files" : (dynaHeads.every((h) => h.ok) ? dynaHeads.length + " dyna fx 200" : dynaHeads.filter((h) => !h.ok).map((m) => m.rel + ":" + m.status).join(",")));
 
   const demo = await fetchOk(base, "/quotes/demo-1236.json");
   rec("T-DEMO-QUOTE-FILE", demo.ok, "quotes/demo-1236.json " + demo.status);
@@ -386,6 +389,34 @@ async function main() {
         hatch:T.toggleOn("hatchToggle"),
         push:T.pushBarOn()
       };
+
+      const dynaSkus = ["DYNA-1","DYNA-2","DYNA-S","DYNA-X","DR1-RBK-SMK","DR6-RBW"];
+      const dynaPlace = {};
+      dynaSkus.forEach(function(sku){
+        T.resetNodes();
+        T.setVehicle("durango");
+        T.setView("front");
+        T.clickPlace(sku);
+        const bag = T.nodes();
+        const counts = {};
+        Object.keys(bag).forEach(function(k){
+          counts[k] = (bag[k] || []).filter(function(n){ return n.sku === sku; }).length;
+        });
+        const total = Object.values(counts).reduce(function(a,b){ return a+b; }, 0);
+        const imgs = Array.prototype.map.call(document.querySelectorAll("#stage .light img"), function(img){
+          return { src: (img.getAttribute("src")||""), w: img.naturalWidth||0, complete: !!img.complete, alt: img.alt||"" };
+        });
+        dynaPlace[sku] = {
+          counts: counts,
+          total: total,
+          dynaClass: !!document.querySelector("#stage .light.dyna-stick"),
+          imgs: imgs
+        };
+      });
+      out.dyna = {
+        catalog: T.CATALOG.filter(function(c){ return c.dyna || (T.isDyna && T.isDyna(c.sku)); }).map(function(c){ return {sku:c.sku, fx:c.fx, w:c.w}; }),
+        place: dynaPlace
+      };
       return out;
     });
     rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
@@ -403,9 +434,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio20"
-        && /pack studio20/.test(runtime.bareCold.pack||"")
-        && /studio20/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio21"
+        && /pack studio21/.test(runtime.bareCold.pack||"")
+        && /studio21/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -477,6 +508,17 @@ async function main() {
       && runtime.afterClear.ghosts===0 && runtime.afterClear.overlays===0
       && !runtime.afterClear.dash && !runtime.afterClear.hatch && !runtime.afterClear.push,
       JSON.stringify(runtime.afterClear));
+    var dyna = runtime.dyna || {};
+    var dynaPlace = dyna.place || {};
+    var dynaNeed = ["DYNA-1","DYNA-2","DYNA-S","DYNA-X","DR1-RBK-SMK","DR6-RBW"];
+    var dynaOk = dynaNeed.every(function(s){ return dynaPlace[s] && dynaPlace[s].total > 0; });
+    rec("T-DYNA-CLICKPLACE", dynaOk,
+      dynaNeed.map(function(s){ var p=dynaPlace[s]||{}; return s+"="+ (p.total||0); }).join(" "));
+    rec("T-DYNA-LOOK", dynaOk && dynaNeed.every(function(s){
+        var p=dynaPlace[s]||{};
+        return p.dynaClass && (p.imgs||[]).some(function(im){ return /fx_dyna/.test(im.src||""); });
+      }),
+      "product-art housing + endcaps, no keyed paper fringe; dyna-stick + fx_dyna src on place");
   }
 
   finish(srv);
@@ -486,14 +528,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio20 ILS visor split",
+    "# Vector trap log — studio21 DynaFlare product art",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio20 · FX_V: max6`,
+    `- ASSET_V: studio21 · FX_V: max7`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio20: SIFMJS visor ILS is two shrouds (L/R) with a mirror gap. Signed plates unchanged.`,
+    `- studio21: DynaFlare sticks use piu product-art sprites (end-capped, constant thickness). ILS L/R visor split unchanged. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
