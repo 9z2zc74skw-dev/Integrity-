@@ -101,9 +101,9 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio22"/.test(html), "ASSET_V=studio22");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio22"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio22");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio22/.test(html), "header pack stamp present");
+  rec("T-ASSET-V", /ASSET_V="studio23"/.test(html), "ASSET_V=studio23");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio23"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio23");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio23/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -160,8 +160,13 @@ async function chromeEval(base, fnBody) {
   });
   try {
     const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForFunction(() => window.__IU_TEST__, { timeout: 10000 });
+    await page.waitForFunction(() => {
+      const img = document.getElementById("vehicleImg");
+      return !!(img && img.complete && img.naturalHeight > 50 && img.getBoundingClientRect().height > 80);
+    }, { timeout: 15000 });
     const snap = () => page.evaluate(() => {
       const T = window.__IU_TEST__;
       return {
@@ -441,6 +446,12 @@ async function main() {
       T.resetNodes();
       T.setVehicle("durango");
       T.setView("front");
+      await new Promise(function(resolve){
+        var vimg=document.getElementById("vehicleImg");
+        if(vimg && vimg.complete && vimg.naturalHeight>50){ resolve(); return; }
+        if(vimg) vimg.addEventListener("load", function(){ resolve(); }, {once:true});
+        setTimeout(resolve, 2000);
+      });
       T.clickPlace("SIFMJS");
       await new Promise(function(resolve){
         var imgs=[].slice.call(document.querySelectorAll("#stage .light img"));
@@ -450,13 +461,14 @@ async function main() {
         imgs.forEach(function(i){ if(!i.complete) i.addEventListener("load", done); i.addEventListener("error", done); });
         setTimeout(resolve, 1200);
       });
+      await new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); });
       T.syncSelDock && T.syncSelDock();
       var before = dockSnap();
       var selEl = document.querySelector("#stage .light.selected");
       var p = (T.nodes().front || []).filter(function(n){ return n.sku==="SIFMJS"; }).pop();
       var moved = { dx:0, dy:0 };
       if(p && selEl){
-        var x0=p.x, y0=p.y, dt0=before.dockTop;
+        var x0=p.x, y0=p.y, dt0=before.dockTop, lt0=before.lightTop;
         p.x=Math.min(0.9, p.x+0.08);
         p.y=Math.min(0.7, p.y+0.10);
         selEl.style.left=(p.x*100)+"%";
@@ -467,6 +479,7 @@ async function main() {
         moved = {
           lightDx: p.x-x0,
           lightDy: p.y-y0,
+          visualLightDy: (afterMove.lightTop!=null && lt0!=null) ? (afterMove.lightTop-lt0) : null,
           dockDy: (afterMove.dockTop!=null && dt0!=null) ? (afterMove.dockTop-dt0) : null,
           after: afterMove
         };
@@ -492,9 +505,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio22"
-        && /pack studio22/.test(runtime.bareCold.pack||"")
-        && /studio22/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio23"
+        && /pack studio23/.test(runtime.bareCold.pack||"")
+        && /studio23/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -581,10 +594,10 @@ async function main() {
     var b = dock.before || {};
     var m = dock.moved || {};
     var ac = dock.afterClear || {};
-    var adjacent = (b.gapAbove != null && b.gapAbove >= -6 && b.gapAbove <= 24)
-      || (b.gapBelow != null && b.gapBelow >= -6 && b.gapBelow <= 24);
+    var adjacent = (b.gapAbove != null && b.gapAbove >= -2 && b.gapAbove <= 16)
+      || (b.gapBelow != null && b.gapBelow >= 0 && b.gapBelow <= 16);
     var centered = b.dx != null && b.dx <= 80;
-    var followed = m.dockDy != null && m.lightDy > 0 && m.dockDy > 4;
+    var followed = m.dockDy != null && ((m.visualLightDy != null && m.visualLightDy > 4) ? m.dockDy > 4 : m.lightDy > 0 && m.dockDy > 4);
     rec("T-DOCK-FOLLOWS-SELECTION",
       !!(b.on && b.visor && adjacent && centered && followed && ac && ac.on === false),
       JSON.stringify({before:b, moved:m, afterClear:ac, adjacent:adjacent, followed:followed}));
@@ -597,14 +610,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio22 selected-light dock",
+    "# Vector trap log — studio23 selected-light dock",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio22 · FX_V: max7`,
+    `- ASSET_V: studio23 · FX_V: max7`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio22: selected-light dock sits on the selection (ILS visor included). DynaFlare product-art and ILS L/R split unchanged. Signed plates unchanged.`,
+    `- studio23: selected-light dock is position:fixed on the selection (ILS visor included). DynaFlare product-art and ILS L/R split unchanged. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

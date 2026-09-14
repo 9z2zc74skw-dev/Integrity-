@@ -86,8 +86,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .light.selected{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .light .tag{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0}
 .light.selected .tag,.light:hover .tag{opacity:1}
-/* Stage-level dock — not a child of the transformed sprite, so it cannot cover the bar. */
-.sel-dock{position:absolute;display:none;z-index:30;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.55);pointer-events:auto}
+/* Viewport-fixed dock — not inside .stage (overflow:hidden pinned it to the plate sky). */
+.sel-dock{position:fixed;display:none;z-index:50;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.55);pointer-events:auto}
 .sel-dock.on{display:flex}
 .sel-dock button{width:44px;height:44px;border:none;background:transparent;color:var(--text);border-radius:8px;cursor:pointer;font-size:20px;line-height:1;flex-shrink:0}
 .sel-dock button:hover{background:var(--s3)}
@@ -113,7 +113,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
   .panel-r{border-left:none;border-top:1px solid var(--border)}
 }
 @media print{
-  header,.panel,.view-tabs,.stage-bar,.hint-bar{display:none!important}
+  header,.panel,.view-tabs,.stage-bar,.hint-bar,.sel-dock{display:none!important}
   .layout{display:block}
   .stage-wrap,.stage-area,.stage{background:#fff;border:none;max-width:none;aspect-ratio:auto}
   .stage img.vehicle{max-height:none;width:100%;height:auto}
@@ -146,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio22 you are on a stale pack">pack studio22</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio23 you are on a stale pack">pack studio23</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,18 +162,18 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio22" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio23" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         <div class="drop-hint">Drop light here</div>
-        <div class="sel-dock" id="selDock" aria-label="Selected light">
-          <button type="button" data-act="rot" title="Rotate">&#8635;</button>
-          <button type="button" data-act="in" title="Larger">+</button>
-          <button type="button" data-act="out" title="Smaller">&#8722;</button>
-          <button type="button" data-act="del" class="x" title="Remove">&#215;</button>
-        </div>
       </div>
+    </div>
+    <div class="sel-dock" id="selDock" aria-label="Selected light">
+      <button type="button" data-act="rot" title="Rotate">&#8635;</button>
+      <button type="button" data-act="in" title="Larger">+</button>
+      <button type="button" data-act="out" title="Smaller">&#8722;</button>
+      <button type="button" data-act="del" class="x" title="Remove">&#215;</button>
     </div>
     <div class="stage-bar">
       <button class="btn" id="clearView" type="button">Clear View</button>
@@ -216,7 +216,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio22";
+var ASSET_V="studio23";
 var FX_V="max7";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -681,7 +681,12 @@ function renderPlatePatch(){
 function renderStage(){
   var v=views().find(function(x){return x.id===view});
   if(!v){ view=views()[0].id; v=views()[0]; }
-  document.getElementById("vehicleImg").src=(bodyColor==="black"?v.imgB:v.imgW)+"?v="+ASSET_V;
+  var vimg=document.getElementById("vehicleImg");
+  vimg.src=(bodyColor==="black"?v.imgB:v.imgW)+"?v="+ASSET_V;
+  if(!vimg.dataset.dockBound){
+    vimg.dataset.dockBound="1";
+    vimg.addEventListener("load", function(){ syncSelDock(); });
+  }
   renderPlatePatch();
   var stage=document.getElementById("stage");
   stage.querySelectorAll(".light,.overlay-pushbar,.overlay-dash,.overlay-hatch,.ghost-bar").forEach(function(n){n.remove()});
@@ -826,25 +831,20 @@ function syncSelDock(){
     return;
   }
   dock.classList.add("on");
-  var stage=document.getElementById("stage");
-  var sr=stage.getBoundingClientRect();
+  dock.offsetWidth; /* show + measure real 44px-hit chrome */
   var r=lightDockRect(el);
-  var gap=8;
+  var gap=6;
   var w=dock.offsetWidth||220, h=dock.offsetHeight||60;
-  var left=(r.left+r.width/2-sr.left)-w/2;
-  var above=r.top-sr.top-gap-h;
-  var below=r.bottom-sr.top+gap;
-  var top=above;
-  /* Prefer immediately above the selection. Flip below only when above would
-     clip off the stage — never pin the dock to the stage top (that left it
-     floating in the sky, disconnected from visor ILS). */
-  if(above<4){
-    top=below;
-    if(top+h>sr.height-4) top=Math.max(4, r.top-sr.top-gap-h);
+  if(!r.width && !r.height){
+    hideSelDock();
+    return;
   }
-  left=Math.max(4, Math.min(left, sr.width-w-4));
-  if(top+h>sr.height-4) top=sr.height-h-4;
-  if(top<4) top=4;
+  /* Viewport coords — dock is position:fixed, outside .stage overflow. Sit
+     immediately above the selection (not at the plate sky / stage top). */
+  var left=r.left+r.width/2-w/2;
+  var top=r.top-gap-h;
+  if(top<8) top=r.bottom+gap;
+  left=Math.max(8, Math.min(left, window.innerWidth-w-8));
   dock.style.left=left+"px";
   dock.style.top=top+"px";
 }
@@ -1150,6 +1150,13 @@ stage.addEventListener("mousedown",function(e){
   });
 })();
 window.addEventListener("resize",syncSelDock);
+if(window.ResizeObserver){
+  var _dockRo=new ResizeObserver(function(){ syncSelDock(); });
+  var _stage=document.getElementById("stage");
+  var _vimg=document.getElementById("vehicleImg");
+  if(_stage) _dockRo.observe(_stage);
+  if(_vimg) _dockRo.observe(_vimg);
+}
 
 document.querySelectorAll(".sw").forEach(function(s){
   s.onclick=function(){
