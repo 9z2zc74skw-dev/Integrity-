@@ -1,11 +1,11 @@
-# Vector trap log — studio19 OEM-hide overlay
+# Vector trap log — studio20 ILS visor split
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio19 · FX_V: max6
+- ASSET_V: studio20 · FX_V: max6
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)
-- studio19: software overlay hides the Front OEM header strip. Signed plates unchanged.
+- studio20: SIFMJS visor ILS is two shrouds (L/R) with a mirror gap. Signed plates unchanged.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -15,8 +15,8 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio19 |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio19 |
+| T-ASSET-V | PASS | ASSET_V=studio20 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio20 |
 | T-PACK-STAMP | PASS | header pack stamp present |
 | T-OEM-HIDE-FILE | PASS | Front OEM-hide overlay present |
 | T-URL-NO-SEED | PASS | no URL/hash auto-place |
@@ -28,10 +28,10 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-FX-HEAD | PASS | 56 fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio19","plateSrc":"durango_front.png?v=studio19","asset":"studio19","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio19","plateSrc":"durango_front.png?v=studio19","asset":"studio19","patchOn":true}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio19","src":"durango_front.png?v=studio19","asset":"studio19"} |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio20","plateSrc":"durango_front.png?v=studio20","asset":"studio20","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio20","plateSrc":"durango_front.png?v=studio20","asset":"studio20","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio20","src":"durango_front.png?v=studio20","asset":"studio20"} |
 | T-OEM-HIDE-ON | PASS | {"patchOn":true} |
-| T-CLICKPLACE-ALL | PASS | durango/front=57 durango/left=57 durango/rear=57 silverado/front=48 silverado/left=48 silverado/rear=48 f150/front=48 f150/left=48 f150/rear=48 |
+| T-CLICKPLACE-ALL | PASS | durango/front=58 durango/left=58 durango/rear=58 silverado/front=49 silverado/left=49 silverado/rear=49 f150/front=49 f150/left=49 f150/rear=49 |
 | T-ROOF-FRONT-ONLY | PASS | roof nodes only on front after clickPlace from Front/Left/Rear |
 | T-HERO-GHOST-SIT | PASS | {"spec":{"kind":"full","x":48.5,"y":28.6,"rot":-6,"wScale":0.62,"sit":"bottom"},"origin":"50% 100%"} |
 | T-TRUCK-NO-DURANGO-LEAK | PASS | {"d":{"roofY":0.248,"frontBarW":42.4,"clickRoofY":0.248,"skuCount":29,"pushBar":{"cx":50,"cy":56,"w":34,"hs":0.88,"ty":0.45}},"s":{"roofY":0.18,"frontBarW":48,"clickRoofY":0.18,"skuCount":29,"pushBar":{"cx":50,"cy":58,"w":42,"hs":0.88,"ty":0.45}},"f":{"roofY":0.162,"frontBarW":50,"clickRoofY":0.162,"skuCount":29,"pushBar":{"cx":50,"cy":59,"w":44,"hs":0.88,"ty":0.45}}} |
@@ -41,8 +41,9 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-SCHEME-PIXEL-OWNER | PASS | each scheme requests different sprite set |
 | T-RBW-CONTROL | PASS | btn=true hidden=false |
 | T-LOAD-SKUS | PASS | [["ALGT53JX-P3LB",true],["SIFMJS",true],["MPS63U-RBW",true],["MPS123U-RBW",true]] |
-| T-VISOR-W | PASS | SIFMJS w=32 |
-| T-TOGGLES-ONE-OWNER | PASS | {"dashOn":true,"dashOff":false,"hatchOn":true,"hatchOff":false} |
+| T-VISOR-W | PASS | SIFMJS w=14 (per shroud) |
+| T-VISOR-SPLIT | PASS | {"count":2,"xs":[0.37,0.61],"w":14,"gap":0.10000000000000003,"sides":["L","R"],"lights":["light ils-half ils-L","light selected ils-half ils-R"],"dashWhileParts":true,"afterOwnOn":2,"afterOwnOff":0,"afterDashOn":2,"afterDashOff":0,"centered":false} |
+| T-TOGGLES-ONE-OWNER | PASS | {"dashOn":true,"dashOnCount":2,"dashOff":false,"hatchOn":true,"hatchOff":false} |
 | T-PRINT-RUNTIME | PASS | button=Print |
 | T-LOAD-LABEL | PASS | button=Load SKUs |
 | T-ONE-PARTS-CLICK | PASS | {"one":{"unique":["ALGT53JX-P3LB"],"placements":1,"lights":1},"left":1,"hero":1} |
