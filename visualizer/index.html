@@ -146,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio21 you are on a stale pack">pack studio21</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio22 you are on a stale pack">pack studio22</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,7 +162,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio21" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio22" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -216,7 +216,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio21";
+var ASSET_V="studio22";
 var FX_V="max7";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -806,28 +806,45 @@ function selectPlacedLight(el,p){
   el.classList.add("selected");
   syncSelDock();
 }
+function lightDockRect(el){
+  /* ILS clips a 200% sprite; the .light box is the visible shroud. */
+  return el.getBoundingClientRect();
+}
+function hideSelDock(){
+  var dock=document.getElementById("selDock");
+  if(!dock) return;
+  dock.classList.remove("on");
+  dock.style.left="";
+  dock.style.top="";
+}
 function syncSelDock(){
   var dock=document.getElementById("selDock");
   if(!dock) return;
   var el=document.querySelector("#stage .light.selected");
   if(!el || sel==null){
-    dock.classList.remove("on");
+    hideSelDock();
     return;
   }
   dock.classList.add("on");
   var stage=document.getElementById("stage");
   var sr=stage.getBoundingClientRect();
-  var r=el.getBoundingClientRect();
-  var gap=24;
+  var r=lightDockRect(el);
+  var gap=8;
   var w=dock.offsetWidth||220, h=dock.offsetHeight||60;
   var left=(r.left+r.width/2-sr.left)-w/2;
-  var top=r.top-sr.top-gap-h;
-  if(top<8){
-    top=r.bottom-sr.top+gap;
-    if(top+h>sr.height-8) top=Math.max(8, (r.top-sr.top+r.height/2)-h/2);
+  var above=r.top-sr.top-gap-h;
+  var below=r.bottom-sr.top+gap;
+  var top=above;
+  /* Prefer immediately above the selection. Flip below only when above would
+     clip off the stage — never pin the dock to the stage top (that left it
+     floating in the sky, disconnected from visor ILS). */
+  if(above<4){
+    top=below;
+    if(top+h>sr.height-4) top=Math.max(4, r.top-sr.top-gap-h);
   }
-  left=Math.max(8, Math.min(left, sr.width-w-8));
-  top=Math.max(8, Math.min(top, sr.height-h-8));
+  left=Math.max(4, Math.min(left, sr.width-w-4));
+  if(top+h>sr.height-4) top=sr.height-h-4;
+  if(top<4) top=4;
   dock.style.left=left+"px";
   dock.style.top=top+"px";
 }
@@ -953,7 +970,7 @@ function startMove(e,p,isTouch){
     p.x=Math.max(0.02,Math.min(0.98,g.x));
     p.y=Math.max(0.02,Math.min(0.98,g.y));
     var n=document.querySelector('.light[data-id="'+p.id+'"]');
-    if(n){n.style.left=(p.x*100)+"%"; n.style.top=(p.y*100)+"%"}
+    if(n){n.style.left=(p.x*100)+"%"; n.style.top=(p.y*100)+"%"; n.offsetWidth;}
     syncSelDock();
   }
   function onUp(){
@@ -1299,6 +1316,7 @@ window.__IU_TEST__={
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
   isRoofBar:isRoofBar, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
+  syncSelDock:syncSelDock, hideSelDock:hideSelDock,
   clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent, setOwnedSku:setOwnedSku,
   loadSkuList:loadSkuList, parseSkuList:parseSkuList, setVehicle:setVehicle,
   nodes:function(){return nodes;},
