@@ -25,7 +25,7 @@ A hard refresh starts on a **bare** plate (zero placements, overlay toggles off)
 ## Usage
 
 1. Pick a vehicle, then a view tab.
-2. **Drag** a FedSig SKU onto the vehicle, or **click** a SKU to place it on the **current** view (the camera does not jump). Mirror lights (MPSW9) place one node on that side — Left click = left mirror, Right click = right mirror.
+2. **Drag** a FedSig SKU onto the vehicle, or **click** a SKU to place it on the **current** view (the camera does not jump). Mirror lights (MPSW9) are a compact wide-angle pod: one node on that side — Left click = left mirror, Right click = right mirror.
 3. After a drop the light stays and the tool hides. Click a placed light to show rotate / scale / delete; click empty plate or drop again to hide the dock.
 4. Body color is White / Black. Color scheme is Red/Blue, Blue/White, Red/White, R/B/W — each loads real sprites.
 5. **Load SKUs** imports a `.json` / `.txt` / `.csv` list, or type `1236` / `demo-1236` to load `quotes/demo-1236.json`. Placement uses the same click rules as a manual click. Live QuickBooks is not connected.

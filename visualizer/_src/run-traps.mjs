@@ -136,10 +136,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio26"/.test(html), "ASSET_V=studio26");
+  rec("T-ASSET-V", /ASSET_V="studio27"/.test(html), "ASSET_V=studio27");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio26"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio26");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio26/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio27"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio27");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio27/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -640,6 +640,31 @@ async function main() {
         homeMir: T.HOME_VIEW && T.HOME_VIEW["BRACKETS:FPIU20MIR"],
         mpsw9Fx: (T.CATALOG.find(function(c){ return c.sku==="MPSW9-BW"; })||{}).fx
       };
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("left");
+      T.clickPlace("MPSW9-BW");
+      await new Promise(function(resolve){
+        var imgs=[].slice.call(document.querySelectorAll("#stage .light img"));
+        var pending=imgs.filter(function(i){ return !i.complete; }).length;
+        if(!pending){ resolve(); return; }
+        var done=function(){ pending--; if(pending<=0) resolve(); };
+        imgs.forEach(function(i){ if(!i.complete){ i.addEventListener("load", done); i.addEventListener("error", done); } });
+        setTimeout(resolve, 800);
+      });
+      var part = T.CATALOG.find(function(c){ return c.sku==="MPSW9-BW"; }) || {};
+      var el = document.querySelector("#stage .light");
+      var img = el && el.querySelector("img");
+      var br = el && el.getBoundingClientRect();
+      out.stayView.mpsw9Pod = {
+        w: part.w,
+        fx: part.fx,
+        boxW: br && Math.round(br.width),
+        boxH: br && Math.round(br.height),
+        nw: img && img.naturalWidth,
+        nh: img && img.naturalHeight,
+        src: img && (img.getAttribute("src")||"")
+      };
       return out;
     });
     rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
@@ -657,9 +682,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio26"
-        && /pack studio26/.test(runtime.bareCold.pack||"")
-        && /studio26/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio27"
+        && /pack studio27/.test(runtime.bareCold.pack||"")
+        && /studio27/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -784,8 +809,16 @@ async function main() {
       && sL.after === "left"
       && sF.after === "front" && (sF.on && sF.on.front === 2)
       && sv.homeMpsw9 === "left" && sv.homeMir === "left"
-      && /fx_mps_wide/.test(sv.mpsw9Fx || ""),
-      JSON.stringify(sv));
+      && /fx_mpsw9/.test(sv.mpsw9Fx || ""),
+      JSON.stringify({stay: {mpsw9Left: mL, mpsw9Hero: mH, mpsw9Front: mF, mpsw9Right: mR, algtLeft: aL, sifLeft: sL, sifFront: sF, homeMpsw9: sv.homeMpsw9, homeMir: sv.homeMir, mpsw9Fx: sv.mpsw9Fx}}));
+    var pod = sv.mpsw9Pod || {};
+    var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
+    rec("T-MPSW9-POD",
+      pod.w <= 3.5 && /fx_mpsw9/.test(pod.fx || "") && /fx_mpsw9/.test(pod.src || "")
+      && pod.nw >= 120 && pod.nh >= 40 && pod.nw < 900 && podAsp >= 2.4 && podAsp <= 4.5
+      && pod.boxW > 8 && pod.boxW < 48 && pod.boxH > 4 && pod.boxH < 28
+      && sv.homeMpsw9 === "left" && sv.homeMpsw9 !== "front",
+      JSON.stringify(pod));
   }
 
   finish(srv);
@@ -795,14 +828,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio26 clickPlace stays on the current view",
+    "# Vector trap log — studio27 MPSW9 is a side-mirror pod",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio26 · FX_V: max9`,
+    `- ASSET_V: studio27 · FX_V: max10`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio26: clickPlace stays on the current view (HOME_VIEW is a mount, never a camera yank). MPSW9 is a side-mirror, one node, HOME_VIEW=left. Piu photographic fx (DynaFlare slices, MPS wide, ALGT, hatch sticks). Dock still hides after drop. ILS L/R split unchanged. Signed plates unchanged.`,
+    `- studio27: MPSW9 HOME_VIEW=left (never Front). clickPlace stays on the current view, one node, no auto-pair. Compact wide-angle pod sprite (not a 12-LED bar). Dock still hides after drop. Piu photographic DynaFlare. ILS L/R split unchanged. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

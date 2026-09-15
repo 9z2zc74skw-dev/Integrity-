@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 VIZ = Path(__file__).resolve().parent.parent
 FX = VIZ / "fx"
@@ -169,19 +169,50 @@ def build_dyna() -> None:
             print(f"  dropped unused {n}")
 
 
-def build_mps_wide() -> None:
-    rb = trim(require_piu("fx_wide_rb.png"))
-    bw = trim(require_piu("fx_wide_bw.png"))
-    save(rb, "fx_mps_wide_rb.png")
-    save(bw, "fx_mps_wide_bw.png")
-    save(recolor_scheme(rb, "rw"), "fx_mps_wide_rw.png")
-    save(recolor_scheme(rb, "rbw"), "fx_mps_wide_rbw.png")
-    # Generic MicroPulse row used by other MPS SKUs — same piu wide art, slightly shorter.
-    short = rb.resize((max(280, rb.size[0] // 2), max(48, rb.size[1] // 2)), Image.Resampling.LANCZOS)
-    save(short, "fx_mps_rb.png")
-    save(bw.resize(short.size, Image.Resampling.LANCZOS), "fx_mps_bw.png")
-    save(recolor_scheme(short, "rw"), "fx_mps_rw.png")
-    save(recolor_scheme(short, "rbw"), "fx_mps_rbw.png")
+def make_mpsw9_pod(src: Image.Image) -> Image.Image:
+    """Compact 5.0 x 1.5 in Wide Angle pod — not a 12-LED lightbar strip.
+
+    MPSW9 is a short curved perimeter head for a mirror bracket. Crop the
+    photographic R/B split from piu fx_wide and seat it in a short housing.
+    """
+    im = trim(src)
+    w, h = im.size
+    # ~6 LED cells at the color split (half the 12-LED source bar).
+    cw = max(int(round(w * 0.48)), int(round(h * 2.6)))
+    cw = min(cw, w)
+    x0 = max(0, (w - cw) // 2)
+    core = im.crop((x0, 0, x0 + cw, h))
+    cap = max(18, h // 6)
+    out_w = core.size[0] + 2 * cap
+    out_h = core.size[1] + 10
+    out = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(out)
+    d.rounded_rectangle((1, 1, out_w - 2, out_h - 2), radius=max(12, out_h // 3), fill=(16, 16, 18, 255))
+    out.paste(core, (cap, 5), core)
+    # Spec is 5.04 x 1.5 in → aspect ~3.36
+    target_asp = 5.04 / 1.5
+    cur_asp = out_w / max(out_h, 1)
+    if cur_asp > target_asp * 1.08:
+        need = int(round(out_h * target_asp))
+        x1 = max(0, (out_w - need) // 2)
+        out = out.crop((x1, 0, x1 + need, out_h))
+    # Keep a readable sprite; on-plate size is catalog w, not pixel size.
+    return pad_alpha(scale_h(out, 96), 4)
+
+
+def build_mpsw9() -> None:
+    rb = make_mpsw9_pod(require_piu("fx_wide_rb.png"))
+    bw = make_mpsw9_pod(require_piu("fx_wide_bw.png"))
+    save(rb, "fx_mpsw9_rb.png")
+    save(bw, "fx_mpsw9_bw.png")
+    save(recolor_scheme(rb, "rw"), "fx_mpsw9_rw.png")
+    save(recolor_scheme(rb, "rbw"), "fx_mpsw9_rbw.png")
+    # Do not leave the 12-LED lightbar wired as MPSW9.
+    for n in ("fx_mps_wide_rb.png", "fx_mps_wide_bw.png", "fx_mps_wide_rw.png", "fx_mps_wide_rbw.png"):
+        p = FX / n
+        if p.exists():
+            p.unlink()
+            print(f"  dropped unused {n}")
 
 
 def build_algt() -> None:
@@ -208,8 +239,8 @@ def build() -> None:
     FX.mkdir(exist_ok=True)
     print("DynaFlare from piu photos")
     build_dyna()
-    print("MPS wide / MicroPulse from piu fx_wide")
-    build_mps_wide()
+    print("MPSW9 compact wide-angle pod from piu fx_wide crop")
+    build_mpsw9()
     print("ALGT from piu fx_algt")
     build_algt()
     print("Hatch sticks from piu fx_stick")
