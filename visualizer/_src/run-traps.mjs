@@ -106,14 +106,16 @@ function fxLookScan() {
     "    im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load()",
     "    corners=[px[0,0][3], px[w-1,0][3], px[0,h-1][3], px[w-1,h-1][3]]",
     "    asp=w/max(h,1.0)",
-    "    yellow=0",
+    "    yellow=0; opaque=0",
     "    for y in range(h):",
     "        for x in range(w):",
     "            r,g,b,a=px[x,y]",
+    "            if a>200: opaque+=1",
     "            if a>200 and r>180 and g>150 and b<110: yellow+=1",
-    "    ok=(sz>623 and asp>=3.0 and h<=80 and w>=120 and max(corners)<16 and yellow<40)",
-    "    rows.append({'file':n,'bytes':sz,'w':w,'h':h,'asp':round(asp,2),'cornerA':corners,'yellow':yellow,'ok':ok})",
-    "    if not ok: fail.append(n+' sz='+str(sz)+' '+str(w)+'x'+str(h))",
+    "    yf=yellow/max(opaque,1)",
+    "    ok=(sz>623 and asp>=3.0 and h<=80 and w>=120 and max(corners)<16 and yf<0.12)",
+    "    rows.append({'file':n,'bytes':sz,'w':w,'h':h,'asp':round(asp,2),'cornerA':corners,'yellow':yellow,'yf':round(yf,4),'ok':ok})",
+    "    if not ok: fail.append(n+' sz='+str(sz)+' '+str(w)+'x'+str(h)+' yf='+str(round(yf,4))+' cA='+str(max(corners)))",
     "print(json.dumps({'ok':len(fail)==0 and len(rows)>=8,'n':len(rows),'fail':fail,'minBytes':min((r['bytes'] for r in rows), default=0),'maxH':max((r['h'] for r in rows), default=0)}))",
   ].join("\n");
   const r = spawnSync("python3", ["-c", py, path.join(VIZ, "fx")], { encoding: "utf8", maxBuffer: 2 * 1024 * 1024 });
@@ -134,9 +136,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio25"/.test(html), "ASSET_V=studio25");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio25"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio25");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio25/.test(html), "header pack stamp present");
+  rec("T-ASSET-V", /ASSET_V="studio26"/.test(html), "ASSET_V=studio26");
+  rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio26"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio26");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio26/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -611,6 +614,32 @@ async function main() {
         afterClearAll: afterClearAllDock,
         afterDrop: afterDrop
       };
+
+      function stayProbe(from, sku){
+        T.resetNodes();
+        T.setVehicle("durango");
+        T.setView(from);
+        T.clickPlace(sku);
+        var bag = T.nodes();
+        var on = {};
+        Object.keys(bag).forEach(function(k){
+          on[k] = (bag[k]||[]).filter(function(n){ return n.sku===sku; }).length;
+        });
+        var total = Object.keys(on).reduce(function(a,k){ return a+(on[k]||0); }, 0);
+        return { from: from, after: T.getView(), on: on, total: total, sku: sku };
+      }
+      out.stayView = {
+        mpsw9Left: stayProbe("left", "MPSW9-BW"),
+        mpsw9Hero: stayProbe("hero", "MPSW9-BW"),
+        mpsw9Front: stayProbe("front", "MPSW9-BW"),
+        mpsw9Right: stayProbe("right", "MPSW9-BW"),
+        algtLeft: stayProbe("left", "ALGT53JX-P3LB"),
+        sifLeft: stayProbe("left", "SIFMJS"),
+        sifFront: stayProbe("front", "SIFMJS"),
+        homeMpsw9: T.HOME_VIEW && T.HOME_VIEW["MPSW9-BW"],
+        homeMir: T.HOME_VIEW && T.HOME_VIEW["BRACKETS:FPIU20MIR"],
+        mpsw9Fx: (T.CATALOG.find(function(c){ return c.sku==="MPSW9-BW"; })||{}).fx
+      };
       return out;
     });
     rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
@@ -628,9 +657,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio25"
-        && /pack studio25/.test(runtime.bareCold.pack||"")
-        && /studio25/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio26"
+        && /pack studio26/.test(runtime.bareCold.pack||"")
+        && /studio26/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -743,6 +772,20 @@ async function main() {
       && ca.dockOn === false && ca.selected === 0 && ca.lights === 0
       && dropped.lights > 0 && dropped.selected === 0 && dropped.dockOn === false,
       JSON.stringify(rel));
+    var sv = runtime.stayView || {};
+    var mL = sv.mpsw9Left || {}, mH = sv.mpsw9Hero || {}, mF = sv.mpsw9Front || {}, mR = sv.mpsw9Right || {};
+    var aL = sv.algtLeft || {}, sL = sv.sifLeft || {}, sF = sv.sifFront || {};
+    rec("T-CLICKPLACE-STAY-VIEW",
+      mL.after === "left" && mL.on && mL.on.left === 1 && mL.total === 1 && !mL.on.right && !mL.on.front
+      && mH.after === "hero" && mH.on && mH.on.hero === 1 && mH.total === 1
+      && mF.after === "front" && mF.on && mF.on.front === 1 && mF.total === 1 && !mF.on.left && !mF.on.right
+      && mR.after === "right" && mR.on && mR.on.right === 1 && mR.total === 1 && !mR.on.left
+      && aL.after === "left" && (aL.on && aL.on.front > 0) && !(aL.on.left)
+      && sL.after === "left"
+      && sF.after === "front" && (sF.on && sF.on.front === 2)
+      && sv.homeMpsw9 === "left" && sv.homeMir === "left"
+      && /fx_mps_wide/.test(sv.mpsw9Fx || ""),
+      JSON.stringify(sv));
   }
 
   finish(srv);
@@ -752,14 +795,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio25 dock release + DynaFlare look",
+    "# Vector trap log — studio26 clickPlace stays on the current view",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio25 · FX_V: max8`,
+    `- ASSET_V: studio26 · FX_V: max9`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio25: dock still hides after drop (studio24). DynaFlare/DR* sprites are slim alpha sticks (not 623-byte/JPEG product-card thumbs). ILS L/R split unchanged. Signed plates unchanged.`,
+    `- studio26: clickPlace stays on the current view (HOME_VIEW is a mount, never a camera yank). MPSW9 is a side-mirror, one node, HOME_VIEW=left. Piu photographic fx (DynaFlare slices, MPS wide, ALGT, hatch sticks). Dock still hides after drop. ILS L/R split unchanged. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
