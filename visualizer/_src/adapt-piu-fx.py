@@ -180,33 +180,26 @@ def copy_scheme(src_rb: Image.Image, src_bw: Image.Image, dest_prefix: str) -> N
 
 
 def make_mpsw9_pod(src: Image.Image) -> Image.Image:
-    """Compact 5.0 x 1.5 in Wide Angle pod — not a 12-LED lightbar strip.
+    """Compact MicroPulse Wide Angle pod — not a 12-LED lightbar strip.
 
-    MPSW9 is a short curved perimeter head for a mirror bracket. Crop ~4 LED
-    cells at the R/B split from piu fx_wide. Do not draw a fake housing.
+    MPSW9 is a short dual-color head for a mirror bracket. Crop TWO LED cells
+    (one red, one blue) at the split of piu fx_wide and keep the photographic
+    housing. A 36% / 6-LED slice still reads as a mini bar on the mirror arm.
     """
     im = trim(src)
     w, h = im.size
-    cw = min(w, max(int(round(w * 0.36)), int(round(h * 2.2))))
-    ch = min(h, max(int(round(h * 0.78)), 80))
+    # ~2 LED cells at the R/B split (12-LED source).
+    cw = min(w, max(int(round(w * 0.16)), 64))
     x0 = max(0, (w - cw) // 2)
-    y0 = max(0, (h - ch) // 2)
-    core = im.crop((x0, y0, x0 + cw, y0 + ch))
-    # Spec is 5.04 x 1.5 in → aspect ~3.36
-    target_asp = 5.04 / 1.5
+    core = im.crop((x0, 0, x0 + cw, h))
+    # Keep it chunky: never flatten into a strip.
     cw, ch = core.size
-    cur_asp = cw / max(ch, 1)
-    if cur_asp < target_asp:
-        need_h = max(40, int(round(cw / target_asp)))
-        if need_h < ch:
-            y1 = max(0, (ch - need_h) // 2)
-            core = core.crop((0, y1, cw, y1 + need_h))
-    elif cur_asp > target_asp * 1.08:
-        need_w = max(80, int(round(ch * target_asp)))
+    if cw / max(ch, 1) > 1.6:
+        need_w = max(64, int(round(ch * 1.35)))
         if need_w < cw:
             x1 = max(0, (cw - need_w) // 2)
             core = core.crop((x1, 0, x1 + need_w, ch))
-    return pad_alpha(scale_h(core, 96), 4)
+    return pad_alpha(core, 4)
 
 
 def build_mpsw9() -> None:

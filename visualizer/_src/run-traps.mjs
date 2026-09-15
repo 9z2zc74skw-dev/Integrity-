@@ -180,10 +180,13 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio29"/.test(html), "ASSET_V=studio29");
+  rec("T-ASSET-V", /ASSET_V="studio30"/.test(html), "ASSET_V=studio30");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio29"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio29");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio29/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio30"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio30");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio30/.test(html), "header pack stamp present");
+  rec("T-MPSW9-NOT-WIDE-BAR",
+    /sku:"MPSW9-BW"[^}]*fx:"fx_mpsw9_rb\.png",w:2\./.test(html) && !/fx_mps_wide/.test(html),
+    "MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -731,9 +734,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio29"
-        && /pack studio29/.test(runtime.bareCold.pack||"")
-        && /studio29/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio30"
+        && /pack studio30/.test(runtime.bareCold.pack||"")
+        && /studio30/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -867,9 +870,12 @@ async function main() {
     var pod = sv.mpsw9Pod || {};
     var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
     rec("T-MPSW9-POD",
-      pod.w <= 3.5 && /fx_mpsw9/.test(pod.fx || "") && /fx_mpsw9/.test(pod.src || "")
-      && pod.nw >= 120 && pod.nh >= 40 && pod.nw < 900 && podAsp >= 2.4 && podAsp <= 4.5
-      && pod.boxW > 8 && pod.boxW < 48 && pod.boxH > 4 && pod.boxH < 28
+      pod.w <= 2.5 && /fx_mpsw9/.test(pod.fx || "") && /fx_mpsw9/.test(pod.src || "")
+      && !/fx_mps_wide|fx_wide_/.test(pod.src || "") && !/fx_mps_wide/.test(sv.mpsw9Fx || "")
+      && pod.nw >= 80 && pod.nh >= 80 && pod.nw < 420
+      && podAsp >= 0.65 && podAsp <= 1.7
+      && pod.boxW > 8 && pod.boxW < 26 && pod.boxH > 8 && pod.boxH < 28
+      && (pod.boxH ? pod.boxW / pod.boxH : 99) <= 2.1
       && sv.homeMpsw9 === "left" && sv.homeMpsw9 !== "front",
       JSON.stringify(pod));
   }
@@ -881,14 +887,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio29 piu photographic fx pack",
+    "# Vector trap log — studio30 compact MPSW9 wide-angle pod",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio29 · FX_V: max11`,
+    `- ASSET_V: studio30 · FX_V: max12`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio29: catalog lighting sprites copied/adapted from piu-lighting-visualizer fx (ILS, MPS63/123 bar, XSM2 module, smoked rounds, DynaFlare, ALGT, sticks). MPSW9 is a compact wide-angle pod crop, not a 12-LED bar. clickPlace stays on the current view; one node; dock hides after drop. Signed plates unchanged.`,
+    `- studio30: MPSW9 is a two-LED compact wide-angle pod (piu fx_wide crop, w:2.2), not a 12-LED bar. clickPlace stays on the current view; one node; dock hides after drop. Piu catalog sprites. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
