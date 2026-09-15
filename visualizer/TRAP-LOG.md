@@ -1,11 +1,11 @@
-# Vector trap log — studio23 selected-light dock
+# Vector trap log — studio24 dock releases after drop
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio23 · FX_V: max7
+- ASSET_V: studio24 · FX_V: max7
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)
-- studio23: selected-light dock is position:fixed on the selection (ILS visor included). DynaFlare product-art and ILS L/R split unchanged. Signed plates unchanged.
+- studio24: after drop / clickPlace the dock hides (selection cleared). Click a placed light to edit; empty plate / Clear* hide it again. Dock remains position:fixed on the selection. DynaFlare product-art and ILS L/R split unchanged. Signed plates unchanged.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -15,8 +15,8 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio23 |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio23 |
+| T-ASSET-V | PASS | ASSET_V=studio24 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio24 |
 | T-PACK-STAMP | PASS | header pack stamp present |
 | T-OEM-HIDE-FILE | PASS | Front OEM-hide overlay present |
 | T-URL-NO-SEED | PASS | no URL/hash auto-place |
@@ -29,8 +29,8 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-DYNA-HEAD | PASS | 30 dyna fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio23","plateSrc":"durango_front.png?v=studio23","asset":"studio23","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio23","plateSrc":"durango_front.png?v=studio23","asset":"studio23","patchOn":true}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio23","src":"durango_front.png?v=studio23","asset":"studio23"} |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio24","plateSrc":"durango_front.png?v=studio24","asset":"studio24","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio24","plateSrc":"durango_front.png?v=studio24","asset":"studio24","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio24","src":"durango_front.png?v=studio24","asset":"studio24"} |
 | T-OEM-HIDE-ON | PASS | {"patchOn":true} |
 | T-CLICKPLACE-ALL | PASS | durango/front=61 durango/left=61 durango/rear=61 silverado/front=52 silverado/left=52 silverado/rear=52 f150/front=52 f150/left=52 f150/rear=52 |
 | T-ROOF-FRONT-ONLY | PASS | roof nodes only on front after clickPlace from Front/Left/Rear |
@@ -43,7 +43,7 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-CONTROL | PASS | btn=true hidden=false |
 | T-LOAD-SKUS | PASS | [["ALGT53JX-P3LB",true],["SIFMJS",true],["MPS63U-RBW",true],["MPS123U-RBW",true]] |
 | T-VISOR-W | PASS | SIFMJS w=14 (per shroud) |
-| T-VISOR-SPLIT | PASS | {"count":2,"xs":[0.37,0.61],"w":14,"gap":0.10000000000000003,"sides":["L","R"],"lights":["light ils-half ils-L","light selected ils-half ils-R"],"dashWhileParts":true,"afterOwnOn":2,"afterOwnOff":0,"afterDashOn":2,"afterDashOff":0,"centered":false} |
+| T-VISOR-SPLIT | PASS | {"count":2,"xs":[0.37,0.61],"w":14,"gap":0.10000000000000003,"sides":["L","R"],"lights":["light ils-half ils-L","light ils-half ils-R"],"dashWhileParts":true,"afterOwnOn":2,"afterOwnOff":0,"afterDashOn":2,"afterDashOff":0,"centered":false} |
 | T-TOGGLES-ONE-OWNER | PASS | {"dashOn":true,"dashOnCount":2,"dashOff":false,"hatchOn":true,"hatchOff":false} |
 | T-PRINT-RUNTIME | PASS | button=Print |
 | T-LOAD-LABEL | PASS | button=Load SKUs |
@@ -52,5 +52,6 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-DYNA-CLICKPLACE | PASS | DYNA-1=1 DYNA-2=1 DYNA-S=2 DYNA-X=1 DR1-RBK-SMK=2 DR6-RBW=2 |
 | T-DYNA-LOOK | PASS | product-art housing + endcaps, no keyed paper fringe; dyna-stick + fx_dyna src on place |
 | T-DOCK-FOLLOWS-SELECTION | PASS | {"before":{"on":true,"gapAbove":6.0078125,"gapBelow":-80.3515625,"dx":0,"dockTop":265.703125,"lightTop":333.7109375,"lightBottom":346.0546875,"visor":true},"moved":{"lightDx":0.07999999999999996,"lightDy":0.10000000000000003,"visualLightDy":69.859375,"dockDy":69.859375,"after":{"on":true,"gapAbove":6.0078125,"gapBelow":-80.3515625,"dx":0,"dockTop":335.5625,"lightTop":403.5703125,"lightBottom":415.9140625,"visor":true}},"afterClear":{"on":false,"gapAbove":null,"gapBelow":null,"dx":null,"dockTop":null,"lightTop":null,"lightBottom":null,"visor":false},"adjacent":true,"followed":true} |
+| T-DOCK-RELEASES-AFTER-DROP | PASS | {"afterClickPlace":{"lights":2,"selected":0,"dockOn":false,"sel":null},"afterClickLight":{"lights":2,"selected":1,"dockOn":true,"sel":1},"afterEmpty":{"lights":2,"selected":0,"dockOn":false,"sel":null},"afterClearView":{"lights":0,"selected":0,"dockOn":false,"sel":null},"afterClearAll":{"lights":0,"selected":0,"dockOn":false,"sel":null},"afterDrop":{"lights":1,"selected":0,"dockOn":false,"sel":null,"dropOk":true}} |
 
 All named traps PASS.
