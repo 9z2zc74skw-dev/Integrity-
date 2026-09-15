@@ -1,253 +1,172 @@
 #!/usr/bin/env python3
-"""Rebuild DynaFlare FX from piu product photos.
+"""Rebuild DynaFlare FX as slim on-vehicle sticks.
 
-Copies 9z2zc74skw-dev/piu-lighting-visualizer master fx_dyna*.png, trims the
-keyed paper-fringe under the housing (NOT a white-body color key — LED bloom
-and chrome highlights stay), then cuts end-capped 1/2/5/6 ft sticks plus
-scheme variants. Writes visualizer/fx/fx_dyna*.png.
+piu-lighting-visualizer master photos are good 6-ft product shots, but a 1-ft
+crop of that head-on JPEG is a tiny uncropped product card on glass (HEAD 200
+does not catch that). This pass draws capsule housing + LED cells with true
+alpha. LED hues are sampled from the piu photo when present. Never color-key
+a vehicle body.
 """
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 
 VIZ = Path(__file__).resolve().parent.parent
 FX = VIZ / "fx"
 PIU = Path("/tmp/piu-lighting-visualizer/client/public/fx")
 
-# Lengths as module counts per color (full bar is 6 red + 6 blue).
+# Pixel height of every stick. Width grows with module count so CSS
+# object-fit:fill keeps constant thickness (DYNA_H) on the plate.
+H = 40
+# Catalog width / DYNA_H (2.2) * H — sprite aspect matches the on-plate box
+# so object-fit:fill does not squash a product-card JPEG into a thumbnail.
+WIDTH = {"1ft": 146, "2ft": 255, "5ft": 582, "6ft": 691}
 LENGTHS = {"1ft": 1, "2ft": 2, "5ft": 5, "6ft": 6}
 
 
-def copy_piu_masters() -> None:
-    names = [
-        "fx_dyna_rb.png",
-        "fx_dyna_r.png",
-        "fx_dyna_b.png",
-        "fx_dyna_smk_rb.png",
-        "fx_dyna_smk_r.png",
-        "fx_dyna_smk_b.png",
-    ]
-    for n in names:
-        src = PIU / n
-        if not src.exists():
-            raise SystemExit(f"missing piu sprite {src}")
-        shutil.copy2(src, FX / n)
-
-
-def is_paper(r: int, g: int, b: int, a: int) -> bool:
-    """Studio-backdrop remnant under the housing. Not LED white, not chrome."""
-    if a < 8:
-        return True
-    mx, mn = max(r, g, b), min(r, g, b)
-    chroma = mx - mn
-    # Paper / jagged keyed fringe: bright, low-chroma, or gray mountain bits
-    # hanging off the bottom rail. LED bloom is high-chroma red or blue.
-    red_led = r > 140 and r > g + 35 and r > b + 35
-    blu_led = b > 140 and b > r + 35 and b > g + 20
-    if red_led or blu_led:
-        return False
-    if mx > 185 and chroma < 45:
-        return True
-    if mx > 90 and chroma < 22 and mn > 70:
-        return True
-    return False
-
-
-def trim_housing(im: Image.Image) -> Image.Image:
-    """Drop bottom paper-fringe; keep housing rail, chrome, and LED bloom.
-
-    The remnant is a jagged white/black mountain strip under the bar, leftover
-    from keying a studio photo. LED white bloom lives in the lens (high chroma,
-    mid-bar). Never key those, and never key a vehicle body.
-    """
-    im = im.convert("RGBA")
+def sample_led_colors() -> dict[str, tuple[int, int, int]]:
+    """Pull real DynaFlare LED hues from piu product art when available."""
+    out = {
+        "red": (230, 28, 32),
+        "blue": (28, 92, 255),
+        "white": (248, 250, 255),
+        "core_r": (255, 210, 180),
+        "core_b": (210, 230, 255),
+    }
+    src = PIU / "fx_dyna_rb.png"
+    if not src.exists():
+        return out
+    im = Image.open(src).convert("RGBA")
     w, h = im.size
     px = im.load()
-
-    paper_rows = []
-    led_rows = []
-    dark_rows = []
-    for y in range(h):
-        paper = led = dark = 0
-        for x in range(w):
+    reds, blues = [], []
+    for y in range(int(h * 0.25), int(h * 0.75)):
+        for x in range(int(w * 0.08), int(w * 0.92)):
             r, g, b, a = px[x, y]
-            if a < 10:
+            if a < 200:
                 continue
-            mx = max(r, g, b)
-            if r > 150 and r > g + 40 and r > b + 40:
-                led += 1
-            elif b > 150 and b > r + 40 and b > g + 20:
-                led += 1
-            elif is_paper(r, g, b, a):
-                paper += 1
-            elif mx < 80:
-                dark += 1
-        paper_rows.append(paper)
-        led_rows.append(led)
-        dark_rows.append(dark)
-
-    # Peak LED row. Walk down while the row is still lens/housing, not paper.
-    # Paper-surge detection is restricted to the lower third so LED bloom
-    # (bright, low-chroma cores) cannot be mistaken for the keyed fringe.
-    peak = max(range(h), key=lambda y: led_rows[y])
-    lens_bot = peak
-    remnant_y = h
-    paper_cut = max(40, int(w * 0.04))
-    y_fringe = int(h * 0.62)
-    for y in range(peak, h):
-        if y >= y_fringe and paper_rows[y] > paper_cut and paper_rows[y] >= led_rows[y] * 0.45:
-            remnant_y = y
-            break
-        if led_rows[y] > max(30, w * 0.05) or dark_rows[y] > w * 0.20:
-            lens_bot = y
-
-    # Keep the dark underside rail, but stop the instant paper mountains start.
-    crop_bot = min(h, remnant_y, lens_bot + 1)
-
-    for y in range(crop_bot, h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if a:
-                px[x, y] = (r, g, b, 0)
-
-    # Paper pixels that leaked into the last rail rows — punch those only.
-    for y in range(max(0, crop_bot - 6), crop_bot):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if a and is_paper(r, g, b, a):
-                px[x, y] = (r, g, b, 0)
-
-    bbox = im.getbbox()
-    if not bbox:
-        return im
-    l, t, r, b = bbox
-    l = max(0, l - 1)
-    t = max(0, t - 1)
-    r = min(w, r + 1)
-    b = min(h, b + 1)
-    return im.crop((l, t, r, b))
-
-
-def opaque_x(im: Image.Image) -> tuple[int, int]:
-    px = im.load()
-    w, h = im.size
-    left = next(x for x in range(w) if any(px[x, y][3] > 16 for y in range(h)))
-    right = next(x for x in range(w - 1, -1, -1) if any(px[x, y][3] > 16 for y in range(h)))
-    return left, right
-
-
-def stitch_length(im: Image.Image, modules: int) -> Image.Image:
-    """Endcap + N red modules + N blue modules + endcap. 6 modules = full bar."""
-    im = im.convert("RGBA")
-    w, h = im.size
-    left, right = opaque_x(im)
-    bar_w = right - left + 1
-    if modules >= 6:
-        return im.crop((left, 0, right + 1, h))
-
-    end = max(36, int(bar_w * 0.034))
-    inner = bar_w - 2 * end
-    half = inner // 2
-    mod = max(1, half // 6)
-    take = mod * modules
-
-    red = im.crop((left + end, 0, left + end + take, h))
-    blue = im.crop((right - end - take + 1, 0, right - end + 1, h))
-    cap_l = im.crop((left, 0, left + end, h))
-    cap_r = im.crop((right - end + 1, 0, right + 1, h))
-
-    out_w = cap_l.width + red.width + blue.width + cap_r.width
-    out = Image.new("RGBA", (out_w, h), (0, 0, 0, 0))
-    x = 0
-    for part in (cap_l, red, blue, cap_r):
-        out.paste(part, (x, 0), part)
-        x += part.width
+            if r > 160 and r > g + 50 and r > b + 50:
+                reds.append((r, g, b))
+            elif b > 160 and b > r + 40 and b > g + 20:
+                blues.append((r, g, b))
+    if reds:
+        n = len(reds)
+        out["red"] = tuple(sum(c[i] for c in reds) // n for i in range(3))  # type: ignore
+        hot = max(reds, key=lambda c: c[0])
+        out["core_r"] = hot
+    if blues:
+        n = len(blues)
+        out["blue"] = tuple(sum(c[i] for c in blues) // n for i in range(3))  # type: ignore
+        hot = max(blues, key=lambda c: c[2])
+        out["core_b"] = hot
     return out
 
 
-def is_housing(r: int, g: int, b: int, a: int) -> bool:
-    if a < 16:
-        return False
-    mx, mn = max(r, g, b), min(r, g, b)
-    if mx < 95:
-        return True
-    if mx - mn < 18 and mx < 140:
-        return True
-    return False
+LEDS = sample_led_colors()
 
 
-def remap_led(r: int, g: int, b: int, mode: str) -> tuple[int, int, int]:
-    """Shift warning LED hue. Housing pixels are skipped by the caller."""
-    red = r > 90 and r >= g + 18 and r >= b + 18
-    blu = b > 90 and b >= r + 18 and b >= g + 12
-    if mode == "bw" and red:
-        mx = max(r, int((g + b) * 0.35 + r * 0.55))
-        return mx, min(255, int(mx * 0.98)), min(255, int(mx * 0.96))
-    if mode == "rw" and blu:
-        mx = max(b, int((r + g) * 0.35 + b * 0.55))
-        return min(255, int(mx * 0.98)), min(255, int(mx * 0.97)), mx
-    if mode == "rbw":
-        # Keep red and blue; punch a white core on the hottest cells.
-        if red and r > 210:
-            return 255, 248, 242
-        if blu and b > 210:
-            return 242, 248, 255
-    return r, g, b
+def lerp(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[int, int, int]:
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))  # type: ignore
 
 
-def scheme_variant(im: Image.Image, mode: str) -> Image.Image:
-    if mode == "rb":
-        return im
-    out = im.copy()
-    px = out.load()
-    w, h = out.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if a < 16 or is_housing(r, g, b, a):
-                continue
-            nr, ng, nb = remap_led(r, g, b, mode)
-            px[x, y] = (nr, ng, nb, a)
-    return out
+def cell_color(side: str, mode: str, smoked: bool) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
+    red, blue, white = LEDS["red"], LEDS["blue"], LEDS["white"]
+    cr, cb = LEDS["core_r"], LEDS["core_b"]
+    if mode == "bw":
+        body, core = (blue, cb) if side == "L" else (white, (255, 255, 255))
+    elif mode == "rw":
+        body, core = (red, cr) if side == "L" else (white, (255, 255, 255))
+    elif mode == "rbw":
+        if side == "L":
+            body, core = red, (255, 248, 242)
+        else:
+            body, core = blue, (242, 248, 255)
+    else:
+        body, core = (red, cr) if side == "L" else (blue, cb)
+    if smoked:
+        body = tuple(max(0, int(v * 0.62)) for v in body)  # type: ignore
+        core = tuple(max(0, int(v * 0.78)) for v in core)  # type: ignore
+    return body, core
+
+
+def draw_stick(modules: int, smoked: bool, mode: str, width: int) -> Image.Image:
+    n = max(1, modules)
+    w = int(width)
+    im = Image.new("RGBA", (w, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    y0, y1 = 3, H - 4
+    rad = 8
+    end = max(16, int(w * 0.08))
+    split = max(4, int(w * 0.018))
+    inner_w = max(n * 2, w - 2 * end - split)
+    cell = max(8, inner_w // (n * 2))
+    house = (20, 20, 22, 255) if not smoked else (12, 12, 14, 255)
+    edge = (6, 6, 8, 255)
+    d.rounded_rectangle((1, y0, w - 2, y1), radius=rad, fill=house, outline=edge, width=1)
+    # top chrome rail — highlight, not a vehicle-body key
+    d.line((2 + rad, y0, w - 3 - rad, y0), fill=(90, 92, 98, 220), width=1)
+    # endcap blocks (DynaFlare housing, not a catalog thumbnail)
+    cap = (16, 16, 18, 255) if not smoked else (10, 10, 12, 255)
+    d.rectangle((2, y0 + 2, end - 1, y1 - 2), fill=cap)
+    d.rectangle((w - end, y0 + 2, w - 3, y1 - 2), fill=cap)
+
+    lens_y0, lens_y1 = y0 + 6, y1 - 6
+    lens_fill = (10, 10, 12, 255) if not smoked else (6, 6, 8, 255)
+    d.rounded_rectangle((end - 2, lens_y0, w - end + 1, lens_y1), radius=4, fill=lens_fill)
+
+    def paint_row(side: str, x0: int) -> None:
+        body, core = cell_color(side, mode, smoked)
+        rr = max(5, min(8, cell // 3))
+        for i in range(n):
+            cx = x0 + i * cell + cell // 2
+            cy = H // 2
+            for extra, a in ((rr + 4, 40), (rr + 2, 70), (rr, 110)):
+                d.ellipse((cx - extra, cy - extra + 1, cx + extra, cy + extra - 1), fill=body + (a,))
+            d.ellipse((cx - rr, cy - rr + 1, cx + rr, cy + rr - 1), fill=body + (255,))
+            cr = max(2, rr // 2)
+            d.ellipse((cx - cr, cy - cr, cx + cr, cy + cr), fill=core + (255,))
+
+    paint_row("L", end)
+    paint_row("R", end + n * cell + split)
+    mid = end + n * cell + split // 2
+    d.line((mid, lens_y0 + 1, mid, lens_y1 - 1), fill=(4, 4, 6, 180), width=2)
+    return im.filter(ImageFilter.UnsharpMask(radius=0.6, percent=80, threshold=2))
 
 
 def save(im: Image.Image, name: str) -> None:
     dest = FX / name
     im.save(dest, "PNG", optimize=True)
-    print(f"  wrote {name} {im.size[0]}x{im.size[1]}")
+    print(f"  wrote {name} {im.size[0]}x{im.size[1]} {dest.stat().st_size}B")
 
 
 def build() -> None:
-    if not PIU.exists():
-        raise SystemExit(f"clone piu first: {PIU}")
     FX.mkdir(exist_ok=True)
-    copy_piu_masters()
-
-    clear = trim_housing(Image.open(FX / "fx_dyna_rb.png"))
-    smoked = trim_housing(Image.open(FX / "fx_dyna_smk_rb.png"))
-    # Keep trimmed masters as the canonical product shots (overwrite copies).
-    save(clear, "fx_dyna_rb.png")
-    save(smoked, "fx_dyna_smk_rb.png")
-    for src_name in ("fx_dyna_r.png", "fx_dyna_b.png", "fx_dyna_smk_r.png", "fx_dyna_smk_b.png"):
-        save(trim_housing(Image.open(FX / src_name)), src_name)
+    # Drop unused solid-color / uncut product-card masters from the shop pack.
+    # Length + scheme files are what the catalog actually requests.
+    unused = [
+        "fx_dyna_r.png", "fx_dyna_b.png",
+        "fx_dyna_smk_r.png", "fx_dyna_smk_b.png",
+        "fx_dyna_rb.png", "fx_dyna_smk_rb.png",
+        "fx_dyna_smk_bw.png", "fx_dyna_smk_rw.png", "fx_dyna_smk_rbw.png",
+    ]
+    for n in unused:
+        p = FX / n
+        if p.exists():
+            p.unlink()
+            print(f"  dropped unused {n}")
 
     for label, n in LENGTHS.items():
-        stick = stitch_length(clear, n)
+        ww = WIDTH[label]
         for mode in ("rb", "bw", "rw", "rbw"):
-            save(scheme_variant(stick, mode), f"fx_dyna_{label}_{mode}.png")
+            save(draw_stick(n, False, mode, ww), f"fx_dyna_{label}_{mode}.png")
 
-    smk_1 = stitch_length(smoked, 1)
+    smk_w = WIDTH["1ft"]
+    smk_1 = draw_stick(1, True, "rb", smk_w)
     for mode in ("rb", "bw", "rw", "rbw"):
-        save(scheme_variant(smk_1, mode), f"fx_dyna_1ft_smk_{mode}.png")
-    # Catalog historically used fx_dyna_1ft_smk.png (no scheme suffix).
+        save(draw_stick(1, True, mode, smk_w), f"fx_dyna_1ft_smk_{mode}.png")
     save(smk_1, "fx_dyna_1ft_smk.png")
-
-    smk_full = smoked
-    for mode in ("rb", "bw", "rw", "rbw"):
-        save(scheme_variant(smk_full, mode), f"fx_dyna_smk_{mode}.png")
 
 
 if __name__ == "__main__":

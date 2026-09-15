@@ -93,6 +93,39 @@ function plateLedCounts() {
   }
 }
 
+function fxLookScan() {
+  /* HEAD 200 is not a look check. Fail 623-byte / square product-card thumbs. */
+  const py = [
+    "from PIL import Image",
+    "import os, json, sys",
+    "fx=sys.argv[1]",
+    "rows=[]; fail=[]",
+    "for n in sorted(os.listdir(fx)):",
+    "    if not n.startswith('fx_dyna') or not n.endswith('.png'): continue",
+    "    p=os.path.join(fx,n); sz=os.path.getsize(p)",
+    "    im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load()",
+    "    corners=[px[0,0][3], px[w-1,0][3], px[0,h-1][3], px[w-1,h-1][3]]",
+    "    asp=w/max(h,1.0)",
+    "    yellow=0",
+    "    for y in range(h):",
+    "        for x in range(w):",
+    "            r,g,b,a=px[x,y]",
+    "            if a>200 and r>180 and g>150 and b<110: yellow+=1",
+    "    ok=(sz>623 and asp>=3.0 and h<=80 and w>=120 and max(corners)<16 and yellow<40)",
+    "    rows.append({'file':n,'bytes':sz,'w':w,'h':h,'asp':round(asp,2),'cornerA':corners,'yellow':yellow,'ok':ok})",
+    "    if not ok: fail.append(n+' sz='+str(sz)+' '+str(w)+'x'+str(h))",
+    "print(json.dumps({'ok':len(fail)==0 and len(rows)>=8,'n':len(rows),'fail':fail,'minBytes':min((r['bytes'] for r in rows), default=0),'maxH':max((r['h'] for r in rows), default=0)}))",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, path.join(VIZ, "fx")], { encoding: "utf8", maxBuffer: 2 * 1024 * 1024 });
+  if (r.status !== 0) return { ok: false, detail: (r.stderr || r.stdout || "python fail").slice(0, 240) };
+  try {
+    const j = JSON.parse(r.stdout || "{}");
+    return { ok: !!j.ok, detail: JSON.stringify(j) };
+  } catch (e) {
+    return { ok: false, detail: String(e.message || e) };
+  }
+}
+
 function staticTraps() {
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
   rec("T-NO-CLICK-PAIRS", !/CLICK_PAIRS|CLICK_MULTI|TRUCK_CLICKS|TRUCK_MULTI/.test(html), "duplicate click maps absent");
@@ -101,9 +134,9 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio24"/.test(html), "ASSET_V=studio24");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio24"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio24");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio24/.test(html), "header pack stamp present");
+  rec("T-ASSET-V", /ASSET_V="studio25"/.test(html), "ASSET_V=studio25");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio25"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio25");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio25/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -127,6 +160,8 @@ function staticTraps() {
     plateDetail.push(`${name} ${ok ? "unchanged" : "MOVED " + got}`);
   }
   rec("T-PLATE-HASHES", platesOk, plateDetail.join("; "));
+  const fxLook = fxLookScan();
+  rec("T-FX-LOOK", fxLook.ok, fxLook.detail);
 }
 
 async function fetchOk(base, rel) {
@@ -398,11 +433,19 @@ async function main() {
 
       const dynaSkus = ["DYNA-1","DYNA-2","DYNA-S","DYNA-X","DR1-RBK-SMK","DR6-RBW"];
       const dynaPlace = {};
-      dynaSkus.forEach(function(sku){
+      for (const sku of dynaSkus) {
         T.resetNodes();
         T.setVehicle("durango");
         T.setView("front");
         T.clickPlace(sku);
+        await new Promise(function(resolve){
+          var imgs=[].slice.call(document.querySelectorAll("#stage .light img"));
+          var pending=imgs.filter(function(i){ return !i.complete; }).length;
+          if(!pending){ resolve(); return; }
+          var done=function(){ pending--; if(pending<=0) resolve(); };
+          imgs.forEach(function(i){ if(!i.complete){ i.addEventListener("load", done); i.addEventListener("error", done); } });
+          setTimeout(resolve, 800);
+        });
         const bag = T.nodes();
         const counts = {};
         Object.keys(bag).forEach(function(k){
@@ -410,15 +453,18 @@ async function main() {
         });
         const total = Object.values(counts).reduce(function(a,b){ return a+b; }, 0);
         const imgs = Array.prototype.map.call(document.querySelectorAll("#stage .light img"), function(img){
-          return { src: (img.getAttribute("src")||""), w: img.naturalWidth||0, complete: !!img.complete, alt: img.alt||"" };
+          return { src: (img.getAttribute("src")||""), w: img.naturalWidth||0, h: img.naturalHeight||0, complete: !!img.complete, alt: img.alt||"" };
         });
+        const light = document.querySelector("#stage .light");
+        const lr = light && light.getBoundingClientRect();
         dynaPlace[sku] = {
           counts: counts,
           total: total,
           dynaClass: !!document.querySelector("#stage .light.dyna-stick"),
-          imgs: imgs
+          imgs: imgs,
+          box: lr ? { w: lr.width, h: lr.height, asp: lr.height ? lr.width / lr.height : 0 } : null
         };
-      });
+      }
       out.dyna = {
         catalog: T.CATALOG.filter(function(c){ return c.dyna || (T.isDyna && T.isDyna(c.sku)); }).map(function(c){ return {sku:c.sku, fx:c.fx, w:c.w}; }),
         place: dynaPlace
@@ -582,9 +628,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio24"
-        && /pack studio24/.test(runtime.bareCold.pack||"")
-        && /studio24/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio25"
+        && /pack studio25/.test(runtime.bareCold.pack||"")
+        && /studio25/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -664,9 +710,13 @@ async function main() {
       dynaNeed.map(function(s){ var p=dynaPlace[s]||{}; return s+"="+ (p.total||0); }).join(" "));
     rec("T-DYNA-LOOK", dynaOk && dynaNeed.every(function(s){
         var p=dynaPlace[s]||{};
-        return p.dynaClass && (p.imgs||[]).some(function(im){ return /fx_dyna/.test(im.src||""); });
+        var im=(p.imgs||[])[0]||{};
+        var box=p.box||{};
+        return p.dynaClass && /fx_dyna/.test(im.src||"")
+          && im.w >= 120 && im.h <= 80 && im.w / Math.max(im.h, 1) >= 3
+          && box.asp >= 2.8 && box.w > 24 && box.h > 4 && box.h < 48;
       }),
-      "product-art housing + endcaps, no keyed paper fringe; dyna-stick + fx_dyna src on place");
+      "slim alpha stick, not a 623-byte/thumbnail product card; dyna-stick + fx_dyna src; on-vehicle module aspect");
     var dock = runtime.dock || {};
     var b = dock.before || {};
     var m = dock.moved || {};
@@ -702,14 +752,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio24 dock releases after drop",
+    "# Vector trap log — studio25 dock release + DynaFlare look",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio24 · FX_V: max7`,
+    `- ASSET_V: studio25 · FX_V: max8`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio24: after drop / clickPlace the dock hides (selection cleared). Click a placed light to edit; empty plate / Clear* hide it again. Dock remains position:fixed on the selection. DynaFlare product-art and ILS L/R split unchanged. Signed plates unchanged.`,
+    `- studio25: dock still hides after drop (studio24). DynaFlare/DR* sprites are slim alpha sticks (not 623-byte/JPEG product-card thumbs). ILS L/R split unchanged. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
