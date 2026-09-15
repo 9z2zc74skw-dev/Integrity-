@@ -146,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio28 you are on a stale pack">pack studio28</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio29 you are on a stale pack">pack studio29</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,7 +162,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio28" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio29" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -216,8 +216,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio28";
-var FX_V="max10";
+var ASSET_V="studio29";
+var FX_V="max11";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
   {id:"front",label:"Front",imgW:"durango_front.png",imgB:"durango_front_black.png"},
@@ -374,7 +374,7 @@ var CATALOG=[
   {sku:"MPS63U-RBW",name:"MicroPulse behind front grille",group:"Front / Perimeter",fx:"fx_mps63_rb.png",w:4.5},
   {sku:"MPSW9-BW",name:"MicroPulse Wide Angle, side / mirror",group:"Front / Perimeter",fx:"fx_mpsw9_rb.png",w:3.4},
   {sku:"BRACKETS:FPIU20MIR",name:"Mirror mount for MPSW9",group:"Front / Perimeter",fx:"fx_bracket_l.png",w:5},
-  {sku:"416309-RBW-SMK",name:"1 in round smoked (front bumper ×4, rear ×6)",group:"Front / Perimeter",fx:"fx_round_smk.png",w:2.6},
+  {sku:"416309-RBW-SMK",name:"1 in round smoked (front bumper ×4, rear ×6)",group:"Front / Perimeter",fx:"fx_round_smk_rb.png",w:2.6},
   {sku:"MPS123U-RBW",name:"MicroPulse 1200-series rear hatch face / plate",group:"Rear Hatch",fx:"fx_mps123_rb.png",w:7},
   {sku:"BRACKETS:MPSM6-LPH1",name:"License plate mount for 1200-series",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
   {sku:"mpsm6-sb2",name:"MicroPulse swivel bracket (1200-series)",group:"Rear Hatch",fx:"fx_bracket_l.png",w:5},
@@ -383,7 +383,7 @@ var CATALOG=[
   {sku:"STICK-RB",name:"Warning Stick R/B",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"CNSMJ8R-P3C",name:"SignalMaster 8-head rear stick",group:"Rear Hatch",fx:"fx_stick_rb.png",w:22},
   {sku:"CNSM-RBK1",name:"SignalMaster 8-head mount bracket",group:"Rear Hatch",fx:"fx_bracket_plate.png",w:6},
-  {sku:"XSM2-BRW-US",name:"SpectraLux XSM2 rear quarter glass",group:"Rear Hatch",fx:"fx_mps_small_rb.png",w:4},
+  {sku:"XSM2-BRW-US",name:"SpectraLux XSM2 rear quarter glass",group:"Rear Hatch",fx:"fx_xsm2_rb.png",w:4},
   {sku:"416300",name:"Perimeter Lighthead",group:"Rear Hatch",fx:"fx_round_rb.png",w:3},
   {sku:"ES100C",name:"100W speaker",group:"Siren / Control",fx:"fx_speaker.png",w:6},
   {sku:"ESBL-FPIU20",name:"EC100 speaker bracket",group:"Siren / Control",fx:"fx_bracket_l.png",w:5},

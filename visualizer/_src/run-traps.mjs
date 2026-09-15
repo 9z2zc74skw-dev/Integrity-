@@ -128,6 +128,50 @@ function fxLookScan() {
   }
 }
 
+function catalogFxLookScan() {
+  /* Catalog lighting SKUs must wire photographic piu art, not CGI thumbs. */
+  const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
+  const py = [
+    "from PIL import Image",
+    "import os, json, sys, re",
+    "fx, html_path = sys.argv[1], sys.argv[2]",
+    "html=open(html_path).read()",
+    "need=[('MPS63U-RBW','fx_mps63_rb.png'),('MPS123U-RBW','fx_mps123_rb.png'),",
+    "      ('SIFMJS','fx_ils_rb.png'),('XSM2-BRW-US','fx_xsm2_rb.png'),",
+    "      ('416309-RBW-SMK','fx_round_smk_rb.png'),('MPSW9-BW','fx_mpsw9_rb.png'),",
+    "      ('DYNA-1','fx_dyna_1ft_rb.png'),('STICK-RB','fx_stick_rb.png'),",
+    "      ('ALGT53JX-P3LB','fx_algt_max.png')]",
+    "fail=[]; rows=[]",
+    "banned=['fx_mps_wide','fx_mps_small','fx_round_smk.png']",
+    "for b in banned:",
+    "    if b=='fx_round_smk.png':",
+    "        if re.search(r'fx:\"fx_round_smk\\.png\"', html): fail.append('catalog still wires CGI fx_round_smk.png')",
+    "    elif b in html: fail.append('catalog still mentions '+b)",
+    "for sku, name in need:",
+    "    if 'fx:\"'+name+'\"' not in html and \"fx:'\"+name+\"'\" not in html:",
+    "        fail.append(sku+' not wired to '+name); continue",
+    "    p=os.path.join(fx,name)",
+    "    if not os.path.exists(p): fail.append('missing '+name); continue",
+    "    sz=os.path.getsize(p); im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load()",
+    "    corners=[px[0,0][3], px[w-1,0][3], px[0,h-1][3], px[w-1,h-1][3]]",
+    "    ok=sz>8000 and w>=120 and h>=40 and max(corners)<16",
+    "    rows.append({'file':name,'bytes':sz,'w':w,'h':h,'ok':ok})",
+    "    if not ok: fail.append(name+' sz='+str(sz)+' '+str(w)+'x'+str(h)+' cA='+str(max(corners)))",
+    "print(json.dumps({'ok':len(fail)==0,'fail':fail,'n':len(rows)}))",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, path.join(VIZ, "fx"), path.join(VIZ, "index.html")], {
+    encoding: "utf8",
+    maxBuffer: 2 * 1024 * 1024,
+  });
+  if (r.status !== 0) return { ok: false, detail: (r.stderr || r.stdout || "python fail").slice(0, 240) };
+  try {
+    const j = JSON.parse(r.stdout || "{}");
+    return { ok: !!j.ok, detail: JSON.stringify(j) };
+  } catch (e) {
+    return { ok: false, detail: String(e.message || e) };
+  }
+}
+
 function staticTraps() {
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
   rec("T-NO-CLICK-PAIRS", !/CLICK_PAIRS|CLICK_MULTI|TRUCK_CLICKS|TRUCK_MULTI/.test(html), "duplicate click maps absent");
@@ -136,10 +180,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio28"/.test(html), "ASSET_V=studio28");
+  rec("T-ASSET-V", /ASSET_V="studio29"/.test(html), "ASSET_V=studio29");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio28"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio28");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio28/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio29"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio29");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio29/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -165,6 +209,8 @@ function staticTraps() {
   rec("T-PLATE-HASHES", platesOk, plateDetail.join("; "));
   const fxLook = fxLookScan();
   rec("T-FX-LOOK", fxLook.ok, fxLook.detail);
+  const catLook = catalogFxLookScan();
+  rec("T-CATALOG-FX-LOOK", catLook.ok, catLook.detail);
 }
 
 async function fetchOk(base, rel) {
@@ -685,9 +731,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio28"
-        && /pack studio28/.test(runtime.bareCold.pack||"")
-        && /studio28/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio29"
+        && /pack studio29/.test(runtime.bareCold.pack||"")
+        && /studio29/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -835,14 +881,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio28 one node on the current view, no auto-pair",
+    "# Vector trap log — studio29 piu photographic fx pack",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio28 · FX_V: max10`,
+    `- ASSET_V: studio29 · FX_V: max11`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio28: clickPlace places one node on the current view (MPSW9 / MPS63 / XSM2). No opposite-side spawn, no camera yank. Visor ILS still two shrouds; bumper rounds keep the named set. Compact MPSW9 pod. Dock hides after drop. Piu DynaFlare. Signed plates unchanged.`,
+    `- studio29: catalog lighting sprites copied/adapted from piu-lighting-visualizer fx (ILS, MPS63/123 bar, XSM2 module, smoked rounds, DynaFlare, ALGT, sticks). MPSW9 is a compact wide-angle pod crop, not a 12-LED bar. clickPlace stays on the current view; one node; dock hides after drop. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

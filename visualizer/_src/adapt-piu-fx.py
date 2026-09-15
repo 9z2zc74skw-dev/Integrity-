@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 VIZ = Path(__file__).resolve().parent.parent
 FX = VIZ / "fx"
@@ -169,35 +169,44 @@ def build_dyna() -> None:
             print(f"  dropped unused {n}")
 
 
+def copy_scheme(src_rb: Image.Image, src_bw: Image.Image, dest_prefix: str) -> None:
+    """Trim photographic piu art and derive rw/rbw. No color-key."""
+    rb = pad_alpha(trim(src_rb), 4)
+    bw = pad_alpha(trim(src_bw), 4)
+    save(rb, f"{dest_prefix}_rb.png")
+    save(bw, f"{dest_prefix}_bw.png")
+    save(recolor_scheme(rb, "rw"), f"{dest_prefix}_rw.png")
+    save(recolor_scheme(rb, "rbw"), f"{dest_prefix}_rbw.png")
+
+
 def make_mpsw9_pod(src: Image.Image) -> Image.Image:
     """Compact 5.0 x 1.5 in Wide Angle pod — not a 12-LED lightbar strip.
 
-    MPSW9 is a short curved perimeter head for a mirror bracket. Crop the
-    photographic R/B split from piu fx_wide and seat it in a short housing.
+    MPSW9 is a short curved perimeter head for a mirror bracket. Crop ~4 LED
+    cells at the R/B split from piu fx_wide. Do not draw a fake housing.
     """
     im = trim(src)
     w, h = im.size
-    # ~6 LED cells at the color split (half the 12-LED source bar).
-    cw = max(int(round(w * 0.48)), int(round(h * 2.6)))
-    cw = min(cw, w)
+    cw = min(w, max(int(round(w * 0.36)), int(round(h * 2.2))))
+    ch = min(h, max(int(round(h * 0.78)), 80))
     x0 = max(0, (w - cw) // 2)
-    core = im.crop((x0, 0, x0 + cw, h))
-    cap = max(18, h // 6)
-    out_w = core.size[0] + 2 * cap
-    out_h = core.size[1] + 10
-    out = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(out)
-    d.rounded_rectangle((1, 1, out_w - 2, out_h - 2), radius=max(12, out_h // 3), fill=(16, 16, 18, 255))
-    out.paste(core, (cap, 5), core)
+    y0 = max(0, (h - ch) // 2)
+    core = im.crop((x0, y0, x0 + cw, y0 + ch))
     # Spec is 5.04 x 1.5 in → aspect ~3.36
     target_asp = 5.04 / 1.5
-    cur_asp = out_w / max(out_h, 1)
-    if cur_asp > target_asp * 1.08:
-        need = int(round(out_h * target_asp))
-        x1 = max(0, (out_w - need) // 2)
-        out = out.crop((x1, 0, x1 + need, out_h))
-    # Keep a readable sprite; on-plate size is catalog w, not pixel size.
-    return pad_alpha(scale_h(out, 96), 4)
+    cw, ch = core.size
+    cur_asp = cw / max(ch, 1)
+    if cur_asp < target_asp:
+        need_h = max(40, int(round(cw / target_asp)))
+        if need_h < ch:
+            y1 = max(0, (ch - need_h) // 2)
+            core = core.crop((0, y1, cw, y1 + need_h))
+    elif cur_asp > target_asp * 1.08:
+        need_w = max(80, int(round(ch * target_asp)))
+        if need_w < cw:
+            x1 = max(0, (cw - need_w) // 2)
+            core = core.crop((x1, 0, x1 + need_w, ch))
+    return pad_alpha(scale_h(core, 96), 4)
 
 
 def build_mpsw9() -> None:
@@ -233,6 +242,52 @@ def build_stick() -> None:
     save(recolor_scheme(rb, "rbw"), "fx_stick_rbw.png")
 
 
+def build_ils() -> None:
+    """Connected visor photograph. CSS ils-half clips L/R shrouds."""
+    copy_scheme(require_piu("fx_ils_rb.png"), require_piu("fx_ils_bw.png"), "fx_ils")
+
+
+def build_mps63() -> None:
+    """MicroPulse 6-3 grille — piu fx_bar dual-row photo, not CGI."""
+    copy_scheme(require_piu("fx_bar_rb.png"), require_piu("fx_bar_bw.png"), "fx_mps63")
+
+
+def build_mps123() -> None:
+    """MicroPulse 12-3 hatch — same photographic bar family as piu MPS123."""
+    copy_scheme(require_piu("fx_bar_rb.png"), require_piu("fx_bar_bw.png"), "fx_mps123")
+
+
+def build_xsm2() -> None:
+    """SpectraLux XSM2 — piu fx_module photo, not a dual-row CGI thumb."""
+    copy_scheme(require_piu("fx_module_rb.png"), require_piu("fx_module_bw.png"), "fx_xsm2")
+    for n in (
+        "fx_mps_small_rb.png", "fx_mps_small_bw.png",
+        "fx_mps_small_rw.png", "fx_mps_small_rbw.png",
+        "fx_mps_rb.png", "fx_mps_bw.png", "fx_mps_rw.png", "fx_mps_rbw.png",
+    ):
+        p = FX / n
+        if p.exists():
+            p.unlink()
+            print(f"  dropped unused {n}")
+
+
+def build_round_smk() -> None:
+    """1 in smoked perimeter — piu fx_round_smk photo, not CGI disc."""
+    copy_scheme(
+        require_piu("fx_round_smk_rb.png"),
+        require_piu("fx_round_smk_bw.png"),
+        "fx_round_smk",
+    )
+    p = FX / "fx_round_smk.png"
+    if p.exists():
+        p.unlink()
+        print("  dropped unused fx_round_smk.png")
+
+
+def build_pushbar() -> None:
+    save(trim(require_piu("fx_pushbar_front.png")), "fx_pushbar_front.png")
+
+
 def build() -> None:
     if not PIU.is_dir():
         raise SystemExit(f"clone piu-lighting-visualizer fx to {PIU}")
@@ -245,6 +300,18 @@ def build() -> None:
     build_algt()
     print("Hatch sticks from piu fx_stick")
     build_stick()
+    print("ILS visor from piu fx_ils")
+    build_ils()
+    print("MPS63 grille from piu fx_bar")
+    build_mps63()
+    print("MPS123 hatch from piu fx_bar")
+    build_mps123()
+    print("XSM2 from piu fx_module")
+    build_xsm2()
+    print("Smoked rounds from piu fx_round_smk")
+    build_round_smk()
+    print("Push bar from piu")
+    build_pushbar()
     print("done")
 
 
