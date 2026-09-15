@@ -146,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio27 you are on a stale pack">pack studio27</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio28 you are on a stale pack">pack studio28</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,7 +162,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio27" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio28" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -216,7 +216,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio27";
+var ASSET_V="studio28";
 var FX_V="max10";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -287,18 +287,18 @@ function truckClicks(roofY){
     "DYNA-2":{front:[[0.5,0.68,0]]},
     "DYNA-5":{front:[[0.5,0.68,0]]},
     "DYNA-6":{front:[[0.5,0.68,0]]},
-    "DYNA-S":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+    "DYNA-S":{front:[[0.38,0.48,0]]},
     "DYNA-X":{front:[[0.5,0.68,0]]},
-    "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+    "DR1-RBK-SMK":{front:[[0.38,0.48,0]]},
     "DR6-RBW":{left:[[0.50,0.48,0]],right:[[0.50,0.48,0]]},
-    "MPS63U-RBW":{front:[[0.38,0.50,0],[0.62,0.50,0]]},
+    "MPS63U-RBW":{front:[[0.38,0.50,0]]},
     "MPSW9-BW":{front:[[0.155,0.382,0]],left:[[0.228,0.442,0]],right:[[0.772,0.442,0]]},
     "BRACKETS:FPIU20MIR":{front:[[0.155,0.382,0]],left:[[0.228,0.442,0]],right:[[0.772,0.442,0]]},
     "416309-RBW-SMK":{
       front:[[0.26,0.70,0],[0.38,0.70,0],[0.62,0.70,0],[0.74,0.70,0]],
       rear:[[0.22,0.68,0],[0.32,0.68,0],[0.42,0.68,0],[0.58,0.68,0],[0.68,0.68,0],[0.78,0.68,0]]
     },
-    "MPS123U-RBW":{rear:[[0.44,0.65,0],[0.56,0.65,0]]},
+    "MPS123U-RBW":{rear:[[0.44,0.65,0]]},
     "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.65,0]]},
     "mpsm6-sb2":{rear:[[0.44,0.65,0]]},
     "BRACKETS:MPSM6-LB":{rear:[[0.56,0.65,0]]},
@@ -306,9 +306,9 @@ function truckClicks(roofY){
     "STICK-RB":{rear:[[0.5,0.52,0]]},
     "CNSMJ8R-P3C":{rear:[[0.5,0.52,0]]},
     "CNSM-RBK1":{rear:[[0.5,0.52,0]]},
-    "XSM2-BRW-US":{rear:[[0.22,0.42,0],[0.78,0.42,0]],left:[[0.78,0.48,0]],right:[[0.22,0.48,0]]},
+    "XSM2-BRW-US":{rear:[[0.22,0.42,0]],left:[[0.78,0.48,0]],right:[[0.22,0.48,0]]},
     "416300":{rear:[[0.70,0.55,0]]},
-    ES100C:{front:[[0.38,0.68,0],[0.62,0.68,0]]},
+    ES100C:{front:[[0.38,0.68,0]]},
     "ESBL-FPIU20":{front:[[0.38,0.68,0]]},
     "ESBL2-TAH21ND":{front:[[0.50,0.68,0]]},
     RBKIT1:{front:[[0.42,0.74,0]]},
@@ -435,18 +435,18 @@ var CLICK={
   "DYNA-2":{front:[[0.5,0.66,0]]},
   "DYNA-5":{front:[[0.5,0.66,0]]},
   "DYNA-6":{front:[[0.5,0.66,0]]},
-  "DYNA-S":{front:[[0.38,0.52,0],[0.62,0.52,0]]},
+  "DYNA-S":{front:[[0.38,0.52,0]]},
   "DYNA-X":{front:[[0.5,0.66,0]]},
-  "DR1-RBK-SMK":{front:[[0.38,0.48,0],[0.62,0.48,0]]},
+  "DR1-RBK-SMK":{front:[[0.38,0.48,0]]},
   "DR6-RBW":{left:[[0.50,0.42,0]],right:[[0.50,0.42,0]]},
-  "MPS63U-RBW":{front:[[0.38,0.52,0],[0.62,0.52,0]]},
+  "MPS63U-RBW":{front:[[0.38,0.52,0]]},
   "MPSW9-BW":{front:[[0.155,0.382,0]],left:[[0.228,0.442,0]],right:[[0.772,0.442,0]],hero:[[0.545,0.498,0]]},
   "BRACKETS:FPIU20MIR":{front:[[0.155,0.382,0]],left:[[0.228,0.442,0]],right:[[0.772,0.442,0]],hero:[[0.545,0.498,0]]},
   "416309-RBW-SMK":{
     front:[[0.26,0.74,0],[0.38,0.74,0],[0.62,0.74,0],[0.74,0.74,0]],
     rear:[[0.22,0.76,0],[0.32,0.76,0],[0.42,0.76,0],[0.58,0.76,0],[0.68,0.76,0],[0.78,0.76,0]]
   },
-  "MPS123U-RBW":{rear:[[0.445,0.553,0],[0.555,0.553,0]],rear_open:[[0.36,0.248,0],[0.64,0.248,0]]},
+  "MPS123U-RBW":{rear:[[0.445,0.553,0]],rear_open:[[0.36,0.248,0]]},
   "BRACKETS:MPSM6-LPH1":{rear:[[0.5,0.553,0]],rear_open:[[0.5,0.248,0]]},
   "mpsm6-sb2":{rear:[[0.445,0.553,0]],rear_open:[[0.36,0.248,0]]},
   "BRACKETS:MPSM6-LB":{rear:[[0.555,0.553,0]],rear_open:[[0.64,0.248,0]]},
@@ -454,9 +454,9 @@ var CLICK={
   "STICK-RB":{rear:[[0.5,0.58,0]],rear_open:[[0.5,0.55,0]]},
   "CNSMJ8R-P3C":{rear:[[0.5,0.58,0]],rear_open:[[0.5,0.55,0]]},
   "CNSM-RBK1":{rear:[[0.5,0.58,0]],rear_open:[[0.5,0.55,0]]},
-  "XSM2-BRW-US":{rear:[[0.28,0.45,0],[0.72,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
+  "XSM2-BRW-US":{rear:[[0.28,0.45,0]],left:[[0.78,0.40,0]],right:[[0.22,0.40,0]]},
   "416300":{rear:[[0.7,0.55,0]]},
-  ES100C:{front:[[0.38,0.70,0],[0.62,0.70,0]]},
+  ES100C:{front:[[0.38,0.70,0]]},
   "ESBL-FPIU20":{front:[[0.38,0.70,0]]},
   "ESBL2-TAH21ND":{front:[[0.50,0.70,0]]},
   RBKIT1:{front:[[0.42,0.78,0]]},
@@ -868,6 +868,10 @@ function isMirrorSku(sku){
   /* Per-side user place. Never a Front home, never an auto L+R pair. */
   return sku==="MPSW9-BW" || sku==="BRACKETS:FPIU20MIR";
 }
+function isInherentMulti(sku){
+  /* One click that is physically a set: visor L+R shrouds, bumper round pack. */
+  return sku==="SIFMJS" || sku==="416309-RBW-SMK";
+}
 function isVisorIls(sku){
   return sku==="SIFMJS";
 }
@@ -1019,10 +1023,11 @@ function addNodes(sku, spots, quiet){
 }
 function clickMap(){ return veh().clicks||CLICK; }
 function oneCurrentSpot(sku, spots){
-  /* Mirror / per-side lights: ONE node on the current camera. Never spawn
-     the opposite side, never jump Left↔Right. Visor ILS keeps its L+R shrouds. */
-  if(isMirrorSku(sku) && spots && spots.length>1) return spots.slice(0,1);
-  return spots;
+  /* ONE node on the current camera. Never spawn the opposite side, never
+     jump Left↔Right. Visor ILS and the named bumper pack stay multi-piece. */
+  if(!spots || spots.length<=1) return spots;
+  if(isInherentMulti(sku)) return spots;
+  return spots.slice(0,1);
 }
 function placeSpots(sku, v){
   var click=clickMap()[sku];
@@ -1341,7 +1346,7 @@ window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
+  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
   syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
   getSel:function(){ return sel; },
   selectById:function(id){

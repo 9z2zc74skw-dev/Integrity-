@@ -136,10 +136,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio27"/.test(html), "ASSET_V=studio27");
+  rec("T-ASSET-V", /ASSET_V="studio28"/.test(html), "ASSET_V=studio28");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio27"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio27");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio27/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio28"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio28");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio28/.test(html), "header pack stamp present");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -633,6 +633,9 @@ async function main() {
         mpsw9Hero: stayProbe("hero", "MPSW9-BW"),
         mpsw9Front: stayProbe("front", "MPSW9-BW"),
         mpsw9Right: stayProbe("right", "MPSW9-BW"),
+        mps63Front: stayProbe("front", "MPS63U-RBW"),
+        xsm2Rear: stayProbe("rear", "XSM2-BRW-US"),
+        bumperFront: stayProbe("front", "416309-RBW-SMK"),
         algtLeft: stayProbe("left", "ALGT53JX-P3LB"),
         sifLeft: stayProbe("left", "SIFMJS"),
         sifFront: stayProbe("front", "SIFMJS"),
@@ -682,9 +685,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio27"
-        && /pack studio27/.test(runtime.bareCold.pack||"")
-        && /studio27/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio28"
+        && /pack studio28/.test(runtime.bareCold.pack||"")
+        && /studio28/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -800,17 +803,21 @@ async function main() {
     var sv = runtime.stayView || {};
     var mL = sv.mpsw9Left || {}, mH = sv.mpsw9Hero || {}, mF = sv.mpsw9Front || {}, mR = sv.mpsw9Right || {};
     var aL = sv.algtLeft || {}, sL = sv.sifLeft || {}, sF = sv.sifFront || {};
+    var gF = sv.mps63Front || {}, xR = sv.xsm2Rear || {}, bF = sv.bumperFront || {};
     rec("T-CLICKPLACE-STAY-VIEW",
       mL.after === "left" && mL.on && mL.on.left === 1 && mL.total === 1 && !mL.on.right && !mL.on.front
       && mH.after === "hero" && mH.on && mH.on.hero === 1 && mH.total === 1
       && mF.after === "front" && mF.on && mF.on.front === 1 && mF.total === 1 && !mF.on.left && !mF.on.right
       && mR.after === "right" && mR.on && mR.on.right === 1 && mR.total === 1 && !mR.on.left
+      && gF.after === "front" && gF.total === 1 && gF.on && gF.on.front === 1
+      && xR.after === "rear" && xR.total === 1
+      && bF.after === "front" && bF.on && bF.on.front === 4
       && aL.after === "left" && (aL.on && aL.on.front > 0) && !(aL.on.left)
       && sL.after === "left"
       && sF.after === "front" && (sF.on && sF.on.front === 2)
       && sv.homeMpsw9 === "left" && sv.homeMir === "left"
       && /fx_mpsw9/.test(sv.mpsw9Fx || ""),
-      JSON.stringify({stay: {mpsw9Left: mL, mpsw9Hero: mH, mpsw9Front: mF, mpsw9Right: mR, algtLeft: aL, sifLeft: sL, sifFront: sF, homeMpsw9: sv.homeMpsw9, homeMir: sv.homeMir, mpsw9Fx: sv.mpsw9Fx}}));
+      JSON.stringify({stay: {mpsw9Left: mL, mpsw9Hero: mH, mpsw9Front: mF, mpsw9Right: mR, mps63Front: gF, xsm2Rear: xR, bumperFront: bF, algtLeft: aL, sifLeft: sL, sifFront: sF, homeMpsw9: sv.homeMpsw9, homeMir: sv.homeMir, mpsw9Fx: sv.mpsw9Fx}}));
     var pod = sv.mpsw9Pod || {};
     var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
     rec("T-MPSW9-POD",
@@ -828,14 +835,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio27 MPSW9 is a side-mirror pod",
+    "# Vector trap log — studio28 one node on the current view, no auto-pair",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio27 · FX_V: max10`,
+    `- ASSET_V: studio28 · FX_V: max10`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio27: MPSW9 HOME_VIEW=left (never Front). clickPlace stays on the current view, one node, no auto-pair. Compact wide-angle pod sprite (not a 12-LED bar). Dock still hides after drop. Piu photographic DynaFlare. ILS L/R split unchanged. Signed plates unchanged.`,
+    `- studio28: clickPlace places one node on the current view (MPSW9 / MPS63 / XSM2). No opposite-side spawn, no camera yank. Visor ILS still two shrouds; bumper rounds keep the named set. Compact MPSW9 pod. Dock hides after drop. Piu DynaFlare. Signed plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
