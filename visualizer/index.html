@@ -146,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio23 you are on a stale pack">pack studio23</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio24 you are on a stale pack">pack studio24</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,7 +162,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio23" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio24" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -216,7 +216,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio23";
+var ASSET_V="studio24";
 var FX_V="max7";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -801,6 +801,14 @@ function renderGhostBars(stage){
     stage.appendChild(el);
   });
 }
+function clearSelection(){
+  /* Place-complete / empty-plate / Clear* — light stays, chrome goes. */
+  sel=null;
+  document.querySelectorAll("#stage .light.selected").forEach(function(n){
+    n.classList.remove("selected");
+  });
+  hideSelDock();
+}
 function selectPlacedLight(el,p){
   /* Do not renderStage() here: removing the mousedown target cancels the pointer
      so startMove's document listeners never see a drag. */
@@ -996,8 +1004,10 @@ function addNodes(sku, spots, quiet){
   spots.forEach(function(s){
     var id=nid++;
     nodes[view].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0,side:s.side||null});
-    sel=id;
   });
+  /* Drop / clickPlace complete: keep the sprite, release the tool. Click the
+     placed light to edit (dock). */
+  sel=null;
   if(!quiet){ renderStage(); renderTabs(); renderSum(); syncSkuToggles(); }
 }
 function clickMap(){ return veh().clicks||CLICK; }
@@ -1041,6 +1051,7 @@ function clickPlace(sku){
       addNodes(sku, click[v].map(clickSpot), true);
     });
     view=preferView(HOME_VIEW[sku]||last);
+    sel=null;
     renderStage(); renderTabs(); renderSum(); syncSkuToggles();
     return;
   }
@@ -1123,12 +1134,15 @@ stageArea.addEventListener("dragover",function(e){e.preventDefault(); try{e.data
 stageArea.addEventListener("dragenter",function(e){e.preventDefault()});
 stageArea.addEventListener("drop",function(e){onDrop(e,true)});
 
-stage.addEventListener("mousedown",function(e){
+function deselectEmptyStage(e){
   if(e.target.closest("#selDock")) return;
-  if(e.target===stage||e.target.id==="vehicleImg"||e.target.classList.contains("drop-hint")){
-    sel=null; renderStage();
-  }
-});
+  if(e.target.closest(".light")) return;
+  if(sel==null){ hideSelDock(); return; }
+  clearSelection();
+  renderStage();
+}
+stage.addEventListener("mousedown",deselectEmptyStage);
+stageArea.addEventListener("mousedown",deselectEmptyStage);
 
 (function bindSelDock(){
   var dock=document.getElementById("selDock");
@@ -1194,12 +1208,14 @@ function bareAllVehicles(){
   if(pb){ pb.dataset.on="false"; pb.classList.remove("on"); }
 }
 document.getElementById("clearView").onclick=function(){
-  nodes[view]=[]; sel=null;
+  nodes[view]=[];
+  clearSelection();
   syncSkuToggles();
   renderStage(); renderTabs(); renderSum();
 };
 document.getElementById("clearAll").onclick=function(){
   bareAllVehicles();
+  clearSelection();
   renderStage(); renderTabs(); renderSum();
 };
 function setVehicle(id){
@@ -1323,7 +1339,14 @@ window.__IU_TEST__={
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
   isRoofBar:isRoofBar, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
-  syncSelDock:syncSelDock, hideSelDock:hideSelDock,
+  syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
+  getSel:function(){ return sel; },
+  selectById:function(id){
+    var p=(nodes[view]||[]).find(function(n){ return n.id===id; });
+    var el=document.querySelector('#stage .light[data-id="'+String(id)+'"]');
+    if(p && el) selectPlacedLight(el,p);
+  },
+  setDragSku:setDragSku,
   clickMap:clickMap, placeSpots:placeSpots, skuPresent:skuPresent, setOwnedSku:setOwnedSku,
   loadSkuList:loadSkuList, parseSkuList:parseSkuList, setVehicle:setVehicle,
   nodes:function(){return nodes;},
