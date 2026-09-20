@@ -103,7 +103,7 @@ function bPillarRedCount(imgPath) {
     "import sys",
     "im=Image.open(sys.argv[1]).convert('RGB')",
     "w,h=im.size; px=im.load(); n=0",
-    "x0,x1,y0,y1=int(w*0.32),int(w*0.62),int(h*0.335),int(h*0.420)",
+    "x0,x1,y0,y1=int(w*0.32),int(w*0.62),int(h*0.375),int(h*0.430)",
     "for y in range(y0,y1):",
     "    for x in range(x0,x1):",
     "        r,g,b=px[x,y]; mx=max(r,g,b); mn=min(r,g,b)",
@@ -638,6 +638,11 @@ async function main() {
         T.setVehicle("durango");
         T.setView("front");
         T.clickPlace(sku);
+        var bag0 = T.nodes();
+        var dest = Object.keys(bag0).find(function(k){
+          return (bag0[k] || []).some(function(n){ return n.sku === sku; });
+        });
+        if(dest) T.setView(dest);
         await new Promise(function(resolve){
           var imgs=[].slice.call(document.querySelectorAll("#stage .light img"));
           var pending=imgs.filter(function(i){ return !i.complete; }).length;
@@ -930,9 +935,11 @@ async function main() {
       runtime.leftGhostSit.ghosts >= 1 && runtime.rightGhostSit && runtime.rightGhostSit.ghosts >= 1
       && lg.spec && lg.spec.sit === "bottom" && lg.spec.y <= 34.2 && lg.spec.y >= 31.5
       && /100%/.test(lg.origin || "")
-      && lg.botPct != null && lg.botPct <= 36.5 && lg.botPct >= 30
+      && lg.botPct != null && Math.abs(lg.botPct - lg.spec.y) <= 2.5
+      && lg.botPct <= 35 && lg.botPct >= 31
       && rg.spec && rg.spec.sit === "bottom" && rg.spec.y <= 36 && rg.spec.y >= 33
-      && rg.botPct != null && rg.botPct <= 38 && rg.botPct >= 31,
+      && rg.botPct != null && Math.abs(rg.botPct - rg.spec.y) <= 2.5
+      && rg.botPct <= 37 && rg.botPct >= 32,
       JSON.stringify({ left: runtime.leftGhostSit, right: runtime.rightGhostSit }));
   }
 
@@ -1008,15 +1015,18 @@ async function main() {
     var dynaOk = dynaNeed.every(function(s){ return dynaPlace[s] && dynaPlace[s].total > 0; });
     rec("T-DYNA-CLICKPLACE", dynaOk,
       dynaNeed.map(function(s){ var p=dynaPlace[s]||{}; return s+"="+ (p.total||0); }).join(" "));
-    rec("T-DYNA-LOOK", dynaOk && dynaNeed.every(function(s){
-        var p=dynaPlace[s]||{};
-        var im=(p.imgs||[])[0]||{};
-        var box=p.box||{};
-        return p.dynaClass && /fx_dyna/.test(im.src||"")
-          && im.w >= 120 && im.h <= 80 && im.w / Math.max(im.h, 1) >= 3
-          && box.asp >= 2.8 && box.w > 24 && box.h > 4 && box.h < 48;
-      }),
-      "slim alpha stick, not a 623-byte/thumbnail product card; dyna-stick + fx_dyna src; on-vehicle module aspect");
+    var dynaLookFail = dynaNeed.filter(function(s){
+      var p=dynaPlace[s]||{};
+      var im=(p.imgs||[])[0]||{};
+      var box=p.box||{};
+      return !(p.dynaClass && /fx_dyna/.test(im.src||"")
+        && im.w >= 120 && im.h <= 80 && im.w / Math.max(im.h, 1) >= 3
+        && box.asp >= 2.8 && box.w > 24 && box.h > 4 && box.h < 48);
+    });
+    rec("T-DYNA-LOOK", dynaOk && dynaLookFail.length === 0,
+      dynaLookFail.length
+        ? JSON.stringify(dynaLookFail.map(function(s){ return {sku:s, place:dynaPlace[s]}; }))
+        : "slim alpha stick, not a 623-byte/thumbnail product card; dyna-stick + fx_dyna src; on-vehicle module aspect");
     var dock = runtime.dock || {};
     var b = dock.before || {};
     var m = dock.moved || {};

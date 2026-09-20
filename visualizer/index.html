@@ -73,8 +73,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .snap-guides .gy{left:0;right:0;height:1px;transform:translateY(-50%)}
 .ghost-bar{position:absolute;z-index:15;pointer-events:none;transform:translate(-50%,-50%);opacity:.92;filter:drop-shadow(0 0 4px rgba(0,0,0,.5));user-select:none}
 .ghost-bar img{display:block;width:100%;height:auto;pointer-events:none}
-.ghost-bar.endcap{width:22px;height:40px;overflow:hidden;display:flex;align-items:center;justify-content:flex-start}
-.ghost-bar.endcap img{width:auto;height:36px;max-width:none}
+.ghost-bar.endcap{width:18px;height:14px;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-start}
+.ghost-bar.endcap img{width:auto;height:12px;max-width:none}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 /* ILS visor: one sprite file, two nodes. Clip to a single shroud per visor. */
@@ -793,9 +793,16 @@ function renderGhostBars(stage){
     el.setAttribute("aria-hidden","true");
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
-    var ty=spec.sit==="bottom"?"-100%":"-50%";
-    if(spec.sit==="bottom") el.style.transformOrigin="50% 100%";
-    el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
+    /* Endcap: origin at the drip rail, no extra -100% (that parked the scrap in the sky).
+       Full ghosts keep the historic -100% sit used by T-HERO-GHOST-SIT. */
+    if(spec.kind==="endcap" && spec.sit==="bottom"){
+      el.style.transformOrigin="50% 100%";
+      el.style.transform="translate(-50%,0)"+(spec.rot?" rotate("+spec.rot+"deg)":"");
+    } else {
+      var ty=spec.sit==="bottom"?"-100%":"-50%";
+      if(spec.sit==="bottom") el.style.transformOrigin="50% 100%";
+      el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
+    }
     if(spec.kind==="full"){
       var w=(fw!=null?fw:(part.w||46))*scale;
       if(spec.wScale) w*=spec.wScale;
