@@ -146,7 +146,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio30 you are on a stale pack">pack studio30</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio31 you are on a stale pack">pack studio31</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,7 +162,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio30" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio31" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -216,7 +216,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio30";
+var ASSET_V="studio31";
 var FX_V="max12";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -761,17 +761,19 @@ function renderStage(){
   saveState();
   requestAnimationFrame(syncSelDock);
 }
-/* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable. */
+/* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable.
+   Only after a user-placed Front ALGT — never a default / bare-plate look.
+   Side Y is roof metal, not glass. Durango barNudge.dy=+4 dropped the endcap
+   into the B-pillar (Rusty red-scrap shot). Do not apply that nudge here. */
 function ghostSpecForView(){
-  var bn=veh().barNudge||{dx:0,dy:0};
-  var dx=bn.dx||0, dy=bn.dy||0;
-  if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
-  if(view==="left") return {kind:"endcap", x:49+dx, y:35+dy};
-  if(view==="right") return {kind:"endcap", x:51+dx, y:35+dy};
+  if(view==="rear") return {kind:"full", x:50, y:20};
+  /* 1024² Durango side plates: mid-cab roof contact, sit on the drip rail.
+     left x=0.49 roof y≈0.330 / glass y≈0.344; right x=0.51 roof y≈0.347. */
+  if(view==="left") return {kind:"endcap", x:49, y:33.0, sit:"bottom"};
+  if(view==="right") return {kind:"endcap", x:51, y:34.6, sit:"bottom"};
   /* 3/4: sit the ghost on the hero cab roof (software only; plate unchanged).
      Plate roof metal at x=0.47 is y≈0.262–0.273; bottom-origin rotate keeps
-     the contact on the roof instead of lifting the LEDs into the sky.
-     Do not apply Durango side/rear barNudge (+4%) — that drops into glass. */
+     the contact on the roof instead of lifting the LEDs into the sky. */
   if(view==="hero") return {kind:"full", x:48.5, y:28.6, rot:-6, wScale:0.62, sit:"bottom"};
   return null;
 }
@@ -1004,14 +1006,18 @@ function startMove(e,p,isTouch){
 function addNode(sku,x,y,rot){
   addNodes(sku,[{x:x,y:y,rot:rot||0}]);
 }
-function addNodes(sku, spots, quiet){
+function frontOnlySku(sku){
+  /* Roof bar + visor ILS live on Front. Side/hero never get a cropped scrap. */
+  return isRoofBar(sku) || isVisorIls(sku);
+}
+function addNodes(sku, spots, quiet, dest){
   sku=catalogSku(sku);
   var part=CATALOG.find(function(p){return p.sku===sku});
   if(!part || !spots || !spots.length) return;
-  /* Roof bar is stored on Front only. Do not change the camera to do that. */
-  var target=isRoofBar(sku)?"front":view;
+  /* Roof / ILS stored on Front only. Camera does not yank. */
+  var target=frontOnlySku(sku)?"front":(dest||view);
   if(!nodes[target]) nodes[target]=[];
-  if(isRoofBar(sku) && target!=="front") return;
+  if(frontOnlySku(sku) && target!=="front") return;
   spots.forEach(function(s){
     var id=nid++;
     nodes[target].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0,side:s.side||null});
@@ -1046,32 +1052,32 @@ function preferView(id){
   if(id && viewExists(id)) return view;
   return view;
 }
+function destViewForClick(sku){
+  /* Current view if it has a real mount. Else HOME_VIEW. Never stamp `_`
+     front/rear coords onto Left/Right — that is the red-scrap class. */
+  if(frontOnlySku(sku)) return "front";
+  if(placeSpots(sku, view).length) return view;
+  var home=HOME_VIEW[sku];
+  if(home && viewExists(home) && placeSpots(sku, home).length) return home;
+  return null;
+}
 function clickPlace(sku){
   sku=catalogSku(sku);
   if(!CATALOG.some(function(p){return p.sku===sku})) return;
   /* Camera stays. HOME_VIEW is a mount recipe, not permission to jump. */
   var stay=view;
-  if(isRoofBar(sku)){
-    if(!nodes.front) nodes.front=[];
-    var roofSpots=placeSpots(sku, "front");
-    if(!roofSpots.length){
-      var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
-      roofSpots=[{x:rd[0],y:rd[1],rot:rd[2]||0}];
-    }
-    addNodes(sku, roofSpots, true);
-    view=stay; sel=null;
-    renderStage(); renderTabs(); renderSum(); syncSkuToggles();
-    return;
+  var dest=destViewForClick(sku);
+  if(!dest){ view=stay; return; }
+  var spots=placeSpots(sku, dest);
+  if(!spots.length && frontOnlySku(sku)){
+    var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
+    spots=[{x:rd[0],y:rd[1],rot:rd[2]||0}];
   }
-  if(!nodes[stay]) nodes[stay]=[];
-  var spots=placeSpots(sku, stay);
-  if(!spots.length){
-    var d=defaultFor(sku);
-    spots=[{x:d.x,y:d.y,rot:d.rot}];
-  }
+  if(!spots.length){ view=stay; return; }
   spots=oneCurrentSpot(sku, spots);
-  view=stay;
-  addNodes(sku, spots);
+  addNodes(sku, spots, true, dest);
+  view=stay; sel=null;
+  renderStage(); renderTabs(); renderSum(); syncSkuToggles();
 }
 function placeFromEvent(e,clamp){
   var sku=catalogSku(resolveDragSku(e));
@@ -1347,6 +1353,7 @@ window.__IU_TEST__={
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
   isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
+  frontOnlySku:frontOnlySku, destViewForClick:destViewForClick,
   syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
   getSel:function(){ return sel; },
   selectById:function(id){
@@ -1375,6 +1382,30 @@ window.__IU_TEST__={
   stageLightCount:function(){ return document.querySelectorAll("#stage .light").length; },
   ghostCount:function(){ return document.querySelectorAll("#stage .ghost-bar").length; },
   overlayCount:function(){ return document.querySelectorAll("#stage .overlay-pushbar,#stage .overlay-dash,#stage .overlay-hatch").length; },
+  stageSpriteAudit:function(){
+    return {
+      lights: Array.prototype.map.call(document.querySelectorAll("#stage .light"), function(el){
+        return { id:el.dataset.id, cls:el.className, left:el.style.left, top:el.style.top, sku:(el.querySelector("img")&&el.querySelector("img").alt)||"" };
+      }),
+      ghosts: Array.prototype.map.call(document.querySelectorAll("#stage .ghost-bar"), function(el){
+        return { cls:el.className, left:el.style.left, top:el.style.top, origin:el.style.transformOrigin, transform:el.style.transform };
+      })
+    };
+  },
+  ghostPlateBox:function(){
+    var img=document.getElementById("vehicleImg");
+    var ghost=document.querySelector("#stage .ghost-bar");
+    var ir=img&&img.getBoundingClientRect();
+    var gr=ghost&&ghost.getBoundingClientRect();
+    if(!ir||!gr||!ir.height) return null;
+    return {
+      topPct:(gr.top-ir.top)/ir.height*100,
+      botPct:(gr.bottom-ir.top)/ir.height*100,
+      midX:((gr.left+gr.right)/2-ir.left)/ir.width*100,
+      spec:ghostSpecForView(),
+      origin:ghost.style.transformOrigin||""
+    };
+  },
   pushBarOn:function(){ return !!pushBar; },
   clearAll:function(){ document.getElementById("clearAll").click(); },
   toggleOn:function(id){ var s=document.getElementById(id); return !!(s&&s.dataset.on==="true"); },

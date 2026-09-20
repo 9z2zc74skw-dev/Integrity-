@@ -59,6 +59,65 @@ function startServer() {
   });
 }
 
+function sideGlassLedCounts() {
+  /* Mid-cabin upper glass / B-pillar. OEM tail is outboard; this band must stay 0. */
+  const plates = [
+    "durango_left.png", "durango_left_black.png",
+    "durango_right.png", "durango_right_black.png",
+  ].map((n) => path.join(VIZ, n)).filter((p) => fs.existsSync(p));
+  const py = [
+    "from PIL import Image",
+    "import json, sys",
+    "out=[]",
+    "for p in sys.argv[1:]:",
+    "    im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load(); n=0",
+    "    y0,y1,x0,x1=(int(h*0.325), int(h*0.420), int(w*0.32), int(w*0.62))",
+    "    for y in range(y0, y1):",
+    "        for x in range(x0, x1):",
+    "            r,g,b,a=px[x,y]",
+    "            if a<40: continue",
+    "            mx=max(r,g,b); mn=min(r,g,b)",
+    "            if mx<110 or mx-mn<80: continue",
+    "            red=r>150 and r>b+55 and r>g+35",
+    "            blu=b>150 and b>r+55 and b>g+20",
+    "            if red or blu: n+=1",
+    "    out.append({'file':p.rsplit('/',1)[-1],'led':n,'w':w,'h':h})",
+    "print(json.dumps(out))",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, ...plates], { encoding: "utf8", maxBuffer: 4 * 1024 * 1024 });
+  if (r.status !== 0) return { ok: false, err: (r.stderr || r.stdout || "python fail").slice(0, 240) };
+  try {
+    const rows = JSON.parse(r.stdout || "[]");
+    const maxLed = rows.reduce((m, x) => Math.max(m, x.led || 0), 0);
+    return { ok: true, maxLed, detail: rows.map((x) => x.file + "=" + x.led).join(" ") };
+  } catch (e) {
+    return { ok: false, err: String(e.message || e) };
+  }
+}
+
+function bPillarRedCount(imgPath) {
+  /* Screenshot of #stage. Fail a compact red scrap in the side-glass / B-pillar band. */
+  if (!imgPath || !fs.existsSync(imgPath)) return { ok: false, n: -1, err: "missing " + imgPath };
+  const py = [
+    "from PIL import Image",
+    "import sys",
+    "im=Image.open(sys.argv[1]).convert('RGB')",
+    "w,h=im.size; px=im.load(); n=0",
+    "x0,x1,y0,y1=int(w*0.32),int(w*0.62),int(h*0.335),int(h*0.420)",
+    "for y in range(y0,y1):",
+    "    for x in range(x0,x1):",
+    "        r,g,b=px[x,y]; mx=max(r,g,b); mn=min(r,g,b)",
+    "        if mx<110 or mx-mn<80: continue",
+    "        if r>150 and r>b+55 and r>g+35: n+=1",
+    "print(n)",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, imgPath], { encoding: "utf8" });
+  if (r.status !== 0) return { ok: false, n: -1, err: (r.stderr || r.stdout || "python fail").slice(0, 200) };
+  const n = Number.parseInt(String(r.stdout || "").trim(), 10);
+  if (Number.isNaN(n)) return { ok: false, n: -1, err: "parse " + String(r.stdout).slice(0, 80) };
+  return { ok: n <= 15, n };
+}
+
 function plateLedCounts() {
   /* Front + Hero roof-contact band only. Rear CHMSL / taillights are OEM red, not ALGT. */
   const plates = [
@@ -180,10 +239,13 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio30"/.test(html), "ASSET_V=studio30");
+  rec("T-ASSET-V", /ASSET_V="studio31"/.test(html), "ASSET_V=studio31");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio30"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio30");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio30/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio31"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio31");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio31/.test(html), "header pack stamp present");
+  rec("T-NO-FALLBACK-STAMP",
+    /destViewForClick/.test(html) && !/var d=defaultFor\(sku\);\s*spots=\[\{x:d\.x/.test(html),
+    "clickPlace does not stamp defaultFor _ onto the current view");
   rec("T-MPSW9-NOT-WIDE-BAR",
     /sku:"MPSW9-BW"[^}]*fx:"fx_mpsw9_rb\.png",w:2\./.test(html) && !/fx_mps_wide/.test(html),
     "MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar");
@@ -196,6 +258,9 @@ function staticTraps() {
   const led = plateLedCounts();
   rec("T-BARE-PLATE-PIXELS", !!(led && led.ok && led.maxLed === 0),
     led && led.ok ? ("signed+black plates LED/amber pixels=" + led.maxLed + " " + led.detail) : (led && led.err) || "scan failed");
+  const sideGlass = sideGlassLedCounts();
+  rec("T-BARE-SIDE-GLASS", !!(sideGlass && sideGlass.ok && sideGlass.maxLed === 0),
+    sideGlass && sideGlass.ok ? ("side B-pillar/glass LED pixels=" + sideGlass.maxLed + " " + sideGlass.detail) : (sideGlass && sideGlass.err) || "scan failed");
   rec("T-ARCHIVE-TREE", fs.existsSync(path.join(ROOT, "archive", "README.md"))
     && !fs.existsSync(path.join(ROOT, "compiled-app"))
     && !fs.existsSync(path.join(ROOT, "GitHub-Upload-Small"))
@@ -291,8 +356,91 @@ async function chromeEval(base, fnBody) {
     await page.reload({ waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForFunction(() => window.__IU_TEST__, { timeout: 10000 });
     const afterPoison = await snap();
+
+    async function waitPlate() {
+      await page.waitForFunction(() => {
+        const img = document.getElementById("vehicleImg");
+        return !!(img && img.complete && img.naturalHeight > 50 && img.getBoundingClientRect().height > 80);
+      }, { timeout: 15000 });
+    }
+    async function shotStage(tag) {
+      const clip = await page.evaluate(() => {
+        const r = document.getElementById("stage").getBoundingClientRect();
+        return { x: Math.max(0, r.x), y: Math.max(0, r.y), width: Math.max(1, r.width), height: Math.max(1, r.height) };
+      });
+      const dest = path.join("/tmp", "iu-" + tag + ".png");
+      await page.screenshot({ path: dest, clip, type: "png" });
+      return dest;
+    }
+    const DURANGO_VIEWS = ["front", "rear", "rear_open", "left", "right", "hero"];
+    const bareViews = {};
+    const bareShots = {};
+    for (const v of DURANGO_VIEWS) {
+      await page.evaluate((v) => {
+        const T = window.__IU_TEST__;
+        T.resetNodes();
+        T.setVehicle("durango");
+        T.setView(v);
+      }, v);
+      await waitPlate();
+      bareViews[v] = await page.evaluate(() => {
+        const T = window.__IU_TEST__;
+        return {
+          placements: T.placementCount(),
+          lights: T.stageLightCount(),
+          ghosts: T.ghostCount(),
+          overlays: T.overlayCount(),
+          dash: T.toggleOn("dashToggle"),
+          hatch: T.toggleOn("hatchToggle"),
+          push: T.pushBarOn(),
+          audit: T.stageSpriteAudit(),
+          view: T.getView(),
+        };
+      });
+      if (v === "left" || v === "right") bareShots[v] = await shotStage("bare-" + v);
+    }
+    await page.evaluate(() => {
+      const T = window.__IU_TEST__;
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("front");
+      T.clickPlace("ALGT53JX-P3LB");
+      T.setView("left");
+    });
+    await waitPlate();
+    const leftGhostSit = await page.evaluate(() => {
+      const T = window.__IU_TEST__;
+      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit() };
+    });
+    const leftGhostShot = await shotStage("algt-left");
+    await page.evaluate(() => {
+      const T = window.__IU_TEST__;
+      T.setView("right");
+    });
+    await waitPlate();
+    const rightGhostSit = await page.evaluate(() => {
+      const T = window.__IU_TEST__;
+      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit() };
+    });
+    const rightGhostShot = await shotStage("algt-right");
+    await page.evaluate(() => { window.__IU_TEST__.clearAll(); });
+    const afterClearViews = {};
+    for (const v of ["left", "right", "front", "hero"]) {
+      await page.evaluate((v) => { window.__IU_TEST__.setView(v); }, v);
+      await waitPlate();
+      afterClearViews[v] = await page.evaluate(() => {
+        const T = window.__IU_TEST__;
+        return { placements: T.placementCount(), lights: T.stageLightCount(), ghosts: T.ghostCount(), overlays: T.overlayCount(), audit: T.stageSpriteAudit() };
+      });
+    }
+    if (afterClearViews.left) bareShots.leftClear = await shotStage("clear-left");
+
     const runtime = await page.evaluate(fnBody);
-    return { bareCold, afterPoison, runtime };
+    return {
+      bareCold, afterPoison, runtime,
+      bareViews, bareShots, leftGhostSit, rightGhostSit,
+      leftGhostShot, rightGhostShot, afterClearViews,
+    };
   } finally {
     await browser.close();
   }
@@ -734,12 +882,58 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio30"
-        && /pack studio30/.test(runtime.bareCold.pack||"")
-        && /studio30/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio31"
+        && /pack studio31/.test(runtime.bareCold.pack||"")
+        && /studio31/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
+  }
+
+  if (runtime && runtime.bareViews) {
+    const views = Object.keys(runtime.bareViews);
+    const leak = views.filter((v) => {
+      const s = runtime.bareViews[v];
+      return !s || s.placements !== 0 || s.lights !== 0 || s.ghosts !== 0 || s.overlays !== 0
+        || s.dash || s.hatch || s.push
+        || (s.audit && ((s.audit.lights || []).length || (s.audit.ghosts || []).length));
+    });
+    rec("T-BARE-EVERY-VIEW", leak.length === 0,
+      leak.length ? JSON.stringify(leak.map((v) => [v, runtime.bareViews[v]])) : views.join(","));
+  }
+  if (runtime && runtime.afterClearViews) {
+    const leak = Object.keys(runtime.afterClearViews).filter((v) => {
+      const s = runtime.afterClearViews[v];
+      return !s || s.placements !== 0 || s.lights !== 0 || s.ghosts !== 0 || s.overlays !== 0
+        || (s.audit && ((s.audit.lights || []).length || (s.audit.ghosts || []).length));
+    });
+    rec("T-CLEAR-EVERY-VIEW", leak.length === 0,
+      leak.length ? JSON.stringify(runtime.afterClearViews) : "front/left/right/hero empty after Clear All");
+  }
+  if (runtime && runtime.bareShots) {
+    const leftBare = bPillarRedCount(runtime.bareShots.left);
+    const rightBare = bPillarRedCount(runtime.bareShots.right);
+    const leftClear = bPillarRedCount(runtime.bareShots.leftClear);
+    rec("T-BARE-SIDE-LOOK",
+      !!(leftBare.ok && rightBare.ok && leftClear.ok),
+      JSON.stringify({ left: leftBare, right: rightBare, leftClear: leftClear }));
+    const leftGhostPx = bPillarRedCount(runtime.leftGhostShot);
+    const rightGhostPx = bPillarRedCount(runtime.rightGhostShot);
+    rec("T-GHOST-NOT-IN-GLASS",
+      !!(leftGhostPx.ok && rightGhostPx.ok),
+      JSON.stringify({ left: leftGhostPx, right: rightGhostPx }));
+  }
+  if (runtime && runtime.leftGhostSit) {
+    const lg = runtime.leftGhostSit.box || {};
+    const rg = (runtime.rightGhostSit && runtime.rightGhostSit.box) || {};
+    rec("T-GHOST-SIDE-SIT",
+      runtime.leftGhostSit.ghosts >= 1 && runtime.rightGhostSit && runtime.rightGhostSit.ghosts >= 1
+      && lg.spec && lg.spec.sit === "bottom" && lg.spec.y <= 34.2 && lg.spec.y >= 31.5
+      && /100%/.test(lg.origin || "")
+      && lg.botPct != null && lg.botPct <= 36.5 && lg.botPct >= 30
+      && rg.spec && rg.spec.sit === "bottom" && rg.spec.y <= 36 && rg.spec.y >= 33
+      && rg.botPct != null && rg.botPct <= 38 && rg.botPct >= 31,
+      JSON.stringify({ left: runtime.leftGhostSit, right: runtime.rightGhostSit }));
   }
 
   runtime = runtime && runtime.runtime;
@@ -862,11 +1056,16 @@ async function main() {
       && xR.after === "rear" && xR.total === 1
       && bF.after === "front" && bF.on && bF.on.front === 4
       && aL.after === "left" && (aL.on && aL.on.front > 0) && !(aL.on.left)
-      && sL.after === "left"
+      && sL.after === "left" && sL.on && (sL.on.left || 0) === 0 && sL.on.front === 2
       && sF.after === "front" && (sF.on && sF.on.front === 2)
       && sv.homeMpsw9 === "left" && sv.homeMir === "left"
       && /fx_mpsw9/.test(sv.mpsw9Fx || ""),
       JSON.stringify({stay: {mpsw9Left: mL, mpsw9Hero: mH, mpsw9Front: mF, mpsw9Right: mR, mps63Front: gF, xsm2Rear: xR, bumperFront: bF, algtLeft: aL, sifLeft: sL, sifFront: sF, homeMpsw9: sv.homeMpsw9, homeMir: sv.homeMir, mpsw9Fx: sv.mpsw9Fx}}));
+    rec("T-ILS-FRONT-ONLY",
+      sL.after === "left" && sL.on && (sL.on.left || 0) === 0 && sL.on.front === 2
+      && !sL.on.right && !sL.on.hero
+      && sF.after === "front" && sF.on && sF.on.front === 2,
+      JSON.stringify({sifLeft: sL, sifFront: sF}));
     var pod = sv.mpsw9Pod || {};
     var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
     rec("T-MPSW9-POD",
@@ -887,14 +1086,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio30 compact MPSW9 wide-angle pod",
+    "# Vector trap log — studio31 bare side / no B-pillar scrap",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio30 · FX_V: max12`,
-    `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch not recut)`,
-    `- studio30: MPSW9 is a two-LED compact wide-angle pod (piu fx_wide crop, w:2.2), not a 12-LED bar. clickPlace stays on the current view; one node; dock hides after drop. Piu catalog sprites. Signed plates unchanged.`,
+    `- ASSET_V: studio31 · FX_V: max12`,
+    `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
+    `- studio31: bare Left/Right have zero sprites. GhostBar sits on the roof after a Front ALGT — never in the B-pillar glass (Rusty red scrap). clickPlace does not stamp \`_\` coords onto the current view. ILS stays Front. Plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
