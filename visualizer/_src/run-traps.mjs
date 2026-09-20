@@ -239,13 +239,13 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio31"/.test(html), "ASSET_V=studio31");
+  rec("T-ASSET-V", /ASSET_V="studio32"/.test(html), "ASSET_V=studio32");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio31"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio31");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio31/.test(html), "header pack stamp present");
-  rec("T-NO-FALLBACK-STAMP",
-    /destViewForClick/.test(html) && !/var d=defaultFor\(sku\);\s*spots=\[\{x:d\.x/.test(html),
-    "clickPlace does not stamp defaultFor _ onto the current view");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio32"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio32");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio32/.test(html), "header pack stamp present");
+  rec("T-NO-SIDE-FALLBACK-STAMP",
+    /stay==="left" \|\| stay==="right"/.test(html) && /var d=defaultFor\(sku\)/.test(html),
+    "defaultFor _ stays on Front/Rear/Hero; Left/Right do not invent scraps");
   rec("T-MPSW9-NOT-WIDE-BAR",
     /sku:"MPSW9-BW"[^}]*fx:"fx_mpsw9_rb\.png",w:2\./.test(html) && !/fx_mps_wide/.test(html),
     "MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar");
@@ -870,6 +870,27 @@ async function main() {
         nh: img && img.naturalHeight,
         src: img && (img.getAttribute("src")||"")
       };
+      function frontFallback(sku){
+        T.resetNodes();
+        T.setVehicle("durango");
+        T.setView("front");
+        T.clickPlace(sku);
+        var bag = T.nodes();
+        return {
+          after: T.getView(),
+          onFront: (bag.front || []).filter(function(n){ return n.sku === sku; }).length,
+          lights: T.stageLightCount()
+        };
+      }
+      out.frontFallback = {
+        algt: frontFallback("ALGT53JX-P3LB"),
+        sif: frontFallback("SIFMJS"),
+        mps63: frontFallback("MPS63U-RBW"),
+        bumper: frontFallback("416309-RBW-SMK"),
+        xsm2: frontFallback("XSM2-BRW-US"),
+        dr6: frontFallback("DR6-RBW"),
+        stick: frontFallback("STICK-RB")
+      };
       return out;
     });
     rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
@@ -887,9 +908,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio31"
-        && /pack studio31/.test(runtime.bareCold.pack||"")
-        && /studio31/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio32"
+        && /pack studio32/.test(runtime.bareCold.pack||"")
+        && /studio32/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1076,6 +1097,14 @@ async function main() {
       && !sL.on.right && !sL.on.hero
       && sF.after === "front" && sF.on && sF.on.front === 2,
       JSON.stringify({sifLeft: sL, sifFront: sF}));
+    var ff = runtime.frontFallback || {};
+    rec("T-FRONT-FALLBACK-ON-FRONT",
+      ["algt","sif","mps63","bumper","xsm2","dr6","stick"].every(function(k){
+        var r = ff[k] || {};
+        return r.after === "front" && r.onFront > 0 && r.lights > 0;
+      })
+      && ff.sif && ff.sif.onFront === 2 && ff.bumper && ff.bumper.onFront === 4,
+      JSON.stringify(ff));
     var pod = sv.mpsw9Pod || {};
     var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
     rec("T-MPSW9-POD",
@@ -1096,14 +1125,14 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio31 bare side / no B-pillar scrap",
+    "# Vector trap log — studio32 side scrap fix; Front clickPlace unchanged",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio31 · FX_V: max12`,
+    `- ASSET_V: studio32 · FX_V: max12`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
-    `- studio31: bare Left/Right have zero sprites. GhostBar sits on the roof after a Front ALGT — never in the B-pillar glass (Rusty red scrap). clickPlace does not stamp \`_\` coords onto the current view. ILS stays Front. Plates unchanged.`,
+    `- studio32: Left/Right bare + GhostBar on roof, not B-pillar glass. Front clickPlace / defaultFor \`_\` unchanged (Rusty: Front looked good). ILS from side stays Front. Plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
