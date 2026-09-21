@@ -239,10 +239,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio32"/.test(html), "ASSET_V=studio32");
+  rec("T-ASSET-V", /ASSET_V="studio33"/.test(html), "ASSET_V=studio33");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio32"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio32");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio32/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio33"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio33");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio33/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     /stay==="left" \|\| stay==="right"/.test(html) && /var d=defaultFor\(sku\)/.test(html),
     "defaultFor _ stays on Front/Rear/Hero; Left/Right do not invent scraps");
@@ -408,6 +408,10 @@ async function chromeEval(base, fnBody) {
       T.setView("left");
     });
     await waitPlate();
+    await page.waitForFunction(() => {
+      const g = document.querySelector(".ghost-bar img");
+      return !!(g && g.complete && g.naturalWidth > 100);
+    }, { timeout: 10000 });
     const leftGhostSit = await page.evaluate(() => {
       const T = window.__IU_TEST__;
       return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit() };
@@ -418,6 +422,10 @@ async function chromeEval(base, fnBody) {
       T.setView("right");
     });
     await waitPlate();
+    await page.waitForFunction(() => {
+      const g = document.querySelector(".ghost-bar img");
+      return !!(g && g.complete && g.naturalWidth > 100);
+    }, { timeout: 10000 });
     const rightGhostSit = await page.evaluate(() => {
       const T = window.__IU_TEST__;
       return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit() };
@@ -908,9 +916,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio32"
-        && /pack studio32/.test(runtime.bareCold.pack||"")
-        && /studio32/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio33"
+        && /pack studio33/.test(runtime.bareCold.pack||"")
+        && /studio33/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -962,6 +970,34 @@ async function main() {
       && rg.botPct != null && Math.abs(rg.botPct - rg.spec.y) <= 2.5
       && rg.botPct <= 37 && rg.botPct >= 32,
       JSON.stringify({ left: runtime.leftGhostSit, right: runtime.rightGhostSit }));
+    /* Side bar is the end-cap only: short nose, correct end, not the 53" run. */
+    const endLook = (box, end) => {
+      const s = (box && box.sample) || {};
+      const ratio = box && box.hPct ? box.wPct / box.hPct : 99;
+      const clip = s.boxW ? s.imgW / s.boxW : 0;
+      return !!(box && box.spec && box.spec.kind === "endcap" && box.spec.end === end
+        && /endcap/.test(box.cls || "")
+        && box.wPct > 1.1 && box.wPct < 6
+        && box.hPct > 1.0 && box.hPct < 3.2
+        && ratio > 0.7 && ratio < 2.2
+        && clip > 4
+        && s.ink > 15
+        && (end === "L" ? s.red > s.blue : s.blue > s.red));
+    };
+    const lookBrief = (sit) => {
+      const b = (sit && sit.box) || {};
+      const s = b.sample || {};
+      return {
+        end: b.spec && b.spec.end,
+        kind: b.spec && b.spec.kind,
+        wPct: b.wPct, hPct: b.hPct,
+        red: s.red, blue: s.blue, ink: s.ink,
+        clip: s.boxW ? +(s.imgW / s.boxW).toFixed(2) : null,
+      };
+    };
+    rec("T-SIDE-ENDCAP-LOOK",
+      endLook(lg, "L") && endLook(rg, "R"),
+      JSON.stringify({ left: lookBrief(runtime.leftGhostSit), right: lookBrief(runtime.rightGhostSit) }));
   }
 
   runtime = runtime && runtime.runtime;
@@ -1125,14 +1161,15 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio32 side scrap fix; Front clickPlace unchanged",
+    "# Vector trap log — studio33 side end-cap; Front clickPlace unchanged",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio32 · FX_V: max12`,
+    `- ASSET_V: studio33 · FX_V: max12`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
-    `- studio32: Left/Right bare + GhostBar on roof, not B-pillar glass. Front clickPlace / defaultFor \`_\` unchanged (Rusty: Front looked good). ILS from side stays Front. Plates unchanged.`,
+    `- studio33: Left/Right roof bar is the end-cap (sprite nose on the roof), not the full bar length. Left = driver end, Right = passenger end. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
+    `- Look trap: T-SIDE-ENDCAP-LOOK — side bar = end-cap, not full bar.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

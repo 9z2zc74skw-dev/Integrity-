@@ -73,8 +73,12 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .snap-guides .gy{left:0;right:0;height:1px;transform:translateY(-50%)}
 .ghost-bar{position:absolute;z-index:15;pointer-events:none;transform:translate(-50%,-50%);opacity:.92;filter:drop-shadow(0 0 4px rgba(0,0,0,.5));user-select:none}
 .ghost-bar img{display:block;width:100%;height:auto;pointer-events:none}
-.ghost-bar.endcap{width:18px;height:14px;overflow:hidden;display:flex;align-items:flex-end;justify-content:flex-start}
-.ghost-bar.endcap img{width:auto;height:12px;max-width:none}
+/* Side end-cap: clip the sprite nose. Width/height are plate % from JS.
+   max-width stops a flex min-content blowout from painting the 53" run. */
+.ghost-bar.endcap{overflow:hidden;display:flex;align-items:flex-end;max-width:8%;min-width:0}
+.ghost-bar.endcap.end-l{justify-content:flex-start}
+.ghost-bar.endcap.end-r{justify-content:flex-end}
+.ghost-bar.endcap img{width:auto;height:100%;max-width:none;flex:0 0 auto}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 /* ILS visor: one sprite file, two nodes. Clip to a single shroud per visor. */
@@ -146,7 +150,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio32 you are on a stale pack">pack studio32</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio33 you are on a stale pack">pack studio33</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -162,7 +166,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio32" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio33" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -216,7 +220,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio32";
+var ASSET_V="studio33";
 var FX_V="max12";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -764,16 +768,21 @@ function renderStage(){
 /* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable.
    Only after a user-placed Front ALGT — never a default / bare-plate look.
    Side Y is roof metal, not glass. Durango barNudge.dy=+4 dropped the endcap
-   into the B-pillar (Rusty red-scrap shot). Do not apply that nudge here. */
+   into the B-pillar (Rusty red-scrap shot). Do not apply that nudge here.
+   Side kind is endcap: the rounded nose of the sprite, not the 53" run.
+   Left = driver end (sprite left). Right = passenger end (sprite right).
+   h is plate % — side photos are a wider crop than Front, so this is not frontRoofBarW. */
 function ghostSpecForView(){
   var bn=veh().barNudge||{dx:0,dy:0};
   var dx=bn.dx||0, dy=bn.dy||0;
   /* Rear / hero keep the signed sit. Side only: do not apply +4% (B-pillar scrap). */
   if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
-  /* 1024² Durango side plates: mid-cab roof contact, sit on the drip rail.
-     left x=0.49 roof y≈0.330 / glass y≈0.344; right x=0.51 roof y≈0.347. */
-  if(view==="left") return {kind:"endcap", x:49, y:33.0, sit:"bottom"};
-  if(view==="right") return {kind:"endcap", x:51, y:34.6, sit:"bottom"};
+  /* 1024² Durango side plates: housing sole on the roof paint, not in the sky
+     and not in the glass. left roof y≈0.330, glass y≈0.344; right roof y≈0.347.
+     +0.5 closes the gap that left the nose floating above the white roof.
+     h=1.7% is the end-cap thickness on that side crop. */
+  if(view==="left") return {kind:"endcap", end:"L", x:49, y:33.5, sit:"bottom", h:1.7};
+  if(view==="right") return {kind:"endcap", end:"R", x:51, y:35.2, sit:"bottom", h:1.7};
   /* 3/4: sit the ghost on the hero cab roof (software only; plate unchanged).
      Plate roof metal at x=0.47 is y≈0.262–0.273; bottom-origin rotate keeps
      the contact on the roof instead of lifting the LEDs into the sky. */
@@ -792,7 +801,8 @@ function renderGhostBars(stage){
     var fx=part?fxFor(part):null;
     if(!fx) return;
     var el=document.createElement("div");
-    el.className="ghost-bar"+(spec.kind==="endcap"?" endcap":" full");
+    var endSide=spec.end==="R"?"r":"l";
+    el.className="ghost-bar"+(spec.kind==="endcap"?" endcap end-"+endSide:" full");
     el.setAttribute("aria-hidden","true");
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
@@ -811,7 +821,23 @@ function renderGhostBars(stage){
       if(spec.wScale) w*=spec.wScale;
       el.style.width=w+"%";
     }
+    if(spec.kind==="endcap"){
+      /* Nose through the housing sole (sprite x≈120 of 2076×101). Past that is the 53" run. */
+      var capPx=120, spriteH=101;
+      var h=spec.h!=null?spec.h:1.7;
+      var wCap=h*(capPx/spriteH);
+      el.style.height=h+"%";
+      el.style.width=wCap+"%";
+    }
     el.innerHTML='<img src="'+fx+'" alt="" draggable="false"/>';
+    if(spec.kind==="endcap"){
+      var gim=el.querySelector("img");
+      if(gim){
+        gim.style.height="100%";
+        gim.style.width="auto";
+        gim.style.maxWidth="none";
+      }
+    }
     stage.appendChild(el);
   });
 }
@@ -1416,12 +1442,37 @@ window.__IU_TEST__={
     var ir=img&&img.getBoundingClientRect();
     var gr=ghost&&ghost.getBoundingClientRect();
     if(!ir||!gr||!ir.height) return null;
+    var sample=null;
+    var gim=ghost.querySelector("img");
+    if(gim && gim.complete && gim.naturalWidth && gr.width>1 && gr.height>1){
+      var c=document.createElement("canvas");
+      var bw=Math.max(1, Math.round(gr.width));
+      var bh=Math.max(1, Math.round(gr.height));
+      c.width=bw; c.height=bh;
+      var ctx=c.getContext("2d");
+      var iw=gim.naturalWidth*(bh/gim.naturalHeight);
+      var dx=ghost.classList.contains("end-r")?(bw-iw):0;
+      ctx.drawImage(gim, dx, 0, iw, bh);
+      var data=ctx.getImageData(0,0,bw,bh).data;
+      var red=0, blue=0, ink=0, i;
+      for(i=0;i<data.length;i+=4){
+        if(data[i+3]<40) continue;
+        ink++;
+        if(data[i]>140 && data[i]>data[i+2]+30 && data[i]>data[i+1]+20) red++;
+        else if(data[i+2]>120 && data[i+2]>data[i]+25) blue++;
+      }
+      sample={red:red, blue:blue, ink:ink, imgW:+iw.toFixed(1), boxW:bw, boxH:bh};
+    }
     return {
       topPct:(gr.top-ir.top)/ir.height*100,
       botPct:(gr.bottom-ir.top)/ir.height*100,
       midX:((gr.left+gr.right)/2-ir.left)/ir.width*100,
+      wPct:gr.width/ir.width*100,
+      hPct:gr.height/ir.height*100,
       spec:ghostSpecForView(),
-      origin:ghost.style.transformOrigin||""
+      origin:ghost.style.transformOrigin||"",
+      cls:ghost.className||"",
+      sample:sample
     };
   },
   pushBarOn:function(){ return !!pushBar; },

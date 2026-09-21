@@ -1,11 +1,12 @@
-# Vector trap log — studio32 side scrap fix; Front clickPlace unchanged
+# Vector trap log — studio33 side end-cap; Front clickPlace unchanged
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio32 · FX_V: max12
+- ASSET_V: studio33 · FX_V: max12
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)
-- studio32: Left/Right bare + GhostBar on roof, not B-pillar glass. Front clickPlace / defaultFor `_` unchanged (Rusty: Front looked good). ILS from side stays Front. Plates unchanged.
+- studio33: Left/Right roof bar is the end-cap (sprite nose on the roof), not the full bar length. Left = driver end, Right = passenger end. Front clickPlace / defaultFor `_` unchanged. Plates unchanged.
+- Look trap: T-SIDE-ENDCAP-LOOK — side bar = end-cap, not full bar.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -15,9 +16,9 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio32 |
+| T-ASSET-V | PASS | ASSET_V=studio33 |
 | T-NO-HOME-YANK | PASS | clickPlace never assigns camera from HOME_VIEW |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio32 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio33 |
 | T-PACK-STAMP | PASS | header pack stamp present |
 | T-NO-SIDE-FALLBACK-STAMP | PASS | defaultFor _ stays on Front/Rear/Hero; Left/Right do not invent scraps |
 | T-MPSW9-NOT-WIDE-BAR | PASS | MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar |
@@ -35,14 +36,15 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-DYNA-HEAD | PASS | 21 dyna fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio32","plateSrc":"durango_front.png?v=studio32","asset":"studio32","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio32","plateSrc":"durango_front.png?v=studio32","asset":"studio32","patchOn":true}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio32","src":"durango_front.png?v=studio32","asset":"studio32"} |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio33","plateSrc":"durango_front.png?v=studio33","asset":"studio33","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio33","plateSrc":"durango_front.png?v=studio33","asset":"studio33","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio33","src":"durango_front.png?v=studio33","asset":"studio33"} |
 | T-OEM-HIDE-ON | PASS | {"patchOn":true} |
 | T-BARE-EVERY-VIEW | PASS | front,rear,rear_open,left,right,hero |
 | T-CLEAR-EVERY-VIEW | PASS | front/left/right/hero empty after Clear All |
 | T-BARE-SIDE-LOOK | PASS | {"left":{"ok":true,"n":0},"right":{"ok":true,"n":0},"leftClear":{"ok":true,"n":0}} |
 | T-GHOST-NOT-IN-GLASS | PASS | {"left":{"ok":true,"n":0},"right":{"ok":true,"n":0}} |
-| T-GHOST-SIDE-SIT | PASS | {"left":{"ghosts":1,"box":{"topPct":31.148648648648646,"botPct":33.04054054054054,"midX":48.9991554054054,"spec":{"kind":"endcap","x":49,"y":33,"sit":"bottom"},"origin":"50% 100%"},"audit":{"lights":[],"ghosts":[{"cls":"ghost-bar endcap","left":"49%","top":"33%","origin":"50% 100%","transform":"translate(-50%, 0px)"}]}},"right":{"ghosts":1,"box":{"topPct":32.658361486486484,"botPct":34.55025337837838,"midX":50.998733108108105,"spec":{"kind":"endcap","x":51,"y":34.6,"sit":"bottom"},"origin":"50% 100%"},"audit":{"lights":[],"ghosts":[{"cls":"ghost-bar endcap","left":"51%","top":"34.6%","origin":"50% 100%","transform":"translate(-50%, 0px)"}]}}} |
+| T-GHOST-SIDE-SIT | PASS | {"left":{"ghosts":1,"box":{"topPct":31.619510135135137,"botPct":33.22212837837838,"midX":48.9991554054054,"wPct":2.018581081081081,"hPct":1.6026182432432434,"spec":{"kind":"endcap","end":"L","x":49,"y":33.5,"sit":"bottom","h":1.7},"origin":"50% 100%","cls":"ghost-bar endcap end-l","sample":{"red":137,"blue":0,"ink":168,"imgW":246.7,"boxW":15,"boxH":12}},"audit":{"lights":[],"ghosts":[{"cls":"ghost-bar endcap end-l","left":"49%","top":"33.5%","origin":"50% 100%","transform":"translate(-50%, 0px)"}]}},"right":{"ghosts":1,"box":{"topPct":33.22423986486486,"botPct":34.82685810810811,"midX":50.998733108108105,"wPct":2.018581081081081,"hPct":1.6026182432432434,"spec":{"kind":"endcap","end":"R","x":51,"y":35.2,"sit":"bottom","h":1.7},"origin":"50% 100%","cls":"ghost-bar endcap end-r","sample":{"red":0,"blue":125,"ink":169,"imgW":246.7,"boxW":15,"boxH":12}},"audit":{"lights":[],"ghosts":[{"cls":"ghost-bar endcap end-r","left":"51%","top":"35.2%","origin":"50% 100%","transform":"translate(-50%, 0px)"}]}}} |
+| T-SIDE-ENDCAP-LOOK | PASS | {"left":{"end":"L","kind":"endcap","wPct":2.018581081081081,"hPct":1.6026182432432434,"red":137,"blue":0,"ink":168,"clip":16.45},"right":{"end":"R","kind":"endcap","wPct":2.018581081081081,"hPct":1.6026182432432434,"red":0,"blue":125,"ink":169,"clip":16.45}} |
 | T-CLICKPLACE-ALL | PASS | durango/front=35 durango/left=7 durango/rear=36 silverado/front=35 silverado/left=7 silverado/rear=36 f150/front=35 f150/left=7 f150/rear=36 |
 | T-ROOF-FRONT-ONLY | PASS | roof nodes only on front after clickPlace from Front/Left/Rear |
 | T-HERO-GHOST-SIT | PASS | {"spec":{"kind":"full","x":48.5,"y":28.6,"rot":-6,"wScale":0.62,"sit":"bottom"},"origin":"50% 100%"} |
