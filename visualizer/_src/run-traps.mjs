@@ -239,10 +239,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio33"/.test(html), "ASSET_V=studio33");
+  rec("T-ASSET-V", /ASSET_V="studio34"/.test(html), "ASSET_V=studio34");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio33"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio33");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio33/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio34"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio34");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio34/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     /stay==="left" \|\| stay==="right"/.test(html) && /var d=defaultFor\(sku\)/.test(html),
     "defaultFor _ stays on Front/Rear/Hero; Left/Right do not invent scraps");
@@ -409,12 +409,14 @@ async function chromeEval(base, fnBody) {
     });
     await waitPlate();
     await page.waitForFunction(() => {
-      const g = document.querySelector(".ghost-bar img");
-      return !!(g && g.complete && g.naturalWidth > 100);
+      const housing = document.querySelector(".ghost-bar.endcap .endcap-housing");
+      const sprite = document.querySelector(".ghost-bar img");
+      return !!housing && !sprite;
     }, { timeout: 10000 });
-    const leftGhostSit = await page.evaluate(() => {
+    const leftGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
-      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit() };
+      const edge = T.endcapEdge ? await T.endcapEdge() : null;
+      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge };
     });
     const leftGhostShot = await shotStage("algt-left");
     await page.evaluate(() => {
@@ -423,12 +425,14 @@ async function chromeEval(base, fnBody) {
     });
     await waitPlate();
     await page.waitForFunction(() => {
-      const g = document.querySelector(".ghost-bar img");
-      return !!(g && g.complete && g.naturalWidth > 100);
+      const housing = document.querySelector(".ghost-bar.endcap .endcap-housing");
+      const sprite = document.querySelector(".ghost-bar img");
+      return !!housing && !sprite;
     }, { timeout: 10000 });
-    const rightGhostSit = await page.evaluate(() => {
+    const rightGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
-      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit() };
+      const edge = T.endcapEdge ? await T.endcapEdge() : null;
+      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge };
     });
     const rightGhostShot = await shotStage("algt-right");
     await page.evaluate(() => { window.__IU_TEST__.clearAll(); });
@@ -916,9 +920,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio33"
-        && /pack studio33/.test(runtime.bareCold.pack||"")
-        && /studio33/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio34"
+        && /pack studio34/.test(runtime.bareCold.pack||"")
+        && /studio34/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -970,34 +974,73 @@ async function main() {
       && rg.botPct != null && Math.abs(rg.botPct - rg.spec.y) <= 2.5
       && rg.botPct <= 37 && rg.botPct >= 32,
       JSON.stringify({ left: runtime.leftGhostSit, right: runtime.rightGhostSit }));
-    /* Side bar is the end-cap only: short nose, correct end, not the 53" run. */
-    const endLook = (box, end) => {
-      const s = (box && box.sample) || {};
-      const ratio = box && box.hPct ? box.wPct / box.hPct : 99;
-      const clip = s.boxW ? s.imgW / s.boxW : 0;
-      return !!(box && box.spec && box.spec.kind === "endcap" && box.spec.end === end
-        && /endcap/.test(box.cls || "")
-        && box.wPct > 1.1 && box.wPct < 6
-        && box.hPct > 1.0 && box.hPct < 3.2
-        && ratio > 0.7 && ratio < 2.2
-        && clip > 4
-        && s.ink > 15
-        && (end === "L" ? s.red > s.blue : s.blue > s.red));
+    /* Drawn end-on housing. Width tracks bar depth, not the 53" run.
+       Not a crop: no bar-sprite image, rounded shell, no hard outer wall. */
+    const hexRgb = (hex) => {
+      const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
+      if (!m) return null;
+      const n = parseInt(m[1], 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
     };
-    const lookBrief = (sit) => {
-      const b = (sit && sit.box) || {};
-      const s = b.sample || {};
+    const endFacts = (sit, end) => {
+      const box = (sit && sit.box) || {};
+      const spec = box.spec || {};
+      const dom = box.dom || {};
+      const edge = (sit && sit.edge) || {};
+      const boxIn = (spec.tallIn || 0) + (spec.feetIn || 0);
+      const depthRatio = boxIn ? spec.depthIn / boxIn : 0;
+      const lenRatio = boxIn ? spec.lenIn / boxIn : 0;
+      const px = box.pxRatio || 0;
+      const rgb = hexRgb(dom.lens);
+      const colorOk = !!(rgb && (end === "L"
+        ? rgb.r > 180 && rgb.r > rgb.b + 40
+        : rgb.b > 180 && rgb.b > rgb.r + 40));
+      const depthOk = spec.depthIn >= 9 && spec.depthIn <= 13
+        && spec.lenIn >= 48 && spec.lenIn <= 60
+        && spec.tallIn >= 2.2 && spec.tallIn <= 3.4
+        && depthRatio > 2.2 && depthRatio < 6
+        && lenRatio > 12
+        && px > 0
+        && Math.abs(px - depthRatio) / depthRatio < 0.18
+        && px < lenRatio * 0.45
+        && Math.abs((box.wPct || 0) - (spec.w || 0)) < 0.5;
+      const notSprite = !!(dom.drawn && !dom.sprite
+        && (dom.bg === "none" || dom.bg === "")
+        && (!dom.imgs || dom.imgs.length === 0)
+        && dom.overflow !== "hidden"
+        && !(box.sample && box.sample.imgW > (box.sample.boxW || 1) * 2));
+      const rounded = dom.rxRatio >= 0.45
+        && edge.ok === true && edge.hard === false
+        && edge.outerL <= 12 && edge.outerR <= 12
+        && edge.innerL > edge.outerL + 6
+        && edge.innerR > edge.outerR + 6;
       return {
-        end: b.spec && b.spec.end,
-        kind: b.spec && b.spec.kind,
-        wPct: b.wPct, hPct: b.hPct,
-        red: s.red, blue: s.blue, ink: s.ink,
-        clip: s.boxW ? +(s.imgW / s.boxW).toFixed(2) : null,
+        end: spec.end, kind: spec.kind,
+        wPct: box.wPct, hPct: box.hPct, px: +px.toFixed(3),
+        depthRatio: +depthRatio.toFixed(3), lenRatio: +lenRatio.toFixed(3),
+        lens: dom.lens, bg: dom.bg, sprite: dom.sprite, imgs: dom.imgs,
+        overflow: dom.overflow, rxRatio: dom.rxRatio, drawn: dom.drawn,
+        edge, colorOk, depthOk, notSprite, rounded,
+        placed: !!(spec.kind === "endcap" && spec.end === end && /endcap/.test(box.cls || "")),
       };
     };
+    const leftFacts = endFacts(runtime.leftGhostSit, "L");
+    const rightFacts = endFacts(runtime.rightGhostSit, "R");
     rec("T-SIDE-ENDCAP-LOOK",
-      endLook(lg, "L") && endLook(rg, "R"),
-      JSON.stringify({ left: lookBrief(runtime.leftGhostSit), right: lookBrief(runtime.rightGhostSit) }));
+      leftFacts.placed && rightFacts.placed
+      && leftFacts.colorOk && rightFacts.colorOk
+      && leftFacts.depthOk && rightFacts.depthOk
+      && leftFacts.wPct > 3 && leftFacts.wPct < 9
+      && leftFacts.hPct > 1 && leftFacts.hPct < 3.2,
+      JSON.stringify({ left: leftFacts, right: rightFacts }));
+    rec("T-SIDE-ENDCAP-NOT-CROP",
+      leftFacts.notSprite && rightFacts.notSprite
+      && leftFacts.rounded && rightFacts.rounded
+      && leftFacts.depthOk && rightFacts.depthOk,
+      JSON.stringify({
+        left: { sprite: leftFacts.sprite, bg: leftFacts.bg, imgs: leftFacts.imgs, overflow: leftFacts.overflow, rxRatio: leftFacts.rxRatio, px: leftFacts.px, depthRatio: leftFacts.depthRatio, lenRatio: leftFacts.lenRatio, edge: leftFacts.edge },
+        right: { sprite: rightFacts.sprite, bg: rightFacts.bg, imgs: rightFacts.imgs, overflow: rightFacts.overflow, rxRatio: rightFacts.rxRatio, px: rightFacts.px, depthRatio: rightFacts.depthRatio, lenRatio: rightFacts.lenRatio, edge: rightFacts.edge },
+      }));
   }
 
   runtime = runtime && runtime.runtime;
@@ -1161,15 +1204,15 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio33 side end-cap; Front clickPlace unchanged",
+    "# Vector trap log — studio34 drawn side end-cap; Front clickPlace unchanged",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio33 · FX_V: max12`,
+    `- ASSET_V: studio34 · FX_V: max12`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
-    `- studio33: Left/Right roof bar is the end-cap (sprite nose on the roof), not the full bar length. Left = driver end, Right = passenger end. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
-    `- Look trap: T-SIDE-ENDCAP-LOOK — side bar = end-cap, not full bar.`,
+    `- studio34: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). Not a crop of the front sprite and not the 53" run. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
+    `- Look trap: T-SIDE-ENDCAP-LOOK — side bar = drawn end-cap. T-SIDE-ENDCAP-NOT-CROP — no bar-sprite background, width tracks depth not length, no hard cut.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

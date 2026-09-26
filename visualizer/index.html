@@ -73,12 +73,11 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .snap-guides .gy{left:0;right:0;height:1px;transform:translateY(-50%)}
 .ghost-bar{position:absolute;z-index:15;pointer-events:none;transform:translate(-50%,-50%);opacity:.92;filter:drop-shadow(0 0 4px rgba(0,0,0,.5));user-select:none}
 .ghost-bar img{display:block;width:100%;height:auto;pointer-events:none}
-/* Side end-cap: clip the sprite nose. Width/height are plate % from JS.
-   max-width stops a flex min-content blowout from painting the 53" run. */
-.ghost-bar.endcap{overflow:hidden;display:flex;align-items:flex-end;max-width:8%;min-width:0}
-.ghost-bar.endcap.end-l{justify-content:flex-start}
-.ghost-bar.endcap.end-r{justify-content:flex-end}
-.ghost-bar.endcap img{width:auto;height:100%;max-width:none;flex:0 0 auto}
+/* Side end-cap is drawn (inline SVG), not a crop of the front bar sprite.
+   No background-image, no overflow clip, no max-width clamp. Rounded housing
+   is the shape; a rectangular overflow would put the hard cut back. */
+.ghost-bar.endcap{overflow:visible;display:block;max-width:none;min-width:0;background:none;background-image:none;opacity:1;filter:drop-shadow(0 0 0.7px rgba(255,255,255,.95)) drop-shadow(0 1px 0 rgba(0,0,0,.75))}
+.ghost-bar.endcap svg{display:block;width:100%;height:100%;overflow:visible}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 /* ILS visor: one sprite file, two nodes. Clip to a single shroud per visor. */
@@ -150,7 +149,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio33 you are on a stale pack">pack studio33</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio34 you are on a stale pack">pack studio34</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -166,7 +165,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio33" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio34" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -220,7 +219,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio33";
+var ASSET_V="studio34";
 var FX_V="max12";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -765,24 +764,90 @@ function renderStage(){
   saveState();
   requestAnimationFrame(syncSelDock);
 }
+/* Allegiant ALGT53JX housing, inches. Side view is the end, seen end-on:
+   length along the car is DEPTH (11"), not the 53" run. Height is the
+   2.75" shell plus the mounting feet. Same inches-per-plate on both axes
+   so the pod is longer than it is tall by depth/height, not by bar length.
+   1024² Durango side plate: body spans ~966px of a 198.8" Durango. */
+var ALGT_HOUSING={lenIn:53, depthIn:11, tallIn:2.75, feetIn:0.55};
+var SIDE_BODY_PX=966, SIDE_BODY_IN=198.8, SIDE_PLATE_PX=1024;
+function sideInToPct(inches){
+  return inches * SIDE_BODY_PX / SIDE_BODY_IN / SIDE_PLATE_PX * 100;
+}
+function sideEndcapSize(){
+  var boxIn=ALGT_HOUSING.tallIn+ALGT_HOUSING.feetIn;
+  return {
+    w:+sideInToPct(ALGT_HOUSING.depthIn).toFixed(3),
+    h:+sideInToPct(boxIn).toFixed(3),
+    boxIn:boxIn
+  };
+}
+/* Driver end matches sprite-left of the active Allegiant fx file; passenger
+   matches sprite-right. rb/rbw ends are red/blue (white is mid-bar). bw is
+   blue/white. rw is red/white. Lit the same way the bar modules are: the
+   lens is the scheme color, with a whiter core. */
+function endcapLensColor(end){
+  var part=CATALOG.find(function(c){ return isRoofBar(c.sku); });
+  var file=part?schemeName(part.fx):"";
+  var driver=end!=="R";
+  if(file.indexOf("_bw.")>=0) return driver?"#2f6dff":"#f4f7ff";
+  if(file.indexOf("_rw.")>=0) return driver?"#ff2d2d":"#fff6ea";
+  return driver?"#ff2d2d":"#2f6dff";
+}
+function mixWhite(hex, t){
+  var n=parseInt(hex.slice(1),16);
+  var r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  function ch(c){ return Math.round(c+(255-c)*t); }
+  function h(c){ var s=c.toString(16); return (s.length<2?"0":"")+s; }
+  return "#"+h(ch(r))+h(ch(g))+h(ch(b));
+}
+/* Drawn end-on housing. viewBox aspect = depth / (tall+feet) = 330/99.
+   Stadium rx is half the shell height — no flat vertical cut. */
+function endcapMarkup(end){
+  var lens=endcapLensColor(end);
+  var core=mixWhite(lens, 0.62);
+  var gid="endcap-lit-"+end;
+  return '<svg xmlns="http://www.w3.org/2000/svg" class="endcap-draw" viewBox="0 0 330 99" preserveAspectRatio="none" overflow="visible" aria-hidden="true" focusable="false">'
+    +'<defs><filter id="'+gid+'" x="-40%" y="-160%" width="180%" height="420%">'
+    +'<feGaussianBlur stdDeviation="1.8" result="b"/>'
+    +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
+    +'</filter></defs>'
+    +'<rect class="endcap-foot" x="58" y="72" width="40" height="24" rx="5" fill="#141820" stroke="#d5dbe6" stroke-width="4"/>'
+    +'<rect class="endcap-foot" x="232" y="72" width="40" height="24" rx="5" fill="#141820" stroke="#d5dbe6" stroke-width="4"/>'
+    +'<rect class="endcap-housing" x="12" y="8" width="306" height="66" rx="33" fill="#3a4150" stroke="#eef2f7" stroke-width="7"/>'
+    +'<rect x="52" y="16" width="226" height="10" rx="5" fill="#c5ceda"/>'
+    +'<rect class="endcap-lens" x="78" y="30" width="174" height="18" rx="8" fill="'+lens+'" filter="url(#'+gid+')"/>'
+    +'<rect class="endcap-lens-core" x="108" y="34" width="114" height="8" rx="4" fill="'+core+'"/>'
+    +'</svg>';
+}
 /* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable.
    Only after a user-placed Front ALGT — never a default / bare-plate look.
    Side Y is roof metal, not glass. Durango barNudge.dy=+4 dropped the endcap
    into the B-pillar (Rusty red-scrap shot). Do not apply that nudge here.
-   Side kind is endcap: the rounded nose of the sprite, not the 53" run.
-   Left = driver end (sprite left). Right = passenger end (sprite right).
-   h is plate % — side photos are a wider crop than Front, so this is not frontRoofBarW. */
+   Side kind is endcap: a drawn end-on housing (depth along the car), not a
+   crop of the front LED face and not the 53" run.
+   Left = driver end. Right = passenger end.
+   w/h are plate % from sideInToPct — side photos are a wider crop than Front. */
 function ghostSpecForView(){
   var bn=veh().barNudge||{dx:0,dy:0};
   var dx=bn.dx||0, dy=bn.dy||0;
   /* Rear / hero keep the signed sit. Side only: do not apply +4% (B-pillar scrap). */
   if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
-  /* 1024² Durango side plates: housing sole on the roof paint, not in the sky
+  /* 1024² Durango side plates: feet on the roof paint, not in the sky
      and not in the glass. left roof y≈0.330, glass y≈0.344; right roof y≈0.347.
-     +0.5 closes the gap that left the nose floating above the white roof.
-     h=1.7% is the end-cap thickness on that side crop. */
-  if(view==="left") return {kind:"endcap", end:"L", x:49, y:33.5, sit:"bottom", h:1.7};
-  if(view==="right") return {kind:"endcap", end:"R", x:51, y:35.2, sit:"bottom", h:1.7};
+     +0.5 closes the gap that left the housing floating above the white roof.
+     Bottom origin is the sole of the feet. */
+  var cap=sideEndcapSize();
+  var side={
+    kind:"endcap", sit:"bottom",
+    w:cap.w, h:cap.h,
+    lenIn:ALGT_HOUSING.lenIn, depthIn:ALGT_HOUSING.depthIn,
+    tallIn:ALGT_HOUSING.tallIn, feetIn:ALGT_HOUSING.feetIn
+  };
+  /* y is the foot sole. A hair below the roof highlight so the feet
+     meet white paint (33.0 left / 34.7 right) instead of hanging in the sky. */
+  if(view==="left") return Object.assign({end:"L", x:49, y:34.05}, side);
+  if(view==="right") return Object.assign({end:"R", x:51, y:36}, side);
   /* 3/4: sit the ghost on the hero cab roof (software only; plate unchanged).
      Plate roof metal at x=0.47 is y≈0.262–0.273; bottom-origin rotate keeps
      the contact on the roof instead of lifting the LEDs into the sky. */
@@ -820,23 +885,14 @@ function renderGhostBars(stage){
       var w=(fw!=null?fw:(part.w||46))*scale;
       if(spec.wScale) w*=spec.wScale;
       el.style.width=w+"%";
+      el.innerHTML='<img src="'+fx+'" alt="" draggable="false"/>';
     }
     if(spec.kind==="endcap"){
-      /* Nose through the housing sole (sprite x≈120 of 2076×101). Past that is the 53" run. */
-      var capPx=120, spriteH=101;
-      var h=spec.h!=null?spec.h:1.7;
-      var wCap=h*(capPx/spriteH);
-      el.style.height=h+"%";
-      el.style.width=wCap+"%";
-    }
-    el.innerHTML='<img src="'+fx+'" alt="" draggable="false"/>';
-    if(spec.kind==="endcap"){
-      var gim=el.querySelector("img");
-      if(gim){
-        gim.style.height="100%";
-        gim.style.width="auto";
-        gim.style.maxWidth="none";
-      }
+      /* Drawn end. Width is bar depth on this plate, not the 53" sprite. */
+      el.style.height=(spec.h!=null?spec.h:1.7)+"%";
+      el.style.width=(spec.w!=null?spec.w:spec.h)+"%";
+      el.style.backgroundImage="none";
+      el.innerHTML=endcapMarkup(spec.end||"L");
     }
     stage.appendChild(el);
   });
@@ -1463,17 +1519,85 @@ window.__IU_TEST__={
       }
       sample={red:red, blue:blue, ink:ink, imgW:+iw.toFixed(1), boxW:bw, boxH:bh};
     }
+    var cs=getComputedStyle(ghost);
+    var bg=cs.backgroundImage||"none";
+    var imgs=Array.prototype.map.call(ghost.querySelectorAll("img"), function(im){ return im.getAttribute("src")||""; });
+    var housing=ghost.querySelector(".endcap-housing");
+    var lens=ghost.querySelector(".endcap-lens");
+    var rx=housing?parseFloat(housing.getAttribute("rx")||"0"):0;
+    var hh=housing?parseFloat(housing.getAttribute("height")||"0"):0;
+    var dom={
+      bg:bg,
+      imgs:imgs,
+      sprite:/fx_algt|algt_max/.test(bg+" "+imgs.join(" ")),
+      overflow:cs.overflow,
+      maxWidth:cs.maxWidth,
+      rx:rx,
+      housingH:hh,
+      rxRatio:hh?rx/hh:0,
+      lens:lens?(lens.getAttribute("fill")||""):"",
+      drawn:!!housing && !gim
+    };
     return {
       topPct:(gr.top-ir.top)/ir.height*100,
       botPct:(gr.bottom-ir.top)/ir.height*100,
       midX:((gr.left+gr.right)/2-ir.left)/ir.width*100,
       wPct:gr.width/ir.width*100,
       hPct:gr.height/ir.height*100,
+      pxW:gr.width,
+      pxH:gr.height,
+      pxRatio:gr.height?gr.width/gr.height:0,
       spec:ghostSpecForView(),
       origin:ghost.style.transformOrigin||"",
       cls:ghost.className||"",
-      sample:sample
+      sample:sample,
+      dom:dom
     };
+  },
+  /* Raster of the drawn end-cap. A hard cut is a tall opaque run on the
+     outer column (flat vertical wall). A rounded end is only a few pixels. */
+  endcapEdge:function(){
+    var el=document.querySelector("#stage .ghost-bar.endcap");
+    var svg=el&&el.querySelector("svg");
+    if(!svg) return Promise.resolve({ok:false, err:"no svg"});
+    var xml=new XMLSerializer().serializeToString(svg);
+    var src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(xml);
+    return new Promise(function(resolve){
+      var img=new Image();
+      img.onload=function(){
+        var w=330, h=99;
+        var c=document.createElement("canvas");
+        c.width=w; c.height=h;
+        var ctx=c.getContext("2d");
+        ctx.drawImage(img,0,0,w,h);
+        var data=ctx.getImageData(0,0,w,h).data;
+        function runAt(x){
+          var run=0, maxRun=0, n=0, y, a;
+          for(y=0;y<h;y++){
+            a=data[(y*w+x)*4+3];
+            if(a>28){ n++; run++; if(run>maxRun) maxRun=run; }
+            else run=0;
+          }
+          return {n:n, maxRun:maxRun};
+        }
+        var left=-1, right=-1, x;
+        for(x=0;x<w;x++){
+          if(runAt(x).n){ if(left<0) left=x; right=x; }
+        }
+        if(left<0){ resolve({ok:false, err:"empty"}); return; }
+        var outerL=runAt(left).maxRun, outerR=runAt(right).maxRun;
+        var innerL=runAt(Math.min(right, left+12)).maxRun;
+        var innerR=runAt(Math.max(left, right-12)).maxRun;
+        resolve({
+          ok:true,
+          hard:outerL>12 || outerR>12,
+          outerL:outerL, outerR:outerR, innerL:innerL, innerR:innerR,
+          left:left, right:right
+        });
+      };
+      img.onerror=function(){ resolve({ok:false, err:"svg raster"}); };
+      img.src=src;
+    });
   },
   pushBarOn:function(){ return !!pushBar; },
   clearAll:function(){ document.getElementById("clearAll").click(); },
