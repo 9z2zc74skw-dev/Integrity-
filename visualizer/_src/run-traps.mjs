@@ -165,6 +165,11 @@ function fxLookScan() {
     "    im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load()",
     "    corners=[px[0,0][3], px[w-1,0][3], px[0,h-1][3], px[w-1,h-1][3]]",
     "    asp=w/max(h,1.0)",
+    "    if '1ft' in n: asp_ok=10.5<=asp<=14.5",
+    "    elif '2ft' in n: asp_ok=21<=asp<=26",
+    "    elif '5ft' in n: asp_ok=52<=asp<=61",
+    "    elif '6ft' in n: asp_ok=63<=asp<=73",
+    "    else: asp_ok=asp>=10",
     "    yellow=0; opaque=0",
     "    for y in range(h):",
     "        for x in range(w):",
@@ -172,7 +177,7 @@ function fxLookScan() {
     "            if a>200: opaque+=1",
     "            if a>200 and r>180 and g>150 and b<110: yellow+=1",
     "    yf=yellow/max(opaque,1)",
-    "    ok=(sz>623 and asp>=3.0 and h<=80 and w>=120 and max(corners)<16 and yf<0.12)",
+    "    ok=(sz>8000 and asp_ok and h<=90 and w>=400 and max(corners)<16 and yf<0.12)",
     "    rows.append({'file':n,'bytes':sz,'w':w,'h':h,'asp':round(asp,2),'cornerA':corners,'yellow':yellow,'yf':round(yf,4),'ok':ok})",
     "    if not ok: fail.append(n+' sz='+str(sz)+' '+str(w)+'x'+str(h)+' yf='+str(round(yf,4))+' cA='+str(max(corners)))",
     "print(json.dumps({'ok':len(fail)==0 and len(rows)>=8,'n':len(rows),'fail':fail,'minBytes':min((r['bytes'] for r in rows), default=0),'maxH':max((r['h'] for r in rows), default=0)}))",
@@ -239,10 +244,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio35"/.test(html), "ASSET_V=studio35");
+  rec("T-ASSET-V", /ASSET_V="studio36"/.test(html), "ASSET_V=studio36");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio35"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio35");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio35/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio36"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio36");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio36/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -250,8 +255,9 @@ function staticTraps() {
     && /HOME_VIEW is a label only/.test(html),
     "no Left/Right refusal, roof bar not forced to Front, off-front bars not purged");
   rec("T-MPSW9-NOT-WIDE-BAR",
-    /sku:"MPSW9-BW"[^}]*fx:"fx_mpsw9_rb\.png",w:2\./.test(html) && !/fx_mps_wide/.test(html),
-    "MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar");
+    /sku:"MPSW9-BW"[^}]*fx:"fx_mpsw9_rb\.png",w:2\./.test(html) && !/fx_mps_wide/.test(html)
+    && /lenIn:5\.04/.test(html),
+    "MPSW9 is the 5.04in pod fx_mpsw9, not fx_mps_wide");
   rec("T-OEM-HIDE-FILE", fs.existsSync(path.join(VIZ, "fx", "oem_hide_durango_front.png")), "Front OEM-hide overlay present");
   rec("T-URL-NO-SEED", !/URLSearchParams/.test(html) && !/location\.search\s*[=.\[]/.test(html), "no URL/hash auto-place");
   rec("T-NO-RESTORE-NODES",
@@ -986,9 +992,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio35"
-        && /pack studio35/.test(runtime.bareCold.pack||"")
-        && /studio35/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio36"
+        && /pack studio36/.test(runtime.bareCold.pack||"")
+        && /studio36/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1226,8 +1232,8 @@ async function main() {
       var im=(p.imgs||[])[0]||{};
       var box=p.box||{};
       return !(p.dynaClass && /fx_dyna/.test(im.src||"")
-        && im.w >= 120 && im.h <= 80 && im.w / Math.max(im.h, 1) >= 3
-        && box.asp >= 2.8 && box.w > 24 && box.h > 4 && box.h < 48);
+        && im.w >= 400 && im.h <= 90 && im.w / Math.max(im.h, 1) >= 10
+        && box.asp >= 8 && box.w > 24 && box.h > 3 && box.h < 40);
     });
     rec("T-DYNA-LOOK", dynaOk && dynaLookFail.length === 0,
       dynaLookFail.length
@@ -1296,13 +1302,14 @@ async function main() {
       JSON.stringify(ff));
     var pod = sv.mpsw9Pod || {};
     var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
+    var podBoxAsp = (pod.boxW && pod.boxH) ? pod.boxW / pod.boxH : 99;
     rec("T-MPSW9-POD",
-      pod.w <= 2.5 && /fx_mpsw9/.test(pod.fx || "") && /fx_mpsw9/.test(pod.src || "")
+      /fx_mpsw9/.test(pod.fx || "") && /fx_mpsw9/.test(pod.src || "")
       && !/fx_mps_wide|fx_wide_/.test(pod.src || "") && !/fx_mps_wide/.test(sv.mpsw9Fx || "")
-      && pod.nw >= 80 && pod.nh >= 80 && pod.nw < 420
-      && podAsp >= 0.65 && podAsp <= 1.7
-      && pod.boxW > 8 && pod.boxW < 26 && pod.boxH > 8 && pod.boxH < 28
-      && (pod.boxH ? pod.boxW / pod.boxH : 99) <= 2.1
+      && pod.nw >= 200 && pod.nh >= 80
+      && podAsp > 2.2 && podAsp <= 3
+      && pod.boxW > 8 && pod.boxW < 40 && pod.boxH > 3 && pod.boxH < 20
+      && podBoxAsp <= 3
       && sv.homeMpsw9 === "left" && sv.homeMpsw9 !== "front",
       JSON.stringify(pod));
   }
@@ -1314,17 +1321,18 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio35 Durango rear roof bar above the spoiler",
+    "# Vector trap log — studio36 DynaFlare and MPSW9 sprites",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio35 · FX_V: max12`,
+    `- ASSET_V: studio36 · FX_V: max13`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
     `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
+    `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in curved pod (sprite aspect ≤ 3). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

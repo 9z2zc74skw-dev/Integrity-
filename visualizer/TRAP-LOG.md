@@ -1,14 +1,15 @@
-# Vector trap log — studio35 Durango rear roof bar above the spoiler
+# Vector trap log — studio36 DynaFlare and MPSW9 sprites
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio35 · FX_V: max12
+- ASSET_V: studio36 · FX_V: max13
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)
 - studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor `_` unchanged. Plates unchanged.
 - Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.
 - studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.
 - Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.
+- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in curved pod (sprite aspect ≤ 3). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -18,12 +19,12 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio35 |
+| T-ASSET-V | PASS | ASSET_V=studio36 |
 | T-NO-HOME-YANK | PASS | clickPlace never assigns camera from HOME_VIEW |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio35 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio36 |
 | T-PACK-STAMP | PASS | header pack stamp present |
 | T-NO-SIDE-FALLBACK-STAMP | PASS | no Left/Right refusal, roof bar not forced to Front, off-front bars not purged |
-| T-MPSW9-NOT-WIDE-BAR | PASS | MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar |
+| T-MPSW9-NOT-WIDE-BAR | PASS | MPSW9 is the 5.04in pod fx_mpsw9, not fx_mps_wide |
 | T-OEM-HIDE-FILE | PASS | Front OEM-hide overlay present |
 | T-URL-NO-SEED | PASS | no URL/hash auto-place |
 | T-NO-RESTORE-NODES | PASS | loadState does not rehydrate placements; v1 wiped; empty boot strips sprites |
@@ -32,14 +33,14 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-ARCHIVE-TREE | PASS | leftovers parked under archive/ |
 | T-PAGES-HONEST | PASS | root README does not promise Pages URL |
 | T-PLATE-HASHES | PASS | durango_front.png unchanged; durango_right.png unchanged; durango_rear.png unchanged; durango_rear_open.png unchanged; durango_left.png unchanged; durango_hero.png unchanged |
-| T-FX-LOOK | PASS | {"ok":true,"n":21,"fail":[],"minBytes":22147,"maxH":72} |
+| T-FX-LOOK | PASS | {"ok":true,"n":21,"fail":[],"minBytes":13519,"maxH":72} |
 | T-CATALOG-FX-LOOK | PASS | {"ok":true,"fail":[],"n":9} |
 | T-FX-HEAD | PASS | 63 fx 200 |
 | T-DYNA-HEAD | PASS | 21 dyna fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio35","plateSrc":"durango_front.png?v=studio35","asset":"studio35","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio35","plateSrc":"durango_front.png?v=studio35","asset":"studio35","patchOn":true}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio35","src":"durango_front.png?v=studio35","asset":"studio35"} |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio36","plateSrc":"durango_front.png?v=studio36","asset":"studio36","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio36","plateSrc":"durango_front.png?v=studio36","asset":"studio36","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio36","src":"durango_front.png?v=studio36","asset":"studio36"} |
 | T-OEM-HIDE-ON | PASS | {"patchOn":true} |
 | T-BARE-EVERY-VIEW | PASS | front,rear,rear_open,left,right,hero |
 | T-CLEAR-EVERY-VIEW | PASS | front/left/right/hero empty after Clear All |
@@ -74,6 +75,6 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-ILS-FRONT-ONLY | PASS | {"sifLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"SIFMJS"},"sifFront":{"from":"front","after":"front","on":{"front":2,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":2,"sku":"SIFMJS"}} |
 | T-ANY-LIGHT-ANY-VIEW | PASS | 434 SKU×view placements stayed on the clicked view |
 | T-FRONT-FALLBACK-ON-FRONT | PASS | {"algt":{"after":"front","onFront":1,"lights":1},"sif":{"after":"front","onFront":2,"lights":2},"mps63":{"after":"front","onFront":1,"lights":1},"bumper":{"after":"front","onFront":4,"lights":4},"xsm2":{"after":"front","onFront":1,"lights":1},"dr6":{"after":"front","onFront":1,"lights":1},"stick":{"after":"front","onFront":1,"lights":1}} |
-| T-MPSW9-POD | PASS | {"w":2.2,"fx":"fx_mpsw9_rb.png","boxW":16,"boxH":19,"nw":203,"nh":231,"src":"fx/fx_mpsw9_rbw.png?v=max12"} |
+| T-MPSW9-POD | PASS | {"w":2.39,"fx":"fx_mpsw9_rb.png","boxW":18,"boxH":6,"nw":450,"nh":153,"src":"fx/fx_mpsw9_rbw.png?v=max13"} |
 
 All named traps PASS.
