@@ -244,8 +244,11 @@ function staticTraps() {
   rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio35"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio35");
   rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio35/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
-    /stay==="left" \|\| stay==="right"/.test(html) && /var d=defaultFor\(sku\)/.test(html),
-    "defaultFor _ stays on Front/Rear/Hero; Left/Right do not invent scraps");
+    !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
+    && !/isRoofBar\(sku\)\?"front"/.test(html)
+    && !/purgeOffFrontBars\(/.test(html)
+    && /HOME_VIEW is a label only/.test(html),
+    "no Left/Right refusal, roof bar not forced to Front, off-front bars not purged");
   rec("T-MPSW9-NOT-WIDE-BAR",
     /sku:"MPSW9-BW"[^}]*fx:"fx_mpsw9_rb\.png",w:2\./.test(html) && !/fx_mps_wide/.test(html),
     "MPSW9 is compact fx_mpsw9 w~2.2, not fx_mps_wide 12-LED bar");
@@ -939,6 +942,33 @@ async function main() {
         dr6: frontFallback("DR6-RBW"),
         stick: frontFallback("STICK-RB")
       };
+      const anyBad = [];
+      let anyN = 0;
+      ["durango", "silverado", "f150"].forEach(function(vid){
+        T.setVehicle(vid);
+        const viewIds = T.views().map(function(v){ return v.id; });
+        viewIds.forEach(function(v){
+          T.CATALOG.forEach(function(c){
+            T.resetNodes();
+            T.setVehicle(vid);
+            T.setView(v);
+            T.clickPlace(c.sku, 0.5, 0.5);
+            const bag = T.nodes();
+            const onView = ((bag[v] || []).filter(function(n){ return n.sku === c.sku; })).length;
+            const elsewhere = Object.keys(bag).some(function(k){
+              return k !== v && (bag[k] || []).some(function(n){ return n.sku === c.sku; });
+            });
+            anyN++;
+            if(T.getView() !== v || onView < 1 || elsewhere || T.stageLightCount() < 1){
+              anyBad.push({ vid: vid, view: v, after: T.getView(), sku: c.sku, onView: onView, elsewhere: elsewhere, lights: T.stageLightCount() });
+            }
+          });
+        });
+      });
+      out.anyLight = { n: anyN, bad: anyBad.slice(0, 12), badN: anyBad.length };
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("front");
       return out;
     });
     rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
@@ -1114,8 +1144,13 @@ async function main() {
   runtime = runtime && runtime.runtime;
   if (runtime) {
     rec("T-CLICKPLACE-ALL", runtime.clickPlace.every((row) => row.total > 0), runtime.clickPlace.map((r) => `${r.vid}/${r.from}=${r.total}`).join(" "));
-    const roofLeak = runtime.clickPlace.filter((r) => Object.entries(r.roof).some(([v, list]) => v !== "front" && list.length));
-    rec("T-ROOF-FRONT-ONLY", roofLeak.length === 0, roofLeak.length ? JSON.stringify(roofLeak) : "roof nodes only on front after clickPlace from Front/Left/Rear");
+    const roofMiss = runtime.clickPlace.filter((r) => {
+      const roof = r.roof || {};
+      const here = (roof[r.from] || []).length;
+      const elsewhere = Object.entries(roof).some(([v, list]) => v !== r.from && list.length);
+      return here < 1 || elsewhere;
+    });
+    rec("T-ROOF-FRONT-ONLY", roofMiss.length === 0, roofMiss.length ? JSON.stringify(roofMiss) : "roof clickPlace stays on the current view");
     var hs=runtime.heroSit||{};
     var spec=hs.spec||{};
     rec("T-HERO-GHOST-SIT",
@@ -1233,17 +1268,21 @@ async function main() {
       && gF.after === "front" && gF.total === 1 && gF.on && gF.on.front === 1
       && xR.after === "rear" && xR.total === 1
       && bF.after === "front" && bF.on && bF.on.front === 4
-      && aL.after === "left" && (aL.on && aL.on.front > 0) && !(aL.on.left)
-      && sL.after === "left" && sL.on && (sL.on.left || 0) === 0 && sL.on.front === 2
+      && aL.after === "left" && aL.on && (aL.on.left || 0) >= 1 && !(aL.on.front)
+      && sL.after === "left" && sL.on && (sL.on.left || 0) >= 1 && !(sL.on.front)
       && sF.after === "front" && (sF.on && sF.on.front === 2)
       && sv.homeMpsw9 === "left" && sv.homeMir === "left"
       && /fx_mpsw9/.test(sv.mpsw9Fx || ""),
       JSON.stringify({stay: {mpsw9Left: mL, mpsw9Hero: mH, mpsw9Front: mF, mpsw9Right: mR, mps63Front: gF, xsm2Rear: xR, bumperFront: bF, algtLeft: aL, sifLeft: sL, sifFront: sF, homeMpsw9: sv.homeMpsw9, homeMir: sv.homeMir, mpsw9Fx: sv.mpsw9Fx}}));
     rec("T-ILS-FRONT-ONLY",
-      sL.after === "left" && sL.on && (sL.on.left || 0) === 0 && sL.on.front === 2
+      sL.after === "left" && sL.on && (sL.on.left || 0) >= 1 && !(sL.on.front)
       && !sL.on.right && !sL.on.hero
       && sF.after === "front" && sF.on && sF.on.front === 2,
       JSON.stringify({sifLeft: sL, sifFront: sF}));
+    var any = runtime.anyLight || {};
+    rec("T-ANY-LIGHT-ANY-VIEW",
+      any.n > 0 && any.badN === 0,
+      any.badN ? JSON.stringify({ n: any.n, badN: any.badN, bad: any.bad }) : (any.n + " SKU×view placements stayed on the clicked view"));
     var ff = runtime.frontFallback || {};
     rec("T-FRONT-FALLBACK-ON-FRONT",
       ["algt","sif","mps63","bumper","xsm2","dr6","stick"].every(function(k){
@@ -1282,6 +1321,7 @@ function finish(srv) {
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width is frontRoofBarW inches over the measured 76-inch body span, not the front-plate percent. Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of the scaled length. Height keeps the sprite aspect.`,
     `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
+    `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

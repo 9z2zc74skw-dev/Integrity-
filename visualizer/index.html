@@ -1138,10 +1138,9 @@ function addNodes(sku, spots, quiet, dest){
   sku=catalogSku(sku);
   var part=CATALOG.find(function(p){return p.sku===sku});
   if(!part || !spots || !spots.length) return;
-  /* Roof bar is stored on Front only. dest is side-view ILS redirect only. */
-  var target=isRoofBar(sku)?"front":(dest||view);
+  /* Current camera. dest is an explicit override, never a view refusal. */
+  var target=dest||view;
   if(!nodes[target]) nodes[target]=[];
-  if(isRoofBar(sku) && target!=="front") return;
   spots.forEach(function(s){
     var id=nid++;
     nodes[target].push({id:id,sku:part.sku,name:part.name,w:part.w||10,x:s.x,y:s.y,scale:1,rot:s.rot||0,side:s.side||null});
@@ -1176,61 +1175,31 @@ function preferView(id){
   if(id && viewExists(id)) return view;
   return view;
 }
-function clickPlace(sku){
+function spotAt(x, y, sku){
+  /* Snap grids stay. A click with no mount still lands on this view. */
+  var g=snapTo(x, y, !snapEnabled, null, sku);
+  return {x:Math.max(0.02,Math.min(0.98,g.x)), y:Math.max(0.02,Math.min(0.98,g.y)), rot:0};
+}
+function clickPlace(sku, x, y){
   sku=catalogSku(sku);
   if(!CATALOG.some(function(p){return p.sku===sku})) return;
-  /* Camera stays. HOME_VIEW is a mount recipe, not permission to jump. */
+  /* Camera stays. HOME_VIEW is a label only — it never picks the view or blocks a SKU. */
   var stay=view;
-  if(isRoofBar(sku)){
-    if(!nodes.front) nodes.front=[];
-    var roofSpots=placeSpots(sku, "front");
-    if(!roofSpots.length){
-      var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
-      roofSpots=[{x:rd[0],y:rd[1],rot:rd[2]||0}];
-    }
-    addNodes(sku, roofSpots, true);
-    view=stay; sel=null;
-    renderStage(); renderTabs(); renderSum(); syncSkuToggles();
-    return;
-  }
   if(!nodes[stay]) nodes[stay]=[];
-  var spots=placeSpots(sku, stay);
-  if(!spots.length){
-    /* Front / Rear / Hero keep historic defaultFor `_` stamp. Left/Right do not
-       — that painted the B-pillar red scrap (ILS half / grille leftovers). */
-    if(stay==="left" || stay==="right"){
-      if(isVisorIls(sku)){
-        var frontSpots=placeSpots(sku, "front");
-        addNodes(sku, oneCurrentSpot(sku, frontSpots), true, "front");
-        view=stay; sel=null;
-        renderStage(); renderTabs(); renderSum(); syncSkuToggles();
-        return;
-      }
-      view=stay;
-      return;
-    }
-    var d=defaultFor(sku);
-    spots=[{x:d.x,y:d.y,rot:d.rot}];
+  var spots;
+  if(typeof x==="number" && typeof y==="number"){
+    spots=[spotAt(x, y, sku)];
+  } else {
+    spots=placeSpots(sku, stay);
+    if(!spots.length) spots=[spotAt(0.5, 0.5, sku)];
+    else spots=oneCurrentSpot(sku, spots);
   }
-  spots=oneCurrentSpot(sku, spots);
   view=stay;
   addNodes(sku, spots);
 }
 function placeFromEvent(e,clamp){
   var sku=catalogSku(resolveDragSku(e));
   if(!sku) return false;
-  if(isVisorIls(sku)){
-    clickPlace(sku);
-    setDragSku(null);
-    return true;
-  }
-  if(isRoofBar(sku) && view!=="front"){
-    var rd=((veh().defaults&&veh().defaults[sku])||DEFAULTS[sku]||{}).front||[0.490,0.248,0];
-    addNode(sku, rd[0], rd[1], rd[2]||0);
-    setDragSku(null);
-    renderTabs();
-    return true;
-  }
   var stage=document.getElementById("stage");
   var r=stage.getBoundingClientRect();
   var g=snapTo((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,isFreePlace(e)||!snapEnabled,null,sku);
@@ -1403,12 +1372,6 @@ function syncSkuToggles(){
   if(d){ d.dataset.on=String(dashLighting); d.classList.toggle("on", dashLighting); }
   if(h){ h.dataset.on=String(rearHatchLights); h.classList.toggle("on", rearHatchLights); }
 }
-function purgeOffFrontBars(){
-  views().forEach(function(v){
-    if(v.id==="front") return;
-    nodes[v.id]=(nodes[v.id]||[]).filter(function(n){ return !isRoofBar(n.sku); });
-  });
-}
 function parseSkuList(text){
   text=(text||"").trim();
   if(!text) return [];
@@ -1458,7 +1421,6 @@ document.getElementById("loadFile").onchange=function(){
 document.getElementById("pdfBtn").onclick=function(){window.print()};
 /* Cold load ignores location.search / hash. Quote # + Load SKUs is the only import path. */
 loadState();
-purgeOffFrontBars();
 syncSkuToggles();
 (function syncPackStamp(){
   var stamp=document.getElementById("packStamp");
