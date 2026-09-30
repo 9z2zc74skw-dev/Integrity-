@@ -236,6 +236,73 @@ function catalogFxLookScan() {
   }
 }
 
+function mpsw9WhiteScan() {
+  /* Pixels outside the lit lens. Housing is the dark bezel; flood from the image
+     edge through everything that is not housing. White LED cores sit inside that
+     ring and do not count. Fail if more than 5% of opaque pixels out there are
+     near-white (all RGB > 220) or the light-gray datasheet surround (sat < 40
+     and every channel > 120 — the leftover block sits near 150, so a pure >220
+     test would miss it). */
+  const py = [
+    "from PIL import Image",
+    "import os, json, sys",
+    "fx=sys.argv[1]",
+    "names=['fx_mpsw9_rb.png','fx_mpsw9_bw.png','fx_mpsw9_rw.png','fx_mpsw9_rbw.png']",
+    "rows=[]; fail=[]",
+    "for n in names:",
+    "    p=os.path.join(fx,n)",
+    "    if not os.path.exists(p):",
+    "        fail.append('missing '+n); continue",
+    "    im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load()",
+    "    housing=[[False]*w for _ in range(h)]",
+    "    opaque=0",
+    "    for y in range(h):",
+    "        for x in range(w):",
+    "            r,g,b,a=px[x,y]",
+    "            if a<20: continue",
+    "            opaque+=1",
+    "            lum=(r+g+b)/3.0; sat=max(r,g,b)-min(r,g,b)",
+    "            if lum<95 and sat<80: housing[y][x]=True",
+    "    dil=[[False]*w for _ in range(h)]",
+    "    for y in range(h):",
+    "        for x in range(w):",
+    "            if not housing[y][x]: continue",
+    "            for dy in (-1,0,1):",
+    "                for dx in (-1,0,1):",
+    "                    yy=y+dy; xx=x+dx",
+    "                    if 0<=yy<h and 0<=xx<w: dil[yy][xx]=True",
+    "    outside=[[False]*w for _ in range(h)]",
+    "    stack=[(x,0) for x in range(w)]+[(x,h-1) for x in range(w)]+[(0,y) for y in range(h)]+[(w-1,y) for y in range(h)]",
+    "    while stack:",
+    "        x,y=stack.pop()",
+    "        if x<0 or y<0 or x>=w or y>=h or outside[y][x] or dil[y][x]: continue",
+    "        outside[y][x]=True",
+    "        stack.append((x+1,y)); stack.append((x-1,y)); stack.append((x,y+1)); stack.append((x,y-1))",
+    "    near=0; gray=0",
+    "    for y in range(h):",
+    "        for x in range(w):",
+    "            r,g,b,a=px[x,y]",
+    "            if a<20 or not outside[y][x]: continue",
+    "            sat=max(r,g,b)-min(r,g,b)",
+    "            if r>220 and g>220 and b>220: near+=1",
+    "            elif sat<40 and min(r,g,b)>120: gray+=1",
+    "    bad=near+gray",
+    "    frac=bad/float(max(opaque,1))",
+    "    ok=frac<=0.05",
+    "    rows.append({'file':n,'w':w,'h':h,'opaque':opaque,'nearWhiteOutside':near,'grayOutside':gray,'frac':round(frac,4),'ok':ok})",
+    "    if not ok: fail.append(n+' '+str(round(frac*100,2))+'%')",
+    "print(json.dumps({'ok':len(fail)==0 and len(rows)==4,'fail':fail,'rows':rows}))",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, path.join(VIZ, "fx")], { encoding: "utf8", maxBuffer: 2 * 1024 * 1024 });
+  if (r.status !== 0) return { ok: false, detail: (r.stderr || r.stdout || "python fail").slice(0, 400) };
+  try {
+    const j = JSON.parse(r.stdout || "{}");
+    return { ok: !!j.ok, rows: j.rows, fail: j.fail, detail: JSON.stringify(j) };
+  } catch (e) {
+    return { ok: false, detail: String(e.message || e) };
+  }
+}
+
 function staticTraps() {
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
   rec("T-NO-CLICK-PAIRS", !/CLICK_PAIRS|CLICK_MULTI|TRUCK_CLICKS|TRUCK_MULTI/.test(html), "duplicate click maps absent");
@@ -1303,15 +1370,17 @@ async function main() {
     var pod = sv.mpsw9Pod || {};
     var podAsp = (pod.nw && pod.nh) ? pod.nw / pod.nh : 0;
     var podBoxAsp = (pod.boxW && pod.boxH) ? pod.boxW / pod.boxH : 99;
+    var white = mpsw9WhiteScan();
     rec("T-MPSW9-POD",
       /fx_mpsw9/.test(pod.fx || "") && /fx_mpsw9/.test(pod.src || "")
       && !/fx_mps_wide|fx_wide_/.test(pod.src || "") && !/fx_mps_wide/.test(sv.mpsw9Fx || "")
       && pod.nw >= 200 && pod.nh >= 80
-      && podAsp > 2.2 && podAsp <= 3
+      && podAsp > 2.2 && podAsp <= 3.6
       && pod.boxW > 8 && pod.boxW < 40 && pod.boxH > 3 && pod.boxH < 20
-      && podBoxAsp <= 3
+      && podBoxAsp <= 3.6
+      && white.ok
       && sv.homeMpsw9 === "left" && sv.homeMpsw9 !== "front",
-      JSON.stringify(pod));
+      JSON.stringify({ pod: pod, podAsp: +podAsp.toFixed(3), podBoxAsp: +podBoxAsp.toFixed(3), white: white.ok ? white.rows : white }));
   }
 
   finish(srv);
@@ -1326,13 +1395,13 @@ function finish(srv) {
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio36 · FX_V: max13`,
+    `- ASSET_V: studio36 · FX_V: max14`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
     `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
-    `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in curved pod (sprite aspect ≤ 3). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.`,
+    `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

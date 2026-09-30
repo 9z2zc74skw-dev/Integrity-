@@ -3,13 +3,13 @@
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio36 · FX_V: max13
+- ASSET_V: studio36 · FX_V: max14
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)
 - studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor `_` unchanged. Plates unchanged.
 - Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.
 - studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.
 - Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.
-- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in curved pod (sprite aspect ≤ 3). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.
+- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -75,6 +75,6 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-ILS-FRONT-ONLY | PASS | {"sifLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"SIFMJS"},"sifFront":{"from":"front","after":"front","on":{"front":2,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":2,"sku":"SIFMJS"}} |
 | T-ANY-LIGHT-ANY-VIEW | PASS | 434 SKU×view placements stayed on the clicked view |
 | T-FRONT-FALLBACK-ON-FRONT | PASS | {"algt":{"after":"front","onFront":1,"lights":1},"sif":{"after":"front","onFront":2,"lights":2},"mps63":{"after":"front","onFront":1,"lights":1},"bumper":{"after":"front","onFront":4,"lights":4},"xsm2":{"after":"front","onFront":1,"lights":1},"dr6":{"after":"front","onFront":1,"lights":1},"stick":{"after":"front","onFront":1,"lights":1}} |
-| T-MPSW9-POD | PASS | {"w":2.39,"fx":"fx_mpsw9_rb.png","boxW":18,"boxH":6,"nw":450,"nh":153,"src":"fx/fx_mpsw9_rbw.png?v=max13"} |
+| T-MPSW9-POD | PASS | {"pod":{"w":2.39,"fx":"fx_mpsw9_rb.png","boxW":18,"boxH":6,"nw":449,"nh":145,"src":"fx/fx_mpsw9_rbw.png?v=max14"},"podAsp":3.097,"podBoxAsp":3,"white":[{"file":"fx_mpsw9_rb.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_bw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rbw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true}]} |
 
 All named traps PASS.
