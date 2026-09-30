@@ -239,10 +239,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio34"/.test(html), "ASSET_V=studio34");
+  rec("T-ASSET-V", /ASSET_V="studio35"/.test(html), "ASSET_V=studio35");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio34"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio34");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio34/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio35"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio35");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio35/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     /stay==="left" \|\| stay==="right"/.test(html) && /var d=defaultFor\(sku\)/.test(html),
     "defaultFor _ stays on Front/Rear/Hero; Left/Right do not invent scraps");
@@ -435,6 +435,42 @@ async function chromeEval(base, fnBody) {
       return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge };
     });
     const rightGhostShot = await shotStage("algt-right");
+    /* Durango Rear ghost of the same Front ALGT. Measure before clearAll. */
+    await page.evaluate(() => { window.__IU_TEST__.setView("rear"); });
+    await waitPlate();
+    await page.waitForFunction(() => {
+      const img = document.querySelector("#stage .ghost-bar.full img");
+      return !!(img && img.complete && img.naturalHeight > 10);
+    }, { timeout: 10000 });
+    const rearBarSit = await page.evaluate(() => {
+      const T = window.__IU_TEST__;
+      const box = T.ghostPlateBox && T.ghostPlateBox();
+      const lights = Array.prototype.map.call(document.querySelectorAll("#stage .light"), function(el){
+        return {
+          sku: (el.querySelector("img") && el.querySelector("img").alt) || "",
+          top: el.style.top,
+          left: el.style.left,
+          transform: el.style.transform
+        };
+      });
+      const durango = {
+        view: T.getView(),
+        ghosts: T.ghostCount(),
+        lights: T.stageLightCount(),
+        lightNodes: lights,
+        box: box,
+        spec: T.ghostSpecForView()
+      };
+      const others = {};
+      ["silverado", "f150"].forEach(function(id){
+        T.setVehicle(id);
+        T.setView("rear");
+        others[id] = T.ghostSpecForView();
+      });
+      T.setVehicle("durango");
+      T.setView("rear");
+      return { durango: durango, others: others };
+    });
     await page.evaluate(() => { window.__IU_TEST__.clearAll(); });
     const afterClearViews = {};
     for (const v of ["left", "right", "front", "hero"]) {
@@ -450,7 +486,7 @@ async function chromeEval(base, fnBody) {
     const runtime = await page.evaluate(fnBody);
     return {
       bareCold, afterPoison, runtime,
-      bareViews, bareShots, leftGhostSit, rightGhostSit,
+      bareViews, bareShots, leftGhostSit, rightGhostSit, rearBarSit,
       leftGhostShot, rightGhostShot, afterClearViews,
     };
   } finally {
@@ -920,9 +956,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio34"
-        && /pack studio34/.test(runtime.bareCold.pack||"")
-        && /studio34/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio35"
+        && /pack studio35/.test(runtime.bareCold.pack||"")
+        && /studio35/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1041,6 +1077,31 @@ async function main() {
         left: { sprite: leftFacts.sprite, bg: leftFacts.bg, imgs: leftFacts.imgs, overflow: leftFacts.overflow, rxRatio: leftFacts.rxRatio, px: leftFacts.px, depthRatio: leftFacts.depthRatio, lenRatio: leftFacts.lenRatio, edge: leftFacts.edge },
         right: { sprite: rightFacts.sprite, bg: rightFacts.bg, imgs: rightFacts.imgs, overflow: rightFacts.overflow, rxRatio: rightFacts.rxRatio, px: rightFacts.px, depthRatio: rightFacts.depthRatio, lenRatio: rightFacts.lenRatio, edge: rightFacts.edge },
       }));
+  }
+
+  {
+    const rear = runtime && runtime.rearBarSit;
+    const d = (rear && rear.durango) || {};
+    const box = d.box || {};
+    const spec = box.spec || d.spec || {};
+    const o = (rear && rear.others) || {};
+    const s = o.silverado || {};
+    const f = o.f150 || {};
+    const oldCenter = (sp) => sp.kind === "full" && sp.x === 50 && sp.y === 20 && !sp.sit;
+    const onRoof = !!(rear
+      && d.view === "rear" && d.ghosts >= 1 && d.lights === 0
+      && box.botPct != null && box.botPct <= 16.5 && box.botPct < 18
+      && box.topPct != null && box.topPct >= 12
+      && spec.kind === "full" && spec.sit === "bottom"
+      && spec.x === 50 && Math.abs(spec.y - 16.4) < 0.001
+      && /100%/.test(box.origin || "")
+      && oldCenter(s) && oldCenter(f));
+    rec("T-REAR-BAR-ON-ROOF", onRoof,
+      rear ? JSON.stringify({
+        topPct: box.topPct, botPct: box.botPct, wPct: box.wPct, midX: box.midX,
+        spec, origin: box.origin, ghosts: d.ghosts, lights: d.lights, lightNodes: d.lightNodes,
+        silverado: s, f150: f
+      }) : "no rear bar measurement");
   }
 
   runtime = runtime && runtime.runtime;
@@ -1204,15 +1265,16 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio34 drawn side end-cap; Front clickPlace unchanged",
+    "# Vector trap log — studio35 Durango rear roof bar above the spoiler",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio34 · FX_V: max12`,
+    `- ASSET_V: studio35 · FX_V: max12`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
-    `- studio34: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). Not a crop of the front sprite and not the 53" run. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
-    `- Look trap: T-SIDE-ENDCAP-LOOK — side bar = drawn end-cap. T-SIDE-ENDCAP-NOT-CROP — no bar-sprite background, width tracks depth not length, no hard cut.`,
+    `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
+    `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+.`,
+    `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

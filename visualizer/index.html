@@ -149,7 +149,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio34 you are on a stale pack">pack studio34</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio35 you are on a stale pack">pack studio35</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -165,7 +165,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio34" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio35" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -219,7 +219,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio34";
+var ASSET_V="studio35";
 var FX_V="max12";
 var DYNA_H=2.2; /* % of plate — 1ft through 6ft share this thickness */
 var DURANGO_VIEWS=[
@@ -351,7 +351,7 @@ function withFrontRoofDefaults(defaults, roofY){
    Durango   42.8% @ y=0.248 (283–720) → 42.4 at x=0.490 (cab is 3px left of plate center)
    Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
-  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4},clicks:null,
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4},rearBar:{x:50,y:16.4,sit:"bottom"},clicks:null,
     pushBar:{front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}},
     platePatch:{front:{white:"fx/oem_hide_durango_front.png"}}},
   silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:truckClicks(0.180),frontRoofBarW:48,barScale:1,barNudge:{dx:0,dy:0},
@@ -822,8 +822,10 @@ function endcapMarkup(end){
 }
 /* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable.
    Only after a user-placed Front ALGT — never a default / bare-plate look.
+   Rear has no second sprite path: the node stays on Front (addNodes refuses
+   a Rear roof node) and this ghost is the only Rear drawing of it.
    Side Y is roof metal, not glass. Durango barNudge.dy=+4 dropped the endcap
-   into the B-pillar (Rusty red-scrap shot). Do not apply that nudge here.
+   into the B-pillar (Rusty red-scrap shot). Do not apply that nudge on sides.
    Side kind is endcap: a drawn end-on housing (depth along the car), not a
    crop of the front LED face and not the 53" run.
    Left = driver end. Right = passenger end.
@@ -831,8 +833,14 @@ function endcapMarkup(end){
 function ghostSpecForView(){
   var bn=veh().barNudge||{dx:0,dy:0};
   var dx=bn.dx||0, dy=bn.dy||0;
-  /* Rear / hero keep the signed sit. Side only: do not apply +4% (B-pillar scrap). */
-  if(view==="rear") return {kind:"full", x:50+dx, y:20+dy};
+  /* Durango rearBar: bottom edge on the roof above the spoiler.
+     barNudge is not applied — center y=20+dy=+4 sat on the glass.
+     Silverado / F-150 keep the historic center sit. Hatch Open is not rear. */
+  if(view==="rear"){
+    var rb=veh().rearBar;
+    if(rb) return {kind:"full", x:rb.x, y:rb.y, sit:rb.sit||"bottom"};
+    return {kind:"full", x:50+dx, y:20+dy};
+  }
   /* 1024² Durango side plates: feet on the roof paint, not in the sky
      and not in the glass. left roof y≈0.330, glass y≈0.344; right roof y≈0.347.
      +0.5 closes the gap that left the housing floating above the white roof.
@@ -872,7 +880,8 @@ function renderGhostBars(stage){
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
     /* Endcap: origin at the drip rail, no extra -100% (that parked the scrap in the sky).
-       Full ghosts keep the historic -100% sit used by T-HERO-GHOST-SIT. */
+       Full ghosts (hero, Durango rear) use sit bottom: translate -100% so spec.y
+       is the bottom edge. That is the sit T-HERO-GHOST-SIT checks. */
     if(spec.kind==="endcap" && spec.sit==="bottom"){
       el.style.transformOrigin="50% 100%";
       el.style.transform="translate(-50%,0)"+(spec.rot?" rotate("+spec.rot+"deg)":"");
