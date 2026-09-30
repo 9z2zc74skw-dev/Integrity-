@@ -351,7 +351,13 @@ function withFrontRoofDefaults(defaults, roofY){
    Durango   42.8% @ y=0.248 (283–720) → 42.4 at x=0.490 (cab is 3px left of plate center)
    Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
-  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4},rearBar:{x:50,y:16.4,sit:"bottom"},clicks:null,
+  durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4},rearBar:{x:50,y:16.4,sit:"bottom"},
+    /* durango_rear.png 1024². At mirror height (y=388) the body paint inside the
+       mirrors is x=187..836 (650px). That span is the ~76" body, not the roof cap
+       and not the mirror heads. Rear bar plate-% = span% * (lengthIn / 76).
+       lengthIn is frontRoofBarW (Durango 42.4, Silverado 48, F-150 50). */
+    rearBody:{in:76, left:187, right:836, plate:1024},
+    clicks:null,
     pushBar:{front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}},
     platePatch:{front:{white:"fx/oem_hide_durango_front.png"}}},
   silverado:{label:"Chevrolet Silverado PPV",short:"Silverado PPV",views:TRUCK_VIEWS_SILVERADO,mounts:withFrontRoof(TRUCK_MOUNTS,0.180),defaults:withFrontRoofDefaults(TRUCK_DEFAULTS,0.180),clicks:truckClicks(0.180),frontRoofBarW:48,barScale:1,barNudge:{dx:0,dy:0},
@@ -830,15 +836,32 @@ function endcapMarkup(end){
    crop of the front LED face and not the 53" run.
    Left = driver end. Right = passenger end.
    w/h are plate % from sideInToPct — side photos are a wider crop than Front. */
+/* Plate % for a full rear bar. Body span on this plate stands for rearBody.in
+   inches. frontRoofBarW is that bar's length in inches (42.4 / 48 / 50).
+   A 48" bar is 48/76 ≈ 63% of the body, then mapped onto the plate. */
+function rearFullWidthPct(v){
+  v=v||veh();
+  var body=v.rearBody;
+  var len=v.frontRoofBarW;
+  if(!body || len==null || !body.in || !body.plate) return null;
+  var span=(body.right-body.left+1)/body.plate*100;
+  return span*len/body.in;
+}
 function ghostSpecForView(){
   var bn=veh().barNudge||{dx:0,dy:0};
   var dx=bn.dx||0, dy=bn.dy||0;
   /* Durango rearBar: bottom edge on the roof above the spoiler.
      barNudge is not applied — center y=20+dy=+4 sat on the glass.
+     Width is real length vs the 76" body, not the front-plate percent.
      Silverado / F-150 keep the historic center sit. Hatch Open is not rear. */
   if(view==="rear"){
     var rb=veh().rearBar;
-    if(rb) return {kind:"full", x:rb.x, y:rb.y, sit:rb.sit||"bottom"};
+    if(rb){
+      var spec={kind:"full", x:rb.x, y:rb.y, sit:rb.sit||"bottom"};
+      var bw=rearFullWidthPct();
+      if(bw!=null) spec.w=+bw.toFixed(3);
+      return spec;
+    }
     return {kind:"full", x:50+dx, y:20+dy};
   }
   /* 1024² Durango side plates: feet on the roof paint, not in the sky
@@ -891,9 +914,13 @@ function renderGhostBars(stage){
       el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
     }
     if(spec.kind==="full"){
-      var w=(fw!=null?fw:(part.w||46))*scale;
-      if(spec.wScale) w*=spec.wScale;
+      /* spec.w is a plate % already scaled (Durango rear). Otherwise the
+         front-plate width. Height stays auto so it follows the sprite
+         aspect and does not squash when the width changes. */
+      var w=spec.w!=null?spec.w:((fw!=null?fw:(part.w||46))*scale);
+      if(spec.w==null && spec.wScale) w*=spec.wScale;
       el.style.width=w+"%";
+      el.style.height="auto";
       el.innerHTML='<img src="'+fx+'" alt="" draggable="false"/>';
     }
     if(spec.kind==="endcap"){
@@ -1462,7 +1489,7 @@ window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView,
+  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView, rearFullWidthPct:rearFullWidthPct,
   syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
   getSel:function(){ return sel; },
   selectById:function(id){

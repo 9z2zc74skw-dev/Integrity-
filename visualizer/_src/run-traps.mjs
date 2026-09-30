@@ -1088,6 +1088,11 @@ async function main() {
     const s = o.silverado || {};
     const f = o.f150 || {};
     const oldCenter = (sp) => sp.kind === "full" && sp.x === 50 && sp.y === 20 && !sp.sit;
+    const expectW = spec.w;
+    const widthOk = expectW > 0 && box.wPct != null && Math.abs(box.wPct - expectW) / expectW <= 0.05;
+    const aspect = 101 / 2076;
+    const ratio = (box.wPct && box.hPct) ? box.hPct / box.wPct : 0;
+    const heightOk = ratio > 0 && Math.abs(ratio - aspect) / aspect <= 0.12;
     const onRoof = !!(rear
       && d.view === "rear" && d.ghosts >= 1 && d.lights === 0
       && box.botPct != null && box.botPct <= 16.5 && box.botPct < 18
@@ -1095,10 +1100,12 @@ async function main() {
       && spec.kind === "full" && spec.sit === "bottom"
       && spec.x === 50 && Math.abs(spec.y - 16.4) < 0.001
       && /100%/.test(box.origin || "")
+      && widthOk && heightOk
       && oldCenter(s) && oldCenter(f));
     rec("T-REAR-BAR-ON-ROOF", onRoof,
       rear ? JSON.stringify({
-        topPct: box.topPct, botPct: box.botPct, wPct: box.wPct, midX: box.midX,
+        topPct: box.topPct, botPct: box.botPct, wPct: box.wPct, hPct: box.hPct,
+        expectW, widthOk, ratio: +ratio.toFixed(4), heightOk, midX: box.midX,
         spec, origin: box.origin, ghosts: d.ghosts, lights: d.lights, lightNodes: d.lightNodes,
         silverado: s, f150: f
       }) : "no rear bar measurement");
@@ -1272,8 +1279,8 @@ function finish(srv) {
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
     `- ASSET_V: studio35 · FX_V: max12`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
-    `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
-    `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+.`,
+    `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width is frontRoofBarW inches over the measured 76-inch body span, not the front-plate percent. Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
+    `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of the scaled length. Height keeps the sprite aspect.`,
     `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
     "",
     "| Trap | Result | Detail |",
