@@ -352,11 +352,11 @@ function withFrontRoofDefaults(defaults, roofY){
    Left/Right stay 24 (short cab-length mark). */
 var VEHICLES={
   durango:{label:"2024 Dodge Durango Pursuit",short:"Durango",views:DURANGO_VIEWS,frontRoofBarW:42.4,barScale:0.88,barNudge:{dx:0,dy:4},rearBar:{x:50,y:16.4,sit:"bottom"},
-    /* durango_rear.png 1024². At mirror height (y=388) the body paint inside the
-       mirrors is x=187..836 (650px). That span is the ~76" body, not the roof cap
-       and not the mirror heads. Rear bar plate-% = span% * (lengthIn / 76).
-       lengthIn is frontRoofBarW (Durango 42.4, Silverado 48, F-150 50). */
-    rearBody:{in:76, left:187, right:836, plate:1024},
+    /* durango_rear.png 1024². Widest body (tail-light / quarter panel, y 55–75%)
+       is x=84..942 = 858px. That span is the ~76" body. Rear bar plate-% =
+       (858/1024) * (lengthIn / 76). lengthIn is frontRoofBarW
+       (42.4" ≈ 46.7% of the plate, 48" ≈ 52.9%, 50" ≈ 55.1%). */
+    rearBody:{in:76, spanPx:858, left:84, right:942, plate:1024},
     clicks:null,
     pushBar:{front:{cx:50,cy:56,w:34,hs:0.88,ty:0.45},hero:{cx:34,cy:54,w:26,hs:0.88,ty:0.45,rot:-5}},
     platePatch:{front:{white:"fx/oem_hide_durango_front.png"}}},
@@ -836,16 +836,18 @@ function endcapMarkup(end){
    crop of the front LED face and not the 53" run.
    Left = driver end. Right = passenger end.
    w/h are plate % from sideInToPct — side photos are a wider crop than Front. */
-/* Plate % for a full rear bar. Body span on this plate stands for rearBody.in
-   inches. frontRoofBarW is that bar's length in inches (42.4 / 48 / 50).
-   A 48" bar is 48/76 ≈ 63% of the body, then mapped onto the plate. */
+/* Plate % for a full rear bar. rearBody.spanPx stands for rearBody.in inches.
+   frontRoofBarW is that bar's length in inches (42.4 / 48 / 50).
+   Durango: 858px = 76", so 42.4" ≈ 46.7% of the plate, 48" ≈ 52.9%, 50" ≈ 55.1%. */
 function rearFullWidthPct(v){
   v=v||veh();
   var body=v.rearBody;
   var len=v.frontRoofBarW;
   if(!body || len==null || !body.in || !body.plate) return null;
-  var span=(body.right-body.left+1)/body.plate*100;
-  return span*len/body.in;
+  var spanPx=body.spanPx;
+  if(spanPx==null && body.left!=null && body.right!=null) spanPx=(body.right-body.left+1);
+  if(!spanPx) return null;
+  return (spanPx/body.plate)*100*(len/body.in);
 }
 function ghostSpecForView(){
   var bn=veh().barNudge||{dx:0,dy:0};
