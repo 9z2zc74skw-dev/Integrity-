@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>ARCHIVED — not the shop tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #111113;
+      --surface: #1c1c1f;
+      --surface-2: #252528;
+      --surface-3: #2c2c30;
+      --border: #333338;
+      --border-light: #3f3f46;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-faint: #71717a;
+      --primary: #3b82f6;
+      --primary-dim: rgba(59,130,246,0.15);
+      --red: #ef4444;
+      --radius: 8px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .brand-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+    }
+    .brand-text { line-height: 1.2; }
+    .brand-text strong { font-size: 13.5px; font-weight: 600; display: block; }
+    .brand-text span { font-size: 11px; color: var(--text-muted); }
+    .header-mid { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    select, input[type="text"] {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-family: inherit;
+      height: 32px;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--primary); }
+    .btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn:hover { background: var(--surface-3); border-color: var(--border-light); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #2563eb; border-color: #2563eb; }
+    .main {
+      display: grid;
+      grid-template-columns: 240px 1fr 220px;
+      flex: 1;
+      min-height: 0;
+    }
+    .panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .panel-right { border-right: none; border-left: 1px solid var(--border); }
+    .panel-head {
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-faint);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .panel-head .badge {
+      background: var(--surface-2);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .search-wrap input { width: 100%; height: 30px; font-size: 12px; }
+    .parts-scroll { flex: 1; overflow-y: auto; padding: 6px; }
+    .parts-scroll::-webkit-scrollbar { width: 5px; }
+    .parts-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .group { margin-bottom: 8px; }
+    .group-title {
+      font-size: 10px; font-weight: 600; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 6px 3px;
+    }
+    .part {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 7px; border-radius: 6px; cursor: grab;
+      border: 1px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+      user-select: none;
+    }
+    .part:hover { background: var(--surface-2); border-color: var(--border); }
+    .part:active { cursor: grabbing; }
+    .part-dot {
+      width: 16px; height: 9px; border-radius: 2px; flex-shrink: 0;
+      background: linear-gradient(90deg, #ef4444 40%, #3b82f6 60%);
+    }
+    .part-info { min-width: 0; }
+    .part-sku { font-size: 12px; font-weight: 600; line-height: 1.2; }
+    .part-name {
+      font-size: 10.5px; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;
+    }
+    .canvas { display: flex; flex-direction: column; min-height: 0; background: #0c0c0e; }
+    .tabs {
+      display: flex; gap: 3px; padding: 8px 10px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      overflow-x: auto; flex-shrink: 0;
+    }
+    .tab {
+      padding: 5px 11px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      background: transparent; border: 1px solid transparent; color: var(--text-muted);
+      cursor: pointer; white-space: nowrap; font-family: inherit; transition: all 0.12s;
+    }
+    .tab:hover { color: var(--text); background: var(--surface-2); }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .tab .n {
+      display: inline-block; min-width: 15px; height: 15px; line-height: 15px;
+      text-align: center; font-size: 10px; background: rgba(255,255,255,0.18);
+      border-radius: 8px; margin-left: 4px; padding: 0 4px; font-weight: 600;
+    }
+    .stage-area {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 8px 16px; min-height: 0; position: relative;
+    }
+    .stage {
+      position: relative; max-width: 100%; max-height: 100%;
+      background: radial-gradient(ellipse at center, #1a1a1e 0%, #0a0a0c 70%);
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+    }
+    .stage img.vehicle {
+      display: block; max-width: 100%; max-height: calc(100vh - 140px);
+      width: auto; height: auto; user-select: none; pointer-events: none;
+      filter: drop-shadow(0 12px 28px rgba(0,0,0,0.45));
+    }
+    .light {
+      position: absolute; cursor: move; transform-origin: center center;
+      z-index: 10; touch-action: none;
+    }
+    .light img {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 0 3px rgba(59,130,246,0.2));
+      pointer-events: none;
+    }
+    /* width is set in JS as % of stage so a 53" bar looks like a 53" bar */
+    .light.selected {
+      outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 3px;
+    }
+    .light .tag {
+      position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%);
+      background: rgba(0,0,0,0.88); color: #fff; font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 4px; white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity 0.15s; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .light.selected .tag, .light:hover .tag { opacity: 1; }
+    .light .ctrls {
+      position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
+      display: none; gap: 2px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .light.selected .ctrls { display: flex; }
+    .light .ctrls button {
+      width: 26px; height: 26px; border: none; background: transparent;
+      color: var(--text-muted); border-radius: 4px; cursor: pointer; font-size: 13px;
+      display: grid; place-items: center; transition: background 0.12s, color 0.12s;
+    }
+    .light .ctrls button:hover { background: var(--surface-2); color: var(--text); }
+    .light .ctrls button.x:hover { background: var(--red); color: #fff; }
+    .stage-bar { display: flex; justify-content: center; gap: 6px; padding: 6px 10px 10px; flex-shrink: 0; }
+    .drop-overlay {
+      position: absolute; inset: 0; background: rgba(59,130,246,0.07);
+      border: 2px dashed var(--primary); border-radius: 10px; display: none;
+      align-items: center; justify-content: center; font-size: 13px; font-weight: 500;
+      color: var(--primary); pointer-events: none; z-index: 20;
+    }
+    .stage.over .drop-overlay { display: flex; }
+    .section { border-bottom: 1px solid var(--border); }
+    .toggles { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; background: var(--surface-2); border-radius: 7px; border: 1px solid var(--border);
+    }
+    .toggle .lbl { font-size: 12.5px; font-weight: 500; }
+    .toggle .lbl small { display: block; color: var(--text-faint); font-size: 10.5px; font-weight: 400; margin-top: 1px; }
+    .sw {
+      width: 36px; height: 20px; background: #3f3f46; border-radius: 10px;
+      position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+    }
+    .sw.on { background: var(--primary); }
+    .sw::after {
+      content: ''; position: absolute; width: 14px; height: 14px; background: #fff;
+      border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .sw.on::after { transform: translateX(16px); }
+    .schemes { padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .scheme {
+      padding: 7px 6px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 500;
+      cursor: pointer; font-family: inherit; text-align: center; transition: all 0.12s;
+    }
+    .scheme:hover { border-color: var(--border-light); color: var(--text); }
+    .scheme.active { border-color: var(--primary); background: var(--primary-dim); color: var(--text); }
+    .summary { padding: 10px 12px; }
+    .sum-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: var(--text-muted); }
+    .sum-row b { color: var(--text); font-weight: 600; }
+    .sum-total { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); font-weight: 500; }
+    @media (max-width: 860px) {
+      .main { grid-template-columns: 1fr; }
+      .panel { max-height: 160px; border-right: none; border-bottom: 1px solid var(--border); }
+      .panel-right { border-left: none; border-top: 1px solid var(--border); max-height: 140px; }
+      .header-mid { display: none; }
+    }
+  </style>
+</head>
+<body>
+<p style="margin:0;padding:12px 16px;background:#111;color:#fbbf24;font:600 14px/1.4 system-ui,sans-serif">ARCHIVED — not the Integrity Upfitters shop tool. Open <code>visualizer/</code> at the repo root.</p>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <strong>Lighting Visualizer</strong>
+        <span>Integrity Upfitters</span>
+      </div>
+    </div>
+    <div class="header-mid">
+      <select id="vehicleSelect">
+        <option value="durango" selected>Dodge Durango Pursuit</option>
+        <option value="piu">Ford PIU (coming)</option>
+        <option value="tahoe">Chevy Tahoe PPV (coming)</option>
+      </select>
+      <input type="text" id="quoteInput" placeholder="Quote #" style="width:90px" />
+      <button class="btn" id="loadBtn">Load SKUs</button>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary" id="pdfBtn">PDF Sign-off</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="panel">
+      <div class="panel-head"><span>Parts</span><span class="badge" id="skuBadge">0</span></div>
+      <div class="search-wrap"><input type="text" id="search" placeholder="Search SKU or name…" /></div>
+      <div class="parts-scroll" id="partsList"></div>
+    </aside>
+
+    <section class="canvas">
+      <div class="tabs" id="tabs"></div>
+      <div class="stage-area">
+        <div class="stage" id="stage">
+          <img class="vehicle" id="vehicleImg" src="durango_front.png" alt="Vehicle" />
+          <div class="drop-overlay">Drop light here</div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn" id="clearView">Clear View</button>
+        <button class="btn" id="clearAll">Clear All</button>
+      </div>
+    </section>
+
+    <aside class="panel panel-right">
+      <div class="section">
+        <div class="panel-head">Build Parameters</div>
+        <div class="toggles">
+          <div class="toggle">
+            <div class="lbl">Push Bar<small>Front bumper guard</small></div>
+            <div class="sw" id="swPush" data-on="false"></div>
+          </div>
+          <div class="toggle">
+            <div class="lbl">Interior Dash<small>Windshield warning</small></div>
+            <div class="sw" id="swDash" data-on="false"></div>
+          </div>
+          <div class="toggle">
+            <div class="lbl">Rear Hatch Lights<small>Liftgate glass stick</small></div>
+            <div class="sw" id="swHatch" data-on="false"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="panel-head">Color Scheme</div>
+        <div class="schemes">
+          <button class="scheme active" data-s="rb">Red / Blue</button>
+          <button class="scheme" data-s="bw">Blue / White</button>
+          <button class="scheme" data-s="rw">Red / White</button>
+          <button class="scheme" data-s="rbw">R / B / W</button>
+        </div>
+      </div>
+      <div class="section" style="border-bottom:none">
+        <div class="panel-head">Placement</div>
+        <div class="summary" id="summary"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const VIEWS = [
+      { id: 'front', label: 'Front', imgW: 'durango_front.png', imgB: 'durango_front_black.png' },
+      { id: 'rear', label: 'Rear', imgW: 'durango_rear.png', imgB: 'durango_rear_black.png' },
+      { id: 'rear_open', label: 'Hatch Open', imgW: 'durango_rear_open.png', imgB: 'durango_rear_open_black.png' },
+      { id: 'left', label: 'Left', imgW: 'durango_left.png', imgB: 'durango_left_black.png' },
+      { id: 'right', label: 'Right', imgW: 'durango_right.png', imgB: 'durango_right_black.png' },
+      { id: 'hero', label: '3/4 View', imgW: 'durango_hero.png', imgB: 'durango_hero_black.png' },
+    ];
+    let bodyColor = 'white'; // 'white' | 'black'
+    /* w = width as % of vehicle image — sized so a ~53" bar looks correct on the roof */
+    const CATALOG = [
+      /* thin bar sprites */
+      { sku: 'ALGT', name: 'Allegiant Roof Lightbar', group: 'Front / Perimeter', fx: 'fx_algt_rb.png', w: 44 },
+      { sku: 'SIFMJS', name: 'SpectraLux ILS Visor (Front)', group: 'Front / Perimeter', fx: 'fx_ils_rb.png', w: 32 },
+      { sku: 'DYNA-1', name: 'DynaFlare 1 ft', group: 'Front / Perimeter', fx: 'fx_dyna_1ft_rb.png', w: 12 },
+      { sku: 'DYNA-2', name: 'DynaFlare 2 ft', group: 'Front / Perimeter', fx: 'fx_dyna_2ft_rb.png', w: 20 },
+      { sku: 'DYNA-5', name: 'DynaFlare 5 ft', group: 'Front / Perimeter', fx: 'fx_dyna_5ft_rb.png', w: 48 },
+      { sku: 'DYNA-6', name: 'DynaFlare 6 ft', group: 'Front / Perimeter', fx: 'fx_dyna_6ft_rb.png', w: 56 },
+      { sku: 'SIFMJH', name: 'SpectraLux ILS (Rear Hatch)', group: 'Rear Hatch', fx: 'fx_ils_rb.png', w: 30 },
+      { sku: 'STICK-RB', name: 'Warning Stick R/B', group: 'Rear Hatch', fx: 'fx_stick_rb.png', w: 26 },
+      /* square product-shot modules — tiny or they look like floating catalog photos */
+      { sku: 'MPS63', name: 'MicroPulse 6-3 Grille', group: 'Front / Perimeter', fx: 'fx_mps63_rb.png', w: 7 },
+      { sku: 'MPSW9', name: 'MicroPulse Wide 9 Mirror', group: 'Front / Perimeter', fx: 'fx_mps123_rb.png', w: 10 },
+      { sku: 'MPS123', name: 'MicroPulse 12-3', group: 'Rear Hatch', fx: 'fx_mps123_rb.png', w: 11 },
+      { sku: 'XSM2', name: 'SpectraLux XSM2 Module', group: 'Rear Hatch', fx: 'fx_mps_small_rb.png', w: 5 },
+      { sku: '416300', name: 'Perimeter Lighthead', group: 'Rear Hatch', fx: 'fx_round_rb.png', w: 3.5 },
+      { sku: 'PF200', name: 'PathFinder PF200 Siren Amp', group: 'Siren / Control', fx: null, w: 6 },
+      { sku: 'ES100C', name: 'ES100C Speaker', group: 'Siren / Control', fx: null, w: 5 },
+      { sku: 'ESBL', name: 'ES100 Speaker Bracket', group: 'Siren / Control', fx: null, w: 5 },
+      { sku: 'OBDFORD', name: 'OBD Interface (Ford)', group: 'Siren / Control', fx: null, w: 5 },
+      { sku: 'EXPMOD24', name: 'Expansion Module 24', group: 'Siren / Control', fx: null, w: 5 },
+    ];
+    let view = 'front', nodes = {}, sel = null, nid = 1, scheme = 'rb', dragSku = null;
+    function fxPath(baseFx) {
+      if (!baseFx) return null;
+      // swap _rb / _bw / _r / _b based on scheme when variant exists conceptually
+      let f = baseFx;
+      if (scheme === 'bw') f = f.replace('_rb.', '_bw.').replace('_r.', '_bw.').replace('_b.', '_bw.');
+      else if (scheme === 'rw') f = f.replace('_rb.', '_r.'); // fallback
+      else if (scheme === 'rbw') f = f.replace('_rb.', '_rb.');
+      return f;
+    }
+    VIEWS.forEach(v => nodes[v.id] = []);
+
+    function renderParts() {
+      const q = (document.getElementById('search').value || '').toLowerCase();
+      const groups = {};
+      CATALOG.forEach(p => {
+        if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return;
+        (groups[p.group] = groups[p.group] || []).push(p);
+      });
+      const el = document.getElementById('partsList');
+      el.innerHTML = '';
+      Object.entries(groups).forEach(([g, items]) => {
+        const div = document.createElement('div');
+        div.className = 'group';
+        div.innerHTML = '<div class="group-title">' + g + '</div>';
+        items.forEach(p => {
+          const row = document.createElement('div');
+          row.className = 'part';
+          row.draggable = true;
+          row.dataset.sku = p.sku;
+          row.innerHTML = '<div class="part-dot"></div><div class="part-info"><div class="part-sku">' + p.sku + '</div><div class="part-name">' + p.name + '</div></div>';
+          row.addEventListener('dragstart', e => { dragSku = p.sku; e.dataTransfer.setData('text/plain', p.sku); e.dataTransfer.effectAllowed = 'copy'; });
+          row.addEventListener('dragend', () => dragSku = null);
+          row.addEventListener('click', () => {
+            const defaults = { ALGT:[0.5,0.18], SIFMJS:[0.5,0.28], MPS63:[0.35,0.48], MPSW9:[0.2,0.42], 'DYNA-1':[0.5,0.55], 'DYNA-2':[0.5,0.55], 'DYNA-5':[0.5,0.55], 'DYNA-6':[0.5,0.55], SIFMJH:[0.5,0.55], 'STICK-RB':[0.5,0.58], MPS123:[0.5,0.62], '416300':[0.7,0.55] };
+            const [dx,dy] = defaults[p.sku] || [0.5, 0.4];
+            addNode(p.sku, dx, dy);
+          });
+          div.appendChild(row);
+        });
+        el.appendChild(div);
+      });
+      document.getElementById('skuBadge').textContent = CATALOG.length;
+    }
+
+    function renderTabs() {
+      const el = document.getElementById('tabs');
+      el.innerHTML = '';
+      VIEWS.forEach(v => {
+        const n = nodes[v.id].length;
+        const b = document.createElement('button');
+        b.className = 'tab' + (v.id === view ? ' active' : '');
+        b.innerHTML = v.label + '<span class="n">' + n + '</span>';
+        b.onclick = () => { view = v.id; sel = null; renderTabs(); renderStage(); renderSum(); };
+        el.appendChild(b);
+      });
+    }
+
+    function renderStage() {
+      const v = VIEWS.find(x => x.id === view);
+      document.getElementById('vehicleImg').src = (bodyColor === 'black' ? v.imgB : v.imgW);
+      document.querySelectorAll('.light').forEach(n => n.remove());
+      const stage = document.getElementById('stage');
+      nodes[view].forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'light' + (p.id === sel ? ' selected' : '');
+        el.dataset.id = p.id;
+        el.style.left = (p.x * 100) + '%';
+        el.style.top = (p.y * 100) + '%';
+        // width as % of stage = realistic size; scale is fine-tune only
+        const baseW = p.w || 20;
+        el.style.width = baseW + '%';
+        el.style.transform = 'translate(-50%,-50%) rotate(' + (p.rot||0) + 'deg) scale(' + (p.scale||1) + ')';
+        const src = p.fx ? 'fx/' + fxPath(p.fx) : null;
+        el.innerHTML = (src
+          ? '<img src="' + src + '" alt="' + p.sku + '" draggable="false">'
+          : '<div style="width:100%;height:12px;background:linear-gradient(90deg,#ef4444,#3b82f6);border-radius:3px;"></div>') +
+          '<div class="tag">' + p.sku + '</div><div class="ctrls"><button data-a="rot" title="Rotate">⟳</button><button data-a="big" title="Larger">+</button><button data-a="sml" title="Smaller">−</button><button data-a="del" class="x" title="Remove">✕</button></div>';
+        el.addEventListener('mousedown', e => { if (e.target.closest('.ctrls')) return; sel = p.id; renderStage(); startDrag(e, p); });
+        el.addEventListener('touchstart', e => { if (e.target.closest('.ctrls')) return; sel = p.id; renderStage(); startDrag(e, p); }, { passive: false });
+        el.querySelectorAll('.ctrls button').forEach(btn => {
+          btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const a = btn.dataset.a;
+            if (a === 'del') { nodes[view] = nodes[view].filter(x => x.id !== p.id); sel = null; }
+            else if (a === 'rot') p.rot = ((p.rot||0) + 15) % 360;
+            else if (a === 'big') p.scale = Math.min(1.8, (p.scale||1) + 0.08);
+            else if (a === 'sml') p.scale = Math.max(0.4, (p.scale||1) - 0.08);
+            renderStage(); renderTabs(); renderSum();
+          });
+        });
+        stage.appendChild(el);
+      });
+    }
+
+    function renderSum() {
+      let total = 0, html = '';
+      VIEWS.forEach(v => { const n = nodes[v.id].length; total += n; html += '<div class="sum-row"><span>' + v.label + '</span><b>' + n + '</b></div>'; });
+      html += '<div class="sum-row sum-total"><span>Total</span><b>' + total + '</b></div>';
+      document.getElementById('summary').innerHTML = html;
+    }
+
+    function addNode(sku, x, y) {
+      const part = CATALOG.find(p => p.sku === sku);
+      if (!part) return;
+      const item = {
+        id: nid++,
+        sku: part.sku,
+        name: part.name,
+        fx: part.fx,
+        w: part.w || 20,
+        x, y,
+        scale: 1,
+        rot: 0
+      };
+      nodes[view].push(item);
+      sel = item.id;
+      renderStage(); renderTabs(); renderSum();
+    }
+
+    function startDrag(e, p) {
+      e.preventDefault();
+      const stage = document.getElementById('stage');
+      const rect = stage.getBoundingClientRect();
+      const touch = e.type.startsWith('touch');
+      const pt = ev => { const t = touch ? ev.touches[0] : ev; return { x: (t.clientX - rect.left) / rect.width, y: (t.clientY - rect.top) / rect.height }; };
+      const move = ev => {
+        const c = pt(ev);
+        p.x = Math.max(0.03, Math.min(0.97, c.x));
+        p.y = Math.max(0.03, Math.min(0.97, c.y));
+        const n = document.querySelector('.light[data-id="' + p.id + '"]');
+        if (n) { n.style.left = (p.x*100)+'%'; n.style.top = (p.y*100)+'%'; }
+      };
+      const up = () => { document.removeEventListener(touch ? 'touchmove' : 'mousemove', move); document.removeEventListener(touch ? 'touchend' : 'mouseup', up); renderStage(); };
+      document.addEventListener(touch ? 'touchmove' : 'mousemove', move, { passive: false });
+      document.addEventListener(touch ? 'touchend' : 'mouseup', up);
+    }
+
+    const stage = document.getElementById('stage');
+    stage.addEventListener('dragover', e => { e.preventDefault(); stage.classList.add('over'); });
+    stage.addEventListener('dragleave', () => stage.classList.remove('over'));
+    stage.addEventListener('drop', e => {
+      e.preventDefault(); stage.classList.remove('over');
+      const sku = e.dataTransfer.getData('text/plain') || dragSku;
+      if (!sku) return;
+      const r = stage.getBoundingClientRect();
+      addNode(sku, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    });
+
+    document.querySelectorAll('.sw').forEach(s => {
+      s.addEventListener('click', () => { const on = s.dataset.on === 'true'; s.dataset.on = String(!on); s.classList.toggle('on', !on); });
+    });
+    document.querySelectorAll('.scheme').forEach(b => {
+      b.addEventListener('click', () => { document.querySelectorAll('.scheme').forEach(x => x.classList.remove('active')); b.classList.add('active'); scheme = b.dataset.s; });
+    });
+    document.getElementById('clearView').onclick = () => { nodes[view] = []; sel = null; renderStage(); renderTabs(); renderSum(); };
+    document.getElementById('clearAll').onclick = () => { VIEWS.forEach(v => nodes[v.id] = []); sel = null; renderStage(); renderTabs(); renderSum(); };
+    document.getElementById('search').oninput = renderParts;
+    document.getElementById('loadBtn').onclick = () => { const q = document.getElementById('quoteInput').value.trim(); if (!q) return alert('Enter a quote number'); alert('Quote ' + q + ' — full SKU import comes after you provide the catalog.'); };
+    document.getElementById('pdfBtn').onclick = () => window.print();
+
+    document.getElementById('bodyColor')?.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        bodyColor = btn.dataset.body;
+        document.querySelectorAll('#bodyColor button').forEach(b => b.classList.toggle('active', b === btn));
+        renderStage();
+      });
+    });
+    
+    // scheme click bind
+    document.querySelectorAll('.schemes button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = (btn.textContent || '').toLowerCase();
+        if (t.includes('red') && t.includes('blue') && !t.includes('white')) scheme = 'rb';
+        else if (t.includes('blue') && t.includes('white')) scheme = 'bw';
+        else if (t.includes('red') && t.includes('white')) scheme = 'rw';
+        else if (t.includes('r / b / w') || t.includes('r/b/w')) scheme = 'rbw';
+        document.querySelectorAll('.schemes button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // update existing nodes' display by re-render
+        renderStage();
+      });
+    });
+
+    renderParts(); renderTabs(); renderStage(); renderSum();
+  </script>
+</body>
+</html>
