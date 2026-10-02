@@ -149,7 +149,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio36 you are on a stale pack">pack studio36</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio37 you are on a stale pack">pack studio37</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -165,7 +165,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio36" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio37" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -219,7 +219,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio36";
+var ASSET_V="studio37";
 var FX_V="max14";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
@@ -892,10 +892,13 @@ function ghostSpecForView(){
     }
     return {kind:"full", x:50+dx, y:20+dy};
   }
-  /* 1024² Durango side plates: feet on the roof paint, not in the sky
-     and not in the glass. left roof y≈0.330, glass y≈0.344; right roof y≈0.347.
-     +0.5 closes the gap that left the housing floating above the white roof.
-     Bottom origin is the sole of the feet. */
+  /* Side and 3/4 ghosts are children of #plateStack, so these percents are
+     plate percents (the stage is shorter than the image, and a stage percent
+     parks the bar in the sky). Rear stays on the stage — do not retune it.
+     y is the foot sole / bar bottom. Measured on the 1024² plates, alpha>200
+     and lum>160: left roof under the end-cap span bottoms at y=340 (33.203%),
+     right at y=358 (34.961%). Hero bar sits just behind the A-pillar (x=454)
+     with the bottom edge on the roof chord (left end lower). */
   var cap=sideEndcapSize();
   var side={
     kind:"endcap", sit:"bottom",
@@ -903,14 +906,12 @@ function ghostSpecForView(){
     lenIn:ALGT_HOUSING.lenIn, depthIn:ALGT_HOUSING.depthIn,
     tallIn:ALGT_HOUSING.tallIn, feetIn:ALGT_HOUSING.feetIn
   };
-  /* y is the foot sole. A hair below the roof highlight so the feet
-     meet white paint (33.0 left / 34.7 right) instead of hanging in the sky. */
-  if(view==="left") return Object.assign({end:"L", x:49, y:34.05}, side);
-  if(view==="right") return Object.assign({end:"R", x:51, y:36}, side);
-  /* 3/4: sit the ghost on the hero cab roof (software only; plate unchanged).
-     Plate roof metal at x=0.47 is y≈0.262–0.273; bottom-origin rotate keeps
-     the contact on the roof instead of lifting the LEDs into the sky. */
-  if(view==="hero") return {kind:"full", x:48.5, y:28.6, rot:-6, wScale:0.62, sit:"bottom"};
+  if(view==="left") return Object.assign({end:"L", x:49, y:33.203}, side);
+  if(view==="right") return Object.assign({end:"R", x:51, y:34.961}, side);
+  /* Hero roof deck behind the A-pillar (vertical edge x=454). A 42.4" bar
+     foreshortened on the 3/4 plate is 180px, from x=594 to 774, on the flat
+     roof (y=257). Ends meet the roof; the crown overlaps by about 3px. */
+  if(view==="hero") return {kind:"full", x:66.797, y:25.098, rot:0, w:17.578, sit:"bottom", apillarX:454};
   return null;
 }
 function renderGhostBars(stage){
@@ -920,6 +921,10 @@ function renderGhostBars(stage){
   if(!front.length) return;
   var scale=veh().barScale!=null?veh().barScale:1;
   var fw=veh().frontRoofBarW;
+  /* Side and 3/4 must be plate percents. Rear stays on the stage so its
+     signed sit (y=16.4 of the stage box) does not move. */
+  var plateHost=document.getElementById("plateStack");
+  var host=(spec.kind==="endcap" || view==="hero") && plateHost ? plateHost : stage;
   front.forEach(function(src){
     var part=CATALOG.find(function(c){return c.sku===src.sku});
     var fx=part?fxFor(part):null;
@@ -930,17 +935,11 @@ function renderGhostBars(stage){
     el.setAttribute("aria-hidden","true");
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
-    /* Endcap: origin at the drip rail, no extra -100% (that parked the scrap in the sky).
-       Full ghosts (hero, Durango rear) use sit bottom: translate -100% so spec.y
-       is the bottom edge. That is the sit T-HERO-GHOST-SIT checks. */
-    if(spec.kind==="endcap" && spec.sit==="bottom"){
-      el.style.transformOrigin="50% 100%";
-      el.style.transform="translate(-50%,0)"+(spec.rot?" rotate("+spec.rot+"deg)":"");
-    } else {
-      var ty=spec.sit==="bottom"?"-100%":"-50%";
-      if(spec.sit==="bottom") el.style.transformOrigin="50% 100%";
-      el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
-    }
+    /* sit bottom: translate -100% so spec.y is the bottom edge (feet / bar sole).
+       Hero rotates about that sole so the ends follow the roof chord. */
+    var ty=spec.sit==="bottom"?"-100%":"-50%";
+    if(spec.sit==="bottom") el.style.transformOrigin="50% 100%";
+    el.style.transform="translate(-50%,"+ty+")"+(spec.rot?" rotate("+spec.rot+"deg)":"");
     if(spec.kind==="full"){
       /* spec.w is a plate % already scaled (Durango rear). Otherwise the
          front-plate width. Height stays auto so it follows the sprite
@@ -958,7 +957,7 @@ function renderGhostBars(stage){
       el.style.backgroundImage="none";
       el.innerHTML=endcapMarkup(spec.end||"L");
     }
-    stage.appendChild(el);
+    host.appendChild(el);
   });
 }
 function clearSelection(){
@@ -1475,11 +1474,84 @@ syncSkuToggles();
 renderParts(); renderTabs(); renderStage(); renderSum();
 assertBareIfEmpty();
 if(totalPlacements()===0){ renderTabs(); renderSum(); }
+function roofYAt(data, w, h, x){
+  x=Math.max(0, Math.min(w-1, Math.round(x)));
+  var y, i, r, g, b, a;
+  for(y=0;y<h;y++){
+    i=(y*w+x)*4;
+    r=data[i]; g=data[i+1]; b=data[i+2]; a=data[i+3];
+    if(a>200 && (r+g+b)/3>160 && (Math.max(r,g,b)-Math.min(r,g,b))<80) return y;
+  }
+  return null;
+}
+function heroApillarX(data, w, h){
+  /* Front cabin post: strongest vertical edge left of the flat roof.
+     The B-pillar sits further right (~657) and is not the limit. */
+  var bestX=454, best=0, x, y, s, n, i, i2, lum, lum2;
+  for(x=400;x<=560;x++){
+    s=0; n=0;
+    for(y=270;y<500;y+=2){
+      i=(y*w+x)*4; i2=(y*w+Math.min(w-1,x+2))*4;
+      if(data[i+3]<180 || data[i2+3]<180) continue;
+      lum=(data[i]+data[i+1]+data[i+2])/3;
+      lum2=(data[i2]+data[i2+1]+data[i2+2])/3;
+      s+=Math.abs(lum-lum2); n++;
+    }
+    if(n>20 && s/n>best){ best=s/n; bestX=x; }
+  }
+  return bestX;
+}
+function roofContact(){
+  var img=document.getElementById("vehicleImg");
+  var g=document.querySelector("#stage .ghost-bar");
+  if(!img || !g || !img.naturalWidth || !g.offsetWidth) return {ok:false, err:"no ghost"};
+  var c=document.createElement("canvas");
+  c.width=img.naturalWidth; c.height=img.naturalHeight;
+  var ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(img,0,0);
+  var data=ctx.getImageData(0,0,c.width,c.height).data;
+  var spec=ghostSpecForView()||{};
+  var parent=g.offsetParent||img.parentElement;
+  var pw=parent.clientWidth||1, ph=parent.clientHeight||1;
+  var scaleX=c.width/pw, scaleY=c.height/ph;
+  var cx=g.offsetLeft*scaleX;
+  var yb=g.offsetTop*scaleY;
+  var gw=g.offsetWidth*scaleX;
+  var gh=g.offsetHeight*scaleY;
+  var rot=(spec.rot||0)*Math.PI/180;
+  var half=gw/2;
+  var soleInset=spec.kind==="endcap" ? gh*3/99 : 0;
+  var n=spec.kind==="endcap"?9:13;
+  var samples=[], maxGap=-1e9, minGap=1e9, frontX=1e9, k, t, dx, x, y, roof, gap;
+  for(k=0;k<n;k++){
+    t=k/(n-1);
+    dx=-half+t*gw;
+    x=cx+dx*Math.cos(rot);
+    y=yb+dx*Math.sin(rot)-soleInset;
+    if(x<frontX) frontX=x;
+    roof=roofYAt(data, c.width, c.height, x);
+    gap=roof==null?null:(roof-y);
+    if(gap!=null){
+      if(gap>maxGap) maxGap=gap;
+      if(gap<minGap) minGap=gap;
+    }
+    samples.push({x:+x.toFixed(1), barY:+y.toFixed(2), roof:roof, gap:gap==null?null:+gap.toFixed(2)});
+  }
+  return {
+    ok:true, view:view, kind:spec.kind,
+    maxGap:maxGap>-1e8?+maxGap.toFixed(2):null,
+    minGap:minGap<1e8?+minGap.toFixed(2):null,
+    frontX:+frontX.toFixed(1),
+    apillar:view==="hero"?heroApillarX(data, c.width, c.height):null,
+    cx:+cx.toFixed(1), yb:+yb.toFixed(2), gw:+gw.toFixed(1), gh:+gh.toFixed(2),
+    samples:samples
+  };
+}
 window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView, rearFullWidthPct:rearFullWidthPct,
+  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView, rearFullWidthPct:rearFullWidthPct, roofContact:roofContact,
   syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
   getSel:function(){ return sel; },
   selectById:function(id){

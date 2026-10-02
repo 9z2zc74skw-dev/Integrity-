@@ -311,10 +311,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio36"/.test(html), "ASSET_V=studio36");
+  rec("T-ASSET-V", /ASSET_V="studio37"/.test(html), "ASSET_V=studio37");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio36"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio36");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio36/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio37"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio37");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio37/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -492,7 +492,7 @@ async function chromeEval(base, fnBody) {
     const leftGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
       const edge = T.endcapEdge ? await T.endcapEdge() : null;
-      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge };
+      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge, contact: T.roofContact && T.roofContact() };
     });
     const leftGhostShot = await shotStage("algt-left");
     await page.evaluate(() => {
@@ -508,7 +508,7 @@ async function chromeEval(base, fnBody) {
     const rightGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
       const edge = T.endcapEdge ? await T.endcapEdge() : null;
-      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge };
+      return { ghosts: T.ghostCount(), box: T.ghostPlateBox && T.ghostPlateBox(), audit: T.stageSpriteAudit(), edge, contact: T.roofContact && T.roofContact() };
     });
     const rightGhostShot = await shotStage("algt-right");
     /* Durango Rear ghost of the same Front ALGT. Measure before clearAll. */
@@ -727,7 +727,8 @@ async function main() {
         spec: T.ghostSpecForView && T.ghostSpecForView(),
         origin: ghost&&ghost.style.transformOrigin,
         topPct: ir&&gr? (gr.top-ir.top)/ir.height*100 : null,
-        botPct: ir&&gr? (gr.bottom-ir.top)/ir.height*100 : null
+        botPct: ir&&gr? (gr.bottom-ir.top)/ir.height*100 : null,
+        contact: T.roofContact && T.roofContact()
       };
 
       T.resetNodes();
@@ -1059,9 +1060,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio36"
-        && /pack studio36/.test(runtime.bareCold.pack||"")
-        && /studio36/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio37"
+        && /pack studio37/.test(runtime.bareCold.pack||"")
+        && /studio37/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1180,6 +1181,18 @@ async function main() {
         left: { sprite: leftFacts.sprite, bg: leftFacts.bg, imgs: leftFacts.imgs, overflow: leftFacts.overflow, rxRatio: leftFacts.rxRatio, px: leftFacts.px, depthRatio: leftFacts.depthRatio, lenRatio: leftFacts.lenRatio, edge: leftFacts.edge },
         right: { sprite: rightFacts.sprite, bg: rightFacts.bg, imgs: rightFacts.imgs, overflow: rightFacts.overflow, rxRatio: rightFacts.rxRatio, px: rightFacts.px, depthRatio: rightFacts.depthRatio, lenRatio: rightFacts.lenRatio, edge: rightFacts.edge },
       }));
+    const gapOk = (c) => !!(c && c.ok && c.maxGap != null && c.maxGap <= 1);
+    const leftC = runtime.leftGhostSit.contact;
+    const rightC = runtime.rightGhostSit.contact;
+    const heroC = runtime.runtime && runtime.runtime.heroSit && runtime.runtime.heroSit.contact;
+    const heroBehind = !!(heroC && heroC.apillar != null && heroC.frontX >= heroC.apillar);
+    rec("T-ROOF-CONTACT",
+      gapOk(leftC) && gapOk(rightC) && gapOk(heroC) && heroBehind,
+      JSON.stringify({
+        left: leftC && { maxGap: leftC.maxGap, minGap: leftC.minGap, frontX: leftC.frontX },
+        right: rightC && { maxGap: rightC.maxGap, minGap: rightC.minGap, frontX: rightC.frontX },
+        hero: heroC && { maxGap: heroC.maxGap, minGap: heroC.minGap, frontX: heroC.frontX, apillar: heroC.apillar },
+      }));
   }
 
   {
@@ -1230,8 +1243,11 @@ async function main() {
     var hs=runtime.heroSit||{};
     var spec=hs.spec||{};
     rec("T-HERO-GHOST-SIT",
-      spec.y>=27.5 && spec.sit==="bottom" && spec.rot<=-5 && spec.rot>=-8 && /100%/.test(hs.origin||""),
-      JSON.stringify({spec:hs.spec, origin:hs.origin}));
+      spec.sit==="bottom" && /100%/.test(hs.origin||"")
+      && spec.y>=24.5 && spec.y<=26.2
+      && Math.abs(spec.rot||0)<=1
+      && spec.x>60 && spec.w>14 && spec.w<22,
+      JSON.stringify({spec:hs.spec, origin:hs.origin, topPct:hs.topPct, botPct:hs.botPct}));
     rec("T-TRUCK-NO-DURANGO-LEAK",
       runtime.trucks.durango.roofY !== runtime.trucks.silverado.roofY
       && runtime.trucks.durango.roofY !== runtime.trucks.f150.roofY
@@ -1390,18 +1406,19 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio36 DynaFlare and MPSW9 sprites",
+    "# Vector trap log — studio37 roof contact",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio36 · FX_V: max14`,
+    `- ASSET_V: studio37 · FX_V: max14`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
     `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
-    `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar, end-caps, and plates unchanged.`,
+    `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.`,
+    `- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
