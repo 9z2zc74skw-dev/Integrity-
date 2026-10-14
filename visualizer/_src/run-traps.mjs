@@ -192,53 +192,6 @@ function fxLookScan() {
   }
 }
 
-function roofBarPhotoScan() {
-  /* Left/Right/3/4 roof art must be a photo cutout, not a flat drawn pod.
-     A procedural fill has a handful of colors and a solid card. */
-  const py = [
-    "from PIL import Image",
-    "import os, json, sys",
-    "fx=sys.argv[1]",
-    "ends=['fx_algt_end_red.png','fx_algt_end_blue.png','fx_algt_end_wht.png']",
-    "heroes=['fx_algt_hero.png','fx_algt_hero_bw.png','fx_algt_hero_rw.png','fx_algt_hero_rbw.png']",
-    "rows=[]; fail=[]",
-    "def scan(name, kind):",
-    "    p=os.path.join(fx,name)",
-    "    if not os.path.exists(p):",
-    "        fail.append('missing '+name); return",
-    "    sz=os.path.getsize(p)",
-    "    im=Image.open(p).convert('RGBA'); w,h=im.size; px=im.load()",
-    "    asp=w/max(h,1.0)",
-    "    bins=set(); step=3",
-    "    for y in range(0,h,step):",
-    "        for x in range(0,w,step):",
-    "            r,g,b,a=px[x,y]",
-    "            if a>30: bins.add((r//8,g//8,b//8))",
-    "    corner=px[2,2][3] if w>4 and h>4 else 255",
-    "    sole=px[w//2, h-1][3]",
-    "    row={'file':name,'w':w,'h':h,'asp':round(asp,3),'bins':len(bins),'sz':sz,'corner':corner,'sole':sole}",
-    "    rows.append(row)",
-    "    if kind=='end':",
-    "        if not (3.05<=asp<=3.4): fail.append(name+' aspect '+str(round(asp,3)))",
-    "        if len(bins)<120: fail.append(name+' flat '+str(len(bins))+' bins')",
-    "        if w<800 or h<200: fail.append(name+' small')",
-    "    else:",
-    "        if not (7.2<=asp<=12): fail.append(name+' aspect '+str(round(asp,3)))",
-    "        if len(bins)<160: fail.append(name+' flat '+str(len(bins))+' bins')",
-    "        if w<1000: fail.append(name+' narrow')",
-    "        if asp>16: fail.append(name+' thin face')",
-    "    if sz<15000: fail.append(name+' tiny file')",
-    "    if corner>20: fail.append(name+' opaque corner')",
-    "    if sole<200: fail.append(name+' transparent sole')",
-    "for n in ends: scan(n,'end')",
-    "for n in heroes: scan(n,'hero')",
-    "print(json.dumps({'ok':len(fail)==0,'fail':fail,'rows':rows}))",
-  ].join("\n");
-  const r = spawnSync("python3", ["-c", py, path.join(VIZ, "fx")], { encoding: "utf8" });
-  if (r.status !== 0) return { ok: false, err: (r.stderr || r.stdout || "python fail").slice(0, 240) };
-  try { return JSON.parse(r.stdout); } catch { return { ok: false, err: "parse " + String(r.stdout).slice(0, 160) }; }
-}
-
 function catalogFxLookScan() {
   /* Catalog lighting SKUs must wire photographic piu art, not CGI thumbs. */
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
@@ -358,10 +311,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio38"/.test(html), "ASSET_V=studio38");
+  rec("T-ASSET-V", /ASSET_V="studio37"/.test(html), "ASSET_V=studio37");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio38"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio38");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio38/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio37"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio37");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio37/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -532,8 +485,9 @@ async function chromeEval(base, fnBody) {
     });
     await waitPlate();
     await page.waitForFunction(() => {
-      const img = document.querySelector(".ghost-bar.endcap img");
-      return !!(img && img.complete && img.naturalWidth > 400 && !document.querySelector(".ghost-bar svg"));
+      const housing = document.querySelector(".ghost-bar.endcap .endcap-housing");
+      const sprite = document.querySelector(".ghost-bar img");
+      return !!housing && !sprite;
     }, { timeout: 10000 });
     const leftGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
@@ -547,8 +501,9 @@ async function chromeEval(base, fnBody) {
     });
     await waitPlate();
     await page.waitForFunction(() => {
-      const img = document.querySelector(".ghost-bar.endcap img");
-      return !!(img && img.complete && img.naturalWidth > 400 && !document.querySelector(".ghost-bar svg"));
+      const housing = document.querySelector(".ghost-bar.endcap .endcap-housing");
+      const sprite = document.querySelector(".ghost-bar img");
+      return !!housing && !sprite;
     }, { timeout: 10000 });
     const rightGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
@@ -768,15 +723,11 @@ async function main() {
       var ghost=document.querySelector(".ghost-bar");
       var ir=img&&img.getBoundingClientRect();
       var gr=ghost&&ghost.getBoundingClientRect();
-      var gim=ghost&&ghost.querySelector("img");
       out.heroSit={
         spec: T.ghostSpecForView && T.ghostSpecForView(),
         origin: ghost&&ghost.style.transformOrigin,
         topPct: ir&&gr? (gr.top-ir.top)/ir.height*100 : null,
         botPct: ir&&gr? (gr.bottom-ir.top)/ir.height*100 : null,
-        src: gim ? (gim.getAttribute("src")||"") : "",
-        nw: gim ? gim.naturalWidth : 0,
-        svg: ghost ? ghost.querySelectorAll("svg").length : 0,
         contact: T.roofContact && T.roofContact()
       };
 
@@ -1109,9 +1060,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio38"
-        && /pack studio38/.test(runtime.bareCold.pack||"")
-        && /studio38/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio37"
+        && /pack studio37/.test(runtime.bareCold.pack||"")
+        && /studio37/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1163,21 +1114,27 @@ async function main() {
       && rg.botPct != null && Math.abs(rg.botPct - rg.spec.y) <= 2.5
       && rg.botPct <= 37 && rg.botPct >= 32,
       JSON.stringify({ left: runtime.leftGhostSit, right: runtime.rightGhostSit }));
-    /* Photo end housing. Width tracks bar depth, not the 53" run.
-       Color comes from the bitmap (driver red, passenger blue on rb). */
+    /* Drawn end-on housing. Width tracks bar depth, not the 53" run.
+       Not a crop: no bar-sprite image, rounded shell, no hard outer wall. */
+    const hexRgb = (hex) => {
+      const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
+      if (!m) return null;
+      const n = parseInt(m[1], 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    };
     const endFacts = (sit, end) => {
       const box = (sit && sit.box) || {};
       const spec = box.spec || {};
       const dom = box.dom || {};
-      const sample = box.sample || {};
+      const edge = (sit && sit.edge) || {};
       const boxIn = (spec.tallIn || 0) + (spec.feetIn || 0);
       const depthRatio = boxIn ? spec.depthIn / boxIn : 0;
       const lenRatio = boxIn ? spec.lenIn / boxIn : 0;
       const px = box.pxRatio || 0;
-      const src = (dom.imgs || []).join(" ");
-      const colorOk = !!(sample.ink > 30 && (end === "L"
-        ? sample.red > sample.blue && sample.red > 8
-        : sample.blue > sample.red && sample.blue > 8));
+      const rgb = hexRgb(dom.lens);
+      const colorOk = !!(rgb && (end === "L"
+        ? rgb.r > 180 && rgb.r > rgb.b + 40
+        : rgb.b > 180 && rgb.b > rgb.r + 40));
       const depthOk = spec.depthIn >= 9 && spec.depthIn <= 13
         && spec.lenIn >= 48 && spec.lenIn <= 60
         && spec.tallIn >= 2.2 && spec.tallIn <= 3.4
@@ -1187,16 +1144,23 @@ async function main() {
         && Math.abs(px - depthRatio) / depthRatio < 0.18
         && px < lenRatio * 0.45
         && Math.abs((box.wPct || 0) - (spec.w || 0)) < 0.5;
-      const photo = /fx_algt_end_/.test(src) && !/algt_max|<svg|endcap-draw/.test(src)
-        && (dom.svg || 0) === 0 && !dom.drawn
-        && sample.nw >= 600 && sample.nh >= 150;
+      const notSprite = !!(dom.drawn && !dom.sprite
+        && (dom.bg === "none" || dom.bg === "")
+        && (!dom.imgs || dom.imgs.length === 0)
+        && dom.overflow !== "hidden"
+        && !(box.sample && box.sample.imgW > (box.sample.boxW || 1) * 2));
+      const rounded = dom.rxRatio >= 0.45
+        && edge.ok === true && edge.hard === false
+        && edge.outerL <= 12 && edge.outerR <= 12
+        && edge.innerL > edge.outerL + 6
+        && edge.innerR > edge.outerR + 6;
       return {
         end: spec.end, kind: spec.kind,
         wPct: box.wPct, hPct: box.hPct, px: +px.toFixed(3),
         depthRatio: +depthRatio.toFixed(3), lenRatio: +lenRatio.toFixed(3),
-        imgs: dom.imgs, svg: dom.svg, drawn: dom.drawn,
-        nw: sample.nw, nh: sample.nh, red: sample.red, blue: sample.blue,
-        colorOk, depthOk, photo,
+        lens: dom.lens, bg: dom.bg, sprite: dom.sprite, imgs: dom.imgs,
+        overflow: dom.overflow, rxRatio: dom.rxRatio, drawn: dom.drawn,
+        edge, colorOk, depthOk, notSprite, rounded,
         placed: !!(spec.kind === "endcap" && spec.end === end && /endcap/.test(box.cls || "")),
       };
     };
@@ -1206,26 +1170,16 @@ async function main() {
       leftFacts.placed && rightFacts.placed
       && leftFacts.colorOk && rightFacts.colorOk
       && leftFacts.depthOk && rightFacts.depthOk
-      && leftFacts.photo && rightFacts.photo
       && leftFacts.wPct > 3 && leftFacts.wPct < 9
       && leftFacts.hPct > 1 && leftFacts.hPct < 3.2,
       JSON.stringify({ left: leftFacts, right: rightFacts }));
-    const heroSit = (runtime.runtime && runtime.runtime.heroSit) || {};
-    const heroSrc = heroSit.src || "";
-    const files = roofBarPhotoScan();
-    const sourceClean = !/function endcapMarkup|endcap-draw|endcap-housing/.test(html);
-    rec("T-ROOF-BAR-PHOTO",
-      leftFacts.photo && rightFacts.photo
-      && /fx_algt_end_red/.test((leftFacts.imgs || []).join(" "))
-      && /fx_algt_end_blue/.test((rightFacts.imgs || []).join(" "))
-      && /fx_algt_hero/.test(heroSrc)
-      && !/algt_max/.test(heroSrc)
-      && (heroSit.svg || 0) === 0
-      && sourceClean
-      && files.ok,
+    rec("T-SIDE-ENDCAP-NOT-CROP",
+      leftFacts.notSprite && rightFacts.notSprite
+      && leftFacts.rounded && rightFacts.rounded
+      && leftFacts.depthOk && rightFacts.depthOk,
       JSON.stringify({
-        left: leftFacts.imgs, right: rightFacts.imgs, hero: heroSrc,
-        sourceClean, files: files.rows || files,
+        left: { sprite: leftFacts.sprite, bg: leftFacts.bg, imgs: leftFacts.imgs, overflow: leftFacts.overflow, rxRatio: leftFacts.rxRatio, px: leftFacts.px, depthRatio: leftFacts.depthRatio, lenRatio: leftFacts.lenRatio, edge: leftFacts.edge },
+        right: { sprite: rightFacts.sprite, bg: rightFacts.bg, imgs: rightFacts.imgs, overflow: rightFacts.overflow, rxRatio: rightFacts.rxRatio, px: rightFacts.px, depthRatio: rightFacts.depthRatio, lenRatio: rightFacts.lenRatio, edge: rightFacts.edge },
       }));
     const gapOk = (c) => !!(c && c.ok && c.maxGap != null && c.maxGap <= 1);
     const leftC = runtime.leftGhostSit.contact;
@@ -1452,20 +1406,19 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio38 photo roof bar",
+    "# Vector trap log — studio37 roof contact",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio38 · FX_V: studio38`,
+    `- ASSET_V: studio37 · FX_V: max14`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
-    `- studio34 carry retired: the side end-cap is no longer a drawn shell. T-ROOF-BAR-PHOTO fails if Left/Right/3/4 roof art is an SVG or a flat fill instead of the photo cutout.`,
+    `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
     `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.`,
     `- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.`,
-    `- studio38: Left/Right and 3/4 roof bars are cut from real Allegiant photos (end housing and a 3/4 face with the housing top), scaled to 11.2in deep and 3.5in tall including the feet. The 3/4 bar is centered on the flat roof behind the A-pillar. Front face sprites, Rear, plates, and placement rules are unchanged.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
