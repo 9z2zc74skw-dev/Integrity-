@@ -311,10 +311,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio37"/.test(html), "ASSET_V=studio37");
+  rec("T-ASSET-V", /ASSET_V="studio39"/.test(html), "ASSET_V=studio39");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio37"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio37");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio37/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio39"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio39");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio39/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -1040,6 +1040,125 @@ async function main() {
         });
       });
       out.anyLight = { n: anyN, bad: anyBad.slice(0, 12), badN: anyBad.length };
+
+      /* T-DEFAULT-RB: every catalog SKU on every view, scheme forced by the Red/Blue button. */
+      document.querySelector('#colorScheme [data-s="rb"]').click();
+      function sampleRb(img){
+        var w0=img.naturalWidth||1, h0=img.naturalHeight||1;
+        var w,h;
+        if(w0/h0>8){ w=240; h=6; }
+        else { w=Math.min(120, w0); h=Math.max(4, Math.round(h0*(w/w0))); }
+        var c=document.createElement("canvas");
+        c.width=w; c.height=h;
+        var ctx=c.getContext("2d",{willReadFrequently:true});
+        ctx.drawImage(img,0,0,w,h);
+        var data=ctx.getImageData(0,0,w,h).data;
+        var op=0, pastel=0, red=0, blue=0, i, r, g, b, a, pink, ice;
+        for(i=0;i<data.length;i+=4){
+          r=data[i]; g=data[i+1]; b=data[i+2]; a=data[i+3];
+          if(a<40) continue;
+          op++;
+          pink=r>180 && g>150 && b>140 && r>=b && r>g-10;
+          ice=b>180 && r>140 && g>150;
+          if(pink||ice) pastel++;
+          if(r>120 && r>g+35 && r>b+35) red++;
+          else if(b>120 && b>r+30 && b>g+15) blue++;
+        }
+        return {op:op, pastel:pastel, frac:op?+(pastel/op).toFixed(3):1, red:red, blue:blue, wh:w+"x"+h};
+      }
+      function fileOf(src){ return String(src||"").split("?")[0].split("/").pop(); }
+      var rbBad=[];
+      var rbChecked=0;
+      var rbSamples={};
+      var rbVehicles=["durango","silverado","f150"];
+      for(var rvi=0;rvi<rbVehicles.length;rvi++){
+        var rbVid=rbVehicles[rvi];
+        T.setVehicle(rbVid);
+        var rbViews=T.views().map(function(v){ return v.id; });
+        for(var rvj=0;rvj<rbViews.length;rvj++){
+          var rbView=rbViews[rvj];
+          for(var rci=0;rci<T.CATALOG.length;rci++){
+            var rbPart=T.CATALOG[rci];
+            T.resetNodes();
+            T.setVehicle(rbVid);
+            T.setView(rbView);
+            T.clickPlace(rbPart.sku, 0.5, 0.5);
+            rbChecked++;
+            var expectFx=T.schemeName(rbPart.fx);
+            var rbImgs=document.querySelectorAll("#stage .light img");
+            if(T.getScheme()!=="rb" || T.getView()!==rbView || !rbImgs.length){
+              rbBad.push(rbVid+"/"+rbView+"/"+rbPart.sku+" miss");
+              continue;
+            }
+            var srcOk=true;
+            var firstImg=rbImgs[0];
+            Array.prototype.forEach.call(rbImgs, function(im){
+              if(fileOf(im.getAttribute("src"))!==expectFx) srcOk=false;
+            });
+            if(!srcOk){
+              rbBad.push(rbVid+"/"+rbView+"/"+rbPart.sku+" src="+fileOf(firstImg.getAttribute("src"))+" expect="+expectFx);
+              continue;
+            }
+            var colorFx=rbPart.fx==="fx_algt_max.png" || /_rb\./.test(rbPart.fx||"");
+            if(!colorFx){
+              if(/_(rw|bw|rbw)\./.test(expectFx)) rbBad.push(rbPart.sku+" hardware took a scheme file");
+              continue;
+            }
+            if(/_(rw|bw|rbw)\./.test(expectFx)){
+              rbBad.push(rbPart.sku+" rb button served "+expectFx);
+              continue;
+            }
+            if(!rbSamples[expectFx]){
+              if(!firstImg.complete || !firstImg.naturalWidth){
+                await new Promise(function(resolve){
+                  var done=function(){ resolve(); };
+                  firstImg.addEventListener("load", done);
+                  firstImg.addEventListener("error", done);
+                  setTimeout(resolve, 2000);
+                });
+              }
+              rbSamples[expectFx]=sampleRb(firstImg);
+            }
+            var sm=rbSamples[expectFx];
+            if(!(sm && sm.frac<=0.20 && sm.red>=20 && sm.blue>=20)){
+              rbBad.push(rbPart.sku+" wash "+JSON.stringify(sm));
+            }
+          }
+        }
+      }
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("front");
+      document.querySelector('#colorScheme [data-s="rb"]').click();
+      T.clickPlace("ALGT53JX-P3LB");
+      function capFill(v){
+        T.setView(v);
+        var lens=document.querySelector("#stage .endcap-lens");
+        var core=document.querySelector("#stage .endcap-lens-core");
+        return {lens:lens&&lens.getAttribute("fill"), core:core&&core.getAttribute("fill")};
+      }
+      var leftCap=capFill("left");
+      var rightCap=capFill("right");
+      T.resetNodes();
+      T.setView("left");
+      T.clickPlace("DR6-RBW", 0.5, 0.42);
+      T.clickPlace("XSM2-BRW-US", 0.78, 0.40);
+      T.clickPlace("ALGT53JX-P3LB", 0.5, 0.3);
+      document.querySelector('#colorScheme [data-s="rw"]').click();
+      var rwSrcs=Array.prototype.map.call(document.querySelectorAll("#stage .light img"), function(im){ return fileOf(im.getAttribute("src")); });
+      document.querySelector('#colorScheme [data-s="rb"]').click();
+      var rbSrcs=Array.prototype.map.call(document.querySelectorAll("#stage .light img"), function(im){ return fileOf(im.getAttribute("src")); });
+      out.defaultRb={
+        checked:rbChecked,
+        badN:rbBad.length,
+        bad:rbBad.slice(0, 8),
+        samples:rbSamples,
+        leftCap:leftCap,
+        rightCap:rightCap,
+        rwSrcs:rwSrcs,
+        rbSrcs:rbSrcs,
+        scheme:T.getScheme()
+      };
       T.resetNodes();
       T.setVehicle("durango");
       T.setView("front");
@@ -1060,9 +1179,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio37"
-        && /pack studio37/.test(runtime.bareCold.pack||"")
-        && /studio37/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio39"
+        && /pack studio39/.test(runtime.bareCold.pack||"")
+        && /studio39/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1375,6 +1494,34 @@ async function main() {
     rec("T-ANY-LIGHT-ANY-VIEW",
       any.n > 0 && any.badN === 0,
       any.badN ? JSON.stringify({ n: any.n, badN: any.badN, bad: any.bad }) : (any.n + " SKU×view placements stayed on the clicked view"));
+    const drb = runtime.defaultRb;
+    const rbHex = (hex) => {
+      const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
+      if (!m) return null;
+      const n = parseInt(m[1], 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    };
+    const isRedFill = (c) => !!(c && c.r > 180 && c.r > c.b + 40 && c.g < 120);
+    const isBlueFill = (c) => !!(c && c.b > 180 && c.b > c.r + 40 && c.r < 120);
+    const capOk = isRedFill(rbHex(drb && drb.leftCap && drb.leftCap.lens))
+      && isBlueFill(rbHex(drb && drb.leftCap && drb.leftCap.core))
+      && isBlueFill(rbHex(drb && drb.rightCap && drb.rightCap.lens))
+      && isRedFill(rbHex(drb && drb.rightCap && drb.rightCap.core));
+    const rwOk = !!(drb && drb.rwSrcs && drb.rwSrcs.length >= 3 && drb.rwSrcs.every((f) => /_rw\./.test(f)));
+    const backOk = !!(drb && drb.rbSrcs && drb.rbSrcs.length >= 3
+      && drb.rbSrcs.every((f) => !/_(rw|bw|rbw)\./.test(f))
+      && drb.rbSrcs.some((f) => f === "fx_dyna_6ft_rb.png")
+      && drb.rbSrcs.some((f) => f === "fx_xsm2_rb.png")
+      && drb.rbSrcs.some((f) => f === "fx_algt_max.png")
+      && drb.scheme === "rb");
+    rec("T-DEFAULT-RB",
+      !!(drb && drb.badN === 0 && drb.checked >= 400 && capOk && rwOk && backOk),
+      drb ? JSON.stringify({
+        checked: drb.checked, badN: drb.badN, bad: drb.bad,
+        leftCap: drb.leftCap, rightCap: drb.rightCap,
+        rwSrcs: drb.rwSrcs, rbSrcs: drb.rbSrcs, scheme: drb.scheme,
+        capOk, rwOk, backOk,
+      }) : "no defaultRb");
     var ff = runtime.frontFallback || {};
     rec("T-FRONT-FALLBACK-ON-FRONT",
       ["algt","sif","mps63","bumper","xsm2","dr6","stick"].every(function(k){
@@ -1406,12 +1553,12 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio37 roof contact",
+    "# Vector trap log — studio39 red/blue default",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio37 · FX_V: max14`,
+    `- ASSET_V: studio39 · FX_V: s39`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
@@ -1419,6 +1566,7 @@ function finish(srv) {
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
     `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.`,
     `- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.`,
+    `- studio39: New placements and the Red/Blue button use R/B on every catalog light and every view. Side end-cap cores are the other primary (not a white mix). DynaFlare _rb photos are tinted so the pale cores stay red and blue. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",

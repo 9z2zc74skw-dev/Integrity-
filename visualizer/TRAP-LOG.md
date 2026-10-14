@@ -1,9 +1,9 @@
-# Vector trap log — studio37 roof contact
+# Vector trap log — studio39 red/blue default
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio37 · FX_V: max14
+- ASSET_V: studio39 · FX_V: s39
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)
 - studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor `_` unchanged. Plates unchanged.
 - Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.
@@ -11,6 +11,7 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 - Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.
 - studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.
 - studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.
+- studio39: New placements and the Red/Blue button use R/B on every catalog light and every view. Side end-cap cores are the other primary (not a white mix). DynaFlare _rb photos are tinted so the pale cores stay red and blue. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -20,9 +21,9 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio37 |
+| T-ASSET-V | PASS | ASSET_V=studio39 |
 | T-NO-HOME-YANK | PASS | clickPlace never assigns camera from HOME_VIEW |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio37 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio39 |
 | T-PACK-STAMP | PASS | header pack stamp present |
 | T-NO-SIDE-FALLBACK-STAMP | PASS | no Left/Right refusal, roof bar not forced to Front, off-front bars not purged |
 | T-MPSW9-NOT-WIDE-BAR | PASS | MPSW9 is the 5.04in pod fx_mpsw9, not fx_mps_wide |
@@ -40,8 +41,8 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-DYNA-HEAD | PASS | 21 dyna fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio37","plateSrc":"durango_front.png?v=studio37","asset":"studio37","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio37","plateSrc":"durango_front.png?v=studio37","asset":"studio37","patchOn":true}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio37","src":"durango_front.png?v=studio37","asset":"studio37"} |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio39","plateSrc":"durango_front.png?v=studio39","asset":"studio39","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio39","plateSrc":"durango_front.png?v=studio39","asset":"studio39","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio39","src":"durango_front.png?v=studio39","asset":"studio39"} |
 | T-OEM-HIDE-ON | PASS | {"patchOn":true} |
 | T-BARE-EVERY-VIEW | PASS | front,rear,rear_open,left,right,hero |
 | T-CLEAR-EVERY-VIEW | PASS | front/left/right/hero empty after Clear All |
@@ -76,7 +77,8 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-CLICKPLACE-STAY-VIEW | PASS | {"stay":{"mpsw9Left":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"MPSW9-BW"},"mpsw9Hero":{"from":"hero","after":"hero","on":{"front":0,"rear":0,"rear_open":0,"left":0,"right":0,"hero":1},"total":1,"sku":"MPSW9-BW"},"mpsw9Front":{"from":"front","after":"front","on":{"front":1,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":1,"sku":"MPSW9-BW"},"mpsw9Right":{"from":"right","after":"right","on":{"front":0,"rear":0,"rear_open":0,"left":0,"right":1,"hero":0},"total":1,"sku":"MPSW9-BW"},"mps63Front":{"from":"front","after":"front","on":{"front":1,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":1,"sku":"MPS63U-RBW"},"xsm2Rear":{"from":"rear","after":"rear","on":{"front":0,"rear":1,"rear_open":0,"left":0,"right":0,"hero":0},"total":1,"sku":"XSM2-BRW-US"},"bumperFront":{"from":"front","after":"front","on":{"front":4,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":4,"sku":"416309-RBW-SMK"},"algtLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"ALGT53JX-P3LB"},"sifLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"SIFMJS"},"sifFront":{"from":"front","after":"front","on":{"front":2,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":2,"sku":"SIFMJS"},"homeMpsw9":"left","homeMir":"left","mpsw9Fx":"fx_mpsw9_rb.png"}} |
 | T-ILS-FRONT-ONLY | PASS | {"sifLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"SIFMJS"},"sifFront":{"from":"front","after":"front","on":{"front":2,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":2,"sku":"SIFMJS"}} |
 | T-ANY-LIGHT-ANY-VIEW | PASS | 434 SKU×view placements stayed on the clicked view |
+| T-DEFAULT-RB | PASS | {"checked":434,"badN":0,"bad":[],"leftCap":{"lens":"#ff2d2d","core":"#2f6dff"},"rightCap":{"lens":"#2f6dff","core":"#ff2d2d"},"rwSrcs":["fx_dyna_6ft_rw.png","fx_xsm2_rw.png","fx_algt_max_rw.png"],"rbSrcs":["fx_dyna_6ft_rb.png","fx_xsm2_rb.png","fx_algt_max.png"],"scheme":"rb","capOk":true,"rwOk":true,"backOk":true} |
 | T-FRONT-FALLBACK-ON-FRONT | PASS | {"algt":{"after":"front","onFront":1,"lights":1},"sif":{"after":"front","onFront":2,"lights":2},"mps63":{"after":"front","onFront":1,"lights":1},"bumper":{"after":"front","onFront":4,"lights":4},"xsm2":{"after":"front","onFront":1,"lights":1},"dr6":{"after":"front","onFront":1,"lights":1},"stick":{"after":"front","onFront":1,"lights":1}} |
-| T-MPSW9-POD | PASS | {"pod":{"w":2.39,"fx":"fx_mpsw9_rb.png","boxW":18,"boxH":6,"nw":449,"nh":145,"src":"fx/fx_mpsw9_rbw.png?v=max14"},"podAsp":3.097,"podBoxAsp":3,"white":[{"file":"fx_mpsw9_rb.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_bw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rbw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true}]} |
+| T-MPSW9-POD | PASS | {"pod":{"w":2.39,"fx":"fx_mpsw9_rb.png","boxW":18,"boxH":6,"nw":449,"nh":145,"src":"fx/fx_mpsw9_rbw.png?v=s39"},"podAsp":3.097,"podBoxAsp":3,"white":[{"file":"fx_mpsw9_rb.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_bw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rbw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true}]} |
 
 All named traps PASS.

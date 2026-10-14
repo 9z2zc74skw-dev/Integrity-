@@ -149,7 +149,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio37 you are on a stale pack">pack studio37</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio39 you are on a stale pack">pack studio39</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -165,7 +165,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio37" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio39" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
         </div>
         <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
@@ -219,8 +219,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio37";
-var FX_V="max14";
+var ASSET_V="studio39";
+var FX_V="s39";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
 var DURANGO_VIEWS=[
@@ -816,8 +816,8 @@ function sideEndcapSize(){
 }
 /* Driver end matches sprite-left of the active Allegiant fx file; passenger
    matches sprite-right. rb/rbw ends are red/blue (white is mid-bar). bw is
-   blue/white. rw is red/white. Lit the same way the bar modules are: the
-   lens is the scheme color, with a whiter core. */
+   blue/white. rw is red/white. The lens is the end's primary. rb/rbw cores
+   are the other primary — a white core made the side bar read red/white. */
 function endcapLensColor(end){
   var part=CATALOG.find(function(c){ return isRoofBar(c.sku); });
   var file=part?schemeName(part.fx):"";
@@ -825,6 +825,13 @@ function endcapLensColor(end){
   if(file.indexOf("_bw.")>=0) return driver?"#2f6dff":"#f4f7ff";
   if(file.indexOf("_rw.")>=0) return driver?"#ff2d2d":"#fff6ea";
   return driver?"#ff2d2d":"#2f6dff";
+}
+function endcapCoreColor(end){
+  var lens=endcapLensColor(end);
+  var part=CATALOG.find(function(c){ return isRoofBar(c.sku); });
+  var file=part?schemeName(part.fx):"";
+  if(file.indexOf("_bw.")>=0 || file.indexOf("_rw.")>=0) return mixWhite(lens, 0.62);
+  return end!=="R"?"#2f6dff":"#ff2d2d";
 }
 function mixWhite(hex, t){
   var n=parseInt(hex.slice(1),16);
@@ -837,7 +844,15 @@ function mixWhite(hex, t){
    Stadium rx is half the shell height — no flat vertical cut. */
 function endcapMarkup(end){
   var lens=endcapLensColor(end);
-  var core=mixWhite(lens, 0.62);
+  var core=endcapCoreColor(end);
+  var part=CATALOG.find(function(c){ return isRoofBar(c.sku); });
+  var file=part?schemeName(part.fx):"";
+  /* rb/rbw: the second color fills half the existing lens. A thin core
+     is shorter than a pixel at side size and mixes back into the lens. */
+  var split=file.indexOf("_bw.")<0 && file.indexOf("_rw.")<0;
+  var cg=split
+    ? (end!=="R" ? {x:165,y:30,w:87,h:18} : {x:78,y:30,w:87,h:18})
+    : {x:108,y:34,w:114,h:8};
   var gid="endcap-lit-"+end;
   return '<svg xmlns="http://www.w3.org/2000/svg" class="endcap-draw" viewBox="0 0 330 99" preserveAspectRatio="none" overflow="visible" aria-hidden="true" focusable="false">'
     +'<defs><filter id="'+gid+'" x="-40%" y="-160%" width="180%" height="420%">'
@@ -849,7 +864,7 @@ function endcapMarkup(end){
     +'<rect class="endcap-housing" x="12" y="8" width="306" height="66" rx="33" fill="#3a4150" stroke="#eef2f7" stroke-width="7"/>'
     +'<rect x="52" y="16" width="226" height="10" rx="5" fill="#c5ceda"/>'
     +'<rect class="endcap-lens" x="78" y="30" width="174" height="18" rx="8" fill="'+lens+'" filter="url(#'+gid+')"/>'
-    +'<rect class="endcap-lens-core" x="108" y="34" width="114" height="8" rx="4" fill="'+core+'"/>'
+    +'<rect class="endcap-lens-core" x="'+cg.x+'" y="'+cg.y+'" width="'+cg.w+'" height="'+cg.h+'" rx="4" fill="'+core+'"/>'
     +'</svg>';
 }
 /* Read-only mirrors of the Front roof bar (piu GhostBar). Not stored, not selectable.
