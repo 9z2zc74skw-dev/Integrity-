@@ -149,7 +149,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio40 you are on a stale pack">pack studio40</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio41 you are on a stale pack">pack studio41</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -165,7 +165,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio40" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio41" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
           <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         </div>
@@ -219,8 +219,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio40";
-var FX_V="s40";
+var ASSET_V="studio41";
+var FX_V="s41";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
 var DURANGO_VIEWS=[
@@ -444,7 +444,7 @@ var DEFAULTS={
 };
 /* One click map per vehicle. Durango map. Trucks use veh().clicks. */
 var CLICK={
-  "ALGT53JX-P3LB":{front:[[0.490,0.248,0]],left:[[0.654,0.3275,0]],right:[[0.346,0.3467,0]],hero:[[0.6519,0.2539,0]]},
+  "ALGT53JX-P3LB":{front:[[0.490,0.248,0]],left:[[0.654,0.3275,0]],right:[[0.346,0.3467,0]],hero:[[0.635,0.271,0]]},
   SIFMJS:{front:[[0.370,0.285,0,"L"],[0.610,0.285,0,"R"]]},
   "DYNA-1":{front:[[0.5,0.66,0]]},
   "DYNA-2":{front:[[0.5,0.66,0]]},
@@ -818,8 +818,8 @@ function sideInToPct(inches){
 function sideBarWidthPct(){
   return +sideInToPct(ALGT_HOUSING.lenIn).toFixed(3);
 }
-/* 3/4 run that stays on the flat roof behind the A-pillar. */
-var HERO_BAR_W=21;
+/* 53" across the hero roof. Flat header span is ~360px (~60"); 53" is ~318px. */
+var HERO_BAR_W=31.055;
 /* Real inches → plate %. Side/3/4 use the side-photo body length.
    Rear uses rearBody (858px = 76"). Front uses frontBody when the
    vehicle has one (Durango bumper span). Truck fronts stay 1% per inch,
@@ -948,11 +948,11 @@ function ghostSpecForView(){
   /* Side and 3/4 are the photo bar at full length, feet on the roof.
      y is the sole. Left roof under the 53" span bottoms at y=334 (32.617%).
      Right cabin roof under the mirrored span bottoms at y=355 (34.668%).
-     Hero span sits on the flat roof behind the A-pillar; the low end is y=260. */
+     Hero feet sit on the windshield header (front of the roof), not the rear skyline. */
   var fullW=sideBarWidthPct();
   if(view==="left") return {kind:"full", sit:"bottom", x:65.4, y:32.75, w:fullW, lenIn:ALGT_HOUSING.lenIn};
   if(view==="right") return {kind:"full", sit:"bottom", x:34.6, y:34.668, w:fullW, lenIn:ALGT_HOUSING.lenIn};
-  if(view==="hero") return {kind:"full", x:65.19, y:25.391, rot:0, w:HERO_BAR_W, sit:"bottom", apillarX:454, lenIn:ALGT_HOUSING.lenIn};
+  if(view==="hero") return {kind:"full", x:63.5, y:27.1, rot:0, w:HERO_BAR_W, sit:"bottom", apillarX:454, lenIn:ALGT_HOUSING.lenIn};
   return null;
 }
 function renderGhostBars(stage){
