@@ -311,10 +311,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio39"/.test(html), "ASSET_V=studio39");
+  rec("T-ASSET-V", /ASSET_V="studio40"/.test(html), "ASSET_V=studio40");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio39"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio39");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio39/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio40"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio40");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio40/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -485,9 +485,8 @@ async function chromeEval(base, fnBody) {
     });
     await waitPlate();
     await page.waitForFunction(() => {
-      const housing = document.querySelector(".ghost-bar.endcap .endcap-housing");
-      const sprite = document.querySelector(".ghost-bar img");
-      return !!housing && !sprite;
+      const img = document.querySelector("#stage .ghost-bar img");
+      return !!(img && img.complete && img.naturalWidth > 200 && /fx_algt_side\.png/.test(img.getAttribute("src") || ""));
     }, { timeout: 10000 });
     const leftGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
@@ -501,9 +500,8 @@ async function chromeEval(base, fnBody) {
     });
     await waitPlate();
     await page.waitForFunction(() => {
-      const housing = document.querySelector(".ghost-bar.endcap .endcap-housing");
-      const sprite = document.querySelector(".ghost-bar img");
-      return !!housing && !sprite;
+      const img = document.querySelector("#stage .ghost-bar img");
+      return !!(img && img.complete && img.naturalWidth > 200 && /fx_algt_side_r\.png/.test(img.getAttribute("src") || ""));
     }, { timeout: 10000 });
     const rightGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
@@ -1084,7 +1082,7 @@ async function main() {
             T.setView(rbView);
             T.clickPlace(rbPart.sku, 0.5, 0.5);
             rbChecked++;
-            var expectFx=T.schemeName(rbPart.fx);
+            var expectFx=(T.fxFor(rbPart)||"").split("?")[0].split("/").pop();
             var rbImgs=document.querySelectorAll("#stage .light img");
             if(T.getScheme()!=="rb" || T.getView()!==rbView || !rbImgs.length){
               rbBad.push(rbVid+"/"+rbView+"/"+rbPart.sku+" miss");
@@ -1131,14 +1129,52 @@ async function main() {
       T.setView("front");
       document.querySelector('#colorScheme [data-s="rb"]').click();
       T.clickPlace("ALGT53JX-P3LB");
-      function capFill(v){
-        T.setView(v);
-        var lens=document.querySelector("#stage .endcap-lens");
-        var core=document.querySelector("#stage .endcap-lens-core");
-        return {lens:lens&&lens.getAttribute("fill"), core:core&&core.getAttribute("fill")};
+      function sampleBar(img){
+        if(!img || !img.naturalWidth) return {red:0, blue:0, white:0, amber:0, op:0};
+        var w=160, h=Math.max(8, Math.round(img.naturalHeight*(160/img.naturalWidth)));
+        var c=document.createElement("canvas");
+        c.width=w; c.height=h;
+        var ctx=c.getContext("2d",{willReadFrequently:true});
+        ctx.drawImage(img,0,0,w,h);
+        var data=ctx.getImageData(0,0,w,h).data;
+        var red=0, blue=0, white=0, amber=0, op=0, i, r, g, b, a;
+        for(i=0;i<data.length;i+=4){
+          r=data[i]; g=data[i+1]; b=data[i+2]; a=data[i+3];
+          if(a<40) continue;
+          op++;
+          if(r>160 && g>120 && g>b+40 && r>b+50) amber++;
+          else if(r>180 && g>180 && b>170) white++;
+          else if(r>140 && r>g+30 && r>b+30) red++;
+          else if(b>140 && b>r+25 && b>g+15) blue++;
+        }
+        return {red:red, blue:blue, white:white, amber:amber, op:op};
       }
-      var leftCap=capFill("left");
-      var rightCap=capFill("right");
+      function waitImg(im){
+        if(!im || (im.complete && im.naturalWidth)) return Promise.resolve();
+        return new Promise(function(resolve){
+          var done=function(){ resolve(); };
+          im.addEventListener("load", done);
+          im.addEventListener("error", done);
+          setTimeout(resolve, 2000);
+        });
+      }
+      async function capFill(v){
+        T.setView(v);
+        var im=document.querySelector("#stage .ghost-bar img");
+        await waitImg(im);
+        var box=im&&im.getBoundingClientRect();
+        var plate=document.getElementById("vehicleImg").getBoundingClientRect();
+        var px=sampleBar(im);
+        return {
+          src:fileOf(im&&im.getAttribute("src")),
+          wPct:box&&plate.width?+(box.width/plate.width*100).toFixed(2):0,
+          svg:!!document.querySelector("#stage .endcap-lens"),
+          red:px.red, blue:px.blue, white:px.white, amber:px.amber
+        };
+      }
+      var leftCap=await capFill("left");
+      var rightCap=await capFill("right");
+      var heroCap=await capFill("hero");
       T.resetNodes();
       T.setView("left");
       T.clickPlace("DR6-RBW", 0.5, 0.42);
@@ -1146,8 +1182,63 @@ async function main() {
       T.clickPlace("ALGT53JX-P3LB", 0.5, 0.3);
       document.querySelector('#colorScheme [data-s="rw"]').click();
       var rwSrcs=Array.prototype.map.call(document.querySelectorAll("#stage .light img"), function(im){ return fileOf(im.getAttribute("src")); });
+      await Promise.all(Array.prototype.map.call(document.querySelectorAll("#stage .light img"), waitImg));
+      var rwBar=sampleBar(document.querySelector("#stage .light.roof-photo img")||document.querySelector("#stage .light img"));
+      var rwXsm=null;
+      Array.prototype.forEach.call(document.querySelectorAll("#stage .light img"), function(im){
+        if(/fx_xsm2_rw/.test(im.getAttribute("src")||"")) rwXsm=sampleBar(im);
+      });
       document.querySelector('#colorScheme [data-s="rb"]').click();
       var rbSrcs=Array.prototype.map.call(document.querySelectorAll("#stage .light img"), function(im){ return fileOf(im.getAttribute("src")); });
+      T.resetNodes();
+      T.setView("front");
+      T.clickPlace("ALGT53JX-P3LB");
+      var frontAlgt=fileOf((document.querySelector("#stage .light img")||{}).getAttribute && document.querySelector("#stage .light img").getAttribute("src"));
+      /* James: a Left DynaFlare must not draw on 3/4, Right, or Rear. */
+      T.resetNodes();
+      T.setVehicle("durango");
+      T.setView("left");
+      T.clickPlace("DR6-RBW", 0.5, 0.42);
+      var stay={};
+      ["left","hero","right","rear","front"].forEach(function(v){
+        T.setView(v);
+        stay[v]={nodes:(T.nodes()[v]||[]).length, lights:document.querySelectorAll("#stage .light").length, skus:(T.nodes()[v]||[]).map(function(n){return n.sku;})};
+      });
+      /* Full-length side bar, not the beacon stub. */
+      T.resetNodes();
+      T.setView("left");
+      T.clickPlace("ALGT53JX-P3LB");
+      var sideLight=document.querySelector("#stage .light");
+      var sideImg=sideLight&&sideLight.querySelector("img");
+      var sidePlate=document.getElementById("vehicleImg").getBoundingClientRect();
+      var sideBox=sideLight&&sideLight.getBoundingClientRect();
+      var sidePlace={
+        src:fileOf(sideImg&&sideImg.getAttribute("src")),
+        wPct:sideBox&&sidePlate.width?+(sideBox.width/sidePlate.width*100).toFixed(2):0,
+        nodes:(T.nodes().left||[]).length,
+        other:(T.nodes().hero||[]).length+(T.nodes().right||[]).length+(T.nodes().front||[]).length
+      };
+      async function placedSeat(v){
+        T.resetNodes();
+        T.setView(v);
+        T.clickPlace("ALGT53JX-P3LB");
+        await waitImg(document.getElementById("vehicleImg"));
+        await waitImg(document.querySelector("#stage .light.roof-photo img"));
+        await new Promise(function(res){ requestAnimationFrame(function(){ requestAnimationFrame(res); }); });
+        return T.placedBarContact();
+      }
+      var placedSeatLeft=await placedSeat("left");
+      var placedSeatRight=await placedSeat("right");
+      var placedSeatHero=await placedSeat("hero");
+      /* Rocker snap row on the side plates. */
+      T.setView("left");
+      var rockL=T.snapTo(0.50, 0.555, false, null, "DR6-RBW");
+      T.setView("right");
+      var rockR=T.snapTo(0.50, 0.568, false, null, "DR6-RBW");
+      var rockNames={
+        left:(T.mounts().left||[]).filter(function(m){return /rocker/i.test(m[2]||"");}).map(function(m){return m[1];}),
+        right:(T.mounts().right||[]).filter(function(m){return /rocker/i.test(m[2]||"");}).map(function(m){return m[1];})
+      };
       out.defaultRb={
         checked:rbChecked,
         badN:rbBad.length,
@@ -1155,8 +1246,18 @@ async function main() {
         samples:rbSamples,
         leftCap:leftCap,
         rightCap:rightCap,
+        heroCap:heroCap,
         rwSrcs:rwSrcs,
         rbSrcs:rbSrcs,
+        rwBar:rwBar,
+        rwXsm:rwXsm,
+        frontAlgt:frontAlgt,
+        stay:stay,
+        sidePlace:sidePlace,
+        placedSeat:{left:placedSeatLeft, right:placedSeatRight, hero:placedSeatHero},
+        rockL:rockL,
+        rockR:rockR,
+        rockNames:rockNames,
         scheme:T.getScheme()
       };
       T.resetNodes();
@@ -1179,9 +1280,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio39"
-        && /pack studio39/.test(runtime.bareCold.pack||"")
-        && /studio39/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio40"
+        && /pack studio40/.test(runtime.bareCold.pack||"")
+        && /studio40/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1285,21 +1386,33 @@ async function main() {
     };
     const leftFacts = endFacts(runtime.leftGhostSit, "L");
     const rightFacts = endFacts(runtime.rightGhostSit, "R");
-    rec("T-SIDE-ENDCAP-LOOK",
-      leftFacts.placed && rightFacts.placed
-      && leftFacts.colorOk && rightFacts.colorOk
-      && leftFacts.depthOk && rightFacts.depthOk
-      && leftFacts.wPct > 3 && leftFacts.wPct < 9
-      && leftFacts.hPct > 1 && leftFacts.hPct < 3.2,
-      JSON.stringify({ left: leftFacts, right: rightFacts }));
-    rec("T-SIDE-ENDCAP-NOT-CROP",
-      leftFacts.notSprite && rightFacts.notSprite
-      && leftFacts.rounded && rightFacts.rounded
-      && leftFacts.depthOk && rightFacts.depthOk,
-      JSON.stringify({
-        left: { sprite: leftFacts.sprite, bg: leftFacts.bg, imgs: leftFacts.imgs, overflow: leftFacts.overflow, rxRatio: leftFacts.rxRatio, px: leftFacts.px, depthRatio: leftFacts.depthRatio, lenRatio: leftFacts.lenRatio, edge: leftFacts.edge },
-        right: { sprite: rightFacts.sprite, bg: rightFacts.bg, imgs: rightFacts.imgs, overflow: rightFacts.overflow, rxRatio: rightFacts.rxRatio, px: rightFacts.px, depthRatio: rightFacts.depthRatio, lenRatio: rightFacts.lenRatio, edge: rightFacts.edge },
-      }));
+    const photoBar = (sit) => {
+      const box = (sit && sit.box) || {};
+      const dom = box.dom || {};
+      const spec = box.spec || {};
+      return {
+        kind: spec.kind, w: spec.w, wPct: box.wPct, hPct: box.hPct,
+        src: (dom.imgs || []).join(" "), drawn: dom.drawn, sprite: dom.sprite,
+        imgW: box.sample && box.sample.imgW
+      };
+    };
+    const leftPhoto = photoBar(runtime.leftGhostSit);
+    const rightPhoto = photoBar(runtime.rightGhostSit);
+    rec("T-SIDE-BAR-FULL",
+      leftPhoto.kind === "full" && rightPhoto.kind === "full"
+      && leftPhoto.w > 22 && leftPhoto.w < 29
+      && leftPhoto.wPct > 22 && leftPhoto.wPct < 29
+      && rightPhoto.wPct > 22 && rightPhoto.wPct < 29
+      && leftPhoto.hPct > 0.35 && leftPhoto.hPct < 6
+      && rightPhoto.hPct > 0.35 && rightPhoto.hPct < 6
+      && /fx_algt_side\.png/.test(leftPhoto.src) && /fx_algt_side_r\.png/.test(rightPhoto.src)
+      && !leftPhoto.drawn && !rightPhoto.drawn,
+      JSON.stringify({ left: leftPhoto, right: rightPhoto }));
+    rec("T-SIDE-BAR-PHOTO",
+      leftPhoto.sprite && rightPhoto.sprite
+      && leftPhoto.imgW > 100 && rightPhoto.imgW > 100
+      && !/endcap/.test((runtime.leftGhostSit.box && runtime.leftGhostSit.box.cls) || ""),
+      JSON.stringify({ left: leftPhoto, right: rightPhoto }));
     const gapOk = (c) => !!(c && c.ok && c.maxGap != null && c.maxGap <= 1);
     const leftC = runtime.leftGhostSit.contact;
     const rightC = runtime.rightGhostSit.contact;
@@ -1503,25 +1616,56 @@ async function main() {
     };
     const isRedFill = (c) => !!(c && c.r > 180 && c.r > c.b + 40 && c.g < 120);
     const isBlueFill = (c) => !!(c && c.b > 180 && c.b > c.r + 40 && c.r < 120);
-    const capOk = isRedFill(rbHex(drb && drb.leftCap && drb.leftCap.lens))
-      && isBlueFill(rbHex(drb && drb.leftCap && drb.leftCap.core))
-      && isBlueFill(rbHex(drb && drb.rightCap && drb.rightCap.lens))
-      && isRedFill(rbHex(drb && drb.rightCap && drb.rightCap.core));
-    const rwOk = !!(drb && drb.rwSrcs && drb.rwSrcs.length >= 3 && drb.rwSrcs.every((f) => /_rw\./.test(f)));
+    const barRb = (cap, fileRe, minW) => !!(cap && fileRe.test(cap.src || "") && !cap.svg
+      && cap.red >= 15 && cap.blue >= 15 && cap.amber <= 40 && cap.wPct > minW);
+    const capOk = !!(drb && barRb(drb.leftCap, /fx_algt_side\.png/, 20)
+      && barRb(drb.rightCap, /fx_algt_side_r\.png/, 20)
+      && barRb(drb.heroCap, /fx_algt_hero/, 16));
+    const rwOk = !!(drb && drb.rwSrcs && drb.rwSrcs.length >= 3 && drb.rwSrcs.every((f) => /_rw\./.test(f))
+      && drb.rwBar && drb.rwBar.red >= 8 && drb.rwBar.white >= 8 && drb.rwBar.amber * 8 < drb.rwBar.white
+      && drb.rwXsm && drb.rwXsm.red >= 8 && drb.rwXsm.white >= 8 && drb.rwXsm.amber * 8 < drb.rwXsm.white);
     const backOk = !!(drb && drb.rbSrcs && drb.rbSrcs.length >= 3
       && drb.rbSrcs.every((f) => !/_(rw|bw|rbw)\./.test(f))
       && drb.rbSrcs.some((f) => f === "fx_dyna_6ft_rb.png")
       && drb.rbSrcs.some((f) => f === "fx_xsm2_rb.png")
-      && drb.rbSrcs.some((f) => f === "fx_algt_max.png")
+      && drb.rbSrcs.some((f) => f === "fx_algt_side.png")
+      && drb.frontAlgt === "fx_algt_max.png"
       && drb.scheme === "rb");
     rec("T-DEFAULT-RB",
       !!(drb && drb.badN === 0 && drb.checked >= 400 && capOk && rwOk && backOk),
       drb ? JSON.stringify({
         checked: drb.checked, badN: drb.badN, bad: drb.bad,
-        leftCap: drb.leftCap, rightCap: drb.rightCap,
-        rwSrcs: drb.rwSrcs, rbSrcs: drb.rbSrcs, scheme: drb.scheme,
+        leftCap: drb.leftCap, rightCap: drb.rightCap, heroCap: drb.heroCap,
+        rwSrcs: drb.rwSrcs, rbSrcs: drb.rbSrcs, rwBar: drb.rwBar, rwXsm: drb.rwXsm,
+        frontAlgt: drb.frontAlgt, scheme: drb.scheme,
         capOk, rwOk, backOk,
       }) : "no defaultRb");
+    const stay = (drb && drb.stay) || {};
+    const stayOk = ["hero", "right", "rear", "front"].every((v) => stay[v] && stay[v].nodes === 0 && stay[v].lights === 0)
+      && stay.left && stay.left.nodes === 1 && stay.left.lights === 1
+      && stay.left.skus && stay.left.skus.length === 1 && stay.left.skus[0] === "DR6-RBW";
+    rec("T-PLACEMENT-STAYS-VIEW", stayOk, JSON.stringify(stay));
+    const side = (drb && drb.sidePlace) || {};
+    rec("T-SIDE-PLACE-FULL",
+      side.nodes === 1 && side.other === 0 && side.wPct > 22 && side.wPct < 29 && /fx_algt_side\.png/.test(side.src || ""),
+      JSON.stringify(side));
+    const seat = (drb && drb.placedSeat) || {};
+    const seatOk = (c) => !!(c && c.ok && c.maxGap != null && c.maxGap <= 1 && c.parent === "plateStack");
+    rec("T-PLACED-BAR-SEAT",
+      seatOk(seat.left) && seatOk(seat.right) && seatOk(seat.hero),
+      JSON.stringify(seat));
+    const rockL = (drb && drb.rockL) || {};
+    const rockR = (drb && drb.rockR) || {};
+    const names = (drb && drb.rockNames) || {};
+    rec("T-ROCKER-SNAP",
+      names.left && names.left.length >= 3 && names.right && names.right.length >= 3
+      && Math.abs((rockL.y || 0) - 0.549) < 0.02
+      && Math.abs((rockR.y || 0) - 0.563) < 0.02,
+      JSON.stringify({ rockL, rockR, names }));
+    rec("T-RW-WHITE",
+      !!(drb && drb.rwBar && drb.rwBar.red >= 8 && drb.rwBar.white >= 8 && drb.rwBar.amber * 8 < drb.rwBar.white
+        && drb.rwXsm && drb.rwXsm.red >= 8 && drb.rwXsm.white >= 8 && drb.rwXsm.amber * 8 < drb.rwXsm.white),
+      JSON.stringify({ rwBar: drb && drb.rwBar, rwXsm: drb && drb.rwXsm }));
     var ff = runtime.frontFallback || {};
     rec("T-FRONT-FALLBACK-ON-FRONT",
       ["algt","sif","mps63","bumper","xsm2","dr6","stick"].every(function(k){
@@ -1553,20 +1697,20 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio39 red/blue default",
+    "# Vector trap log — studio40 photo bar",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio39 · FX_V: s39`,
+    `- ASSET_V: studio40 · FX_V: s40`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
-    `- studio34 carry: Left/Right roof bar is a drawn end-on housing (depth along the car, rounded shell, scheme lens, feet on the roof). T-SIDE-ENDCAP-LOOK / T-SIDE-ENDCAP-NOT-CROP still apply.`,
+    `- studio40: Left, Right, and 3/4 roof bars are photo cutouts of the PIU bar (lens tint only). The passenger cut is its own sprite, not a mirror. Placed bars use plate percents, so a clipped stage cannot float the bar. A placement stays on the view it was placed on. Red/White is red and white. Side views have a rocker snap row. T-SIDE-BAR-FULL, T-SIDE-PLACE-FULL, T-PLACED-BAR-SEAT, T-PLACEMENT-STAYS-VIEW, T-RW-WHITE, T-ROCKER-SNAP.`,
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
     `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.`,
     `- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.`,
-    `- studio39: New placements and the Red/Blue button use R/B on every catalog light and every view. Side end-cap cores are the other primary (not a white mix). DynaFlare _rb photos are tinted so the pale cores stay red and blue. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.`,
+    `- studio39 carry: New placements and the Red/Blue button use R/B on every catalog light and every view. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
