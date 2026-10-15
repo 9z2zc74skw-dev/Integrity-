@@ -20,11 +20,13 @@ An interactive sales/quote visualizer for Integrity Upfitters, letting departmen
 - Export: per-view PNG snapshot of each angle, plus a 5-page PDF sign-off sheet with a department representative signature and date line for formal approval
 
 ## Current build state
-The most recent working version is a bundled/compiled web app (Vite build output — `index.html` + hashed JS/CSS bundles + all vehicle and fx PNG assets, ~43MB total, 67 files). This bundle is fully self-contained and can be hosted on any static web host or opened locally, but it is minified/compiled — there is no separate editable source (no `src/`, no component files, no `package.json`) included in this handoff. If you want an AI coding assistant to keep extending it (new models, new package types, new view angles), the practical path is to treat this brief as the spec and have it rebuilt from scratch in whatever stack that assistant works in, rather than trying to edit the compiled bundle directly.
+**The shop tool is `visualizer/`.** Do not open `archive/compiled-app` or `archive/prototypes` as the app.
 
-Earlier, more editable prototype iterations also exist as single-file HTML documents (self-contained HTML/CSS/JS, easy to paste into a coding assistant and iterate on directly): `piu-quote-visualizer.html`, `piu-layer-viewer.html`, `piu-layer-viewer-fixed.html`, `piu-layer-viewer-working.html`. These predate the Tahoe/Durango expansion and the final PDF sign-off sheet feature, but they're a better starting point for further AI-assisted editing since they're plain readable code.
+`visualizer/index.html` is the editable source of truth (Durango, Silverado PPV, F-150 PPV, FedSig SKU catalog, click maps, scheme sprites).
 
-## Suggested next steps to hand to Grok
-1. Share this brief plus one of the single-file HTML prototypes as a starting point.
-2. Ask Grok to bring the prototype up to feature parity with the compiled build described above (Tahoe + Durango support, fx overlay layering, Wagoner preset, 5-page PDF sign-off export).
-3. From there, continue whatever new features you want (additional vehicle models, package types, etc.) directly in that environment.
+The older Vite bundle and PIU HTML experiments are parked under `archive/` so they cannot be mistaken for the live tool. They are reference capital only.
+
+## Suggested next steps
+1. Open `visualizer/` and `visualizer/TRAP-LOG.md`.
+2. Do not merge a feature branch just to publish GitHub Pages. Pages deploys `visualizer/` from `main` / `master` only.
+3. Live QuickBooks OAuth is not wired; Load SKUs imports a JSON/text list through the same click rules.

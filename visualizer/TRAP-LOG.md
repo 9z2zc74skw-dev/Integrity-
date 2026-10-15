@@ -1,0 +1,89 @@
+# Vector trap log — studio41 photo bar
+
+Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
+
+- Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
+- ASSET_V: studio41 · FX_V: s41
+- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)
+- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor `_` unchanged. Plates unchanged.
+- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.
+- studio41: The 3/4 Allegiant is the PIU front-3/4 bar (feet included), lens tint only, seated on the windshield header at about 53in. Left and Right stay the studio40 cuts. Placed bars use plate percents, so a clipped stage cannot float the bar. A placement stays on the view it was placed on. Red/White is red and white. Side views have a rocker snap row.
+- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.
+- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.
+- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.
+- studio39 carry: New placements and the Red/Blue button use R/B on every catalog light and every view. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.
+
+| Trap | Result | Detail |
+|---|---|---|
+| T-NO-CLICK-PAIRS | PASS | duplicate click maps absent |
+| T-PRINT-LABEL | PASS | chrome says Print, not Sign-off |
+| T-LOAD-WIRED | PASS | Load SKUs present, no soon |
+| T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
+| T-ONE-ROOF-SKU | PASS | one roof SKU row |
+| T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
+| T-ASSET-V | PASS | ASSET_V=studio41 |
+| T-NO-HOME-YANK | PASS | clickPlace never assigns camera from HOME_VIEW |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio41 |
+| T-PACK-STAMP | PASS | header pack stamp present |
+| T-NO-SIDE-FALLBACK-STAMP | PASS | no Left/Right refusal, roof bar not forced to Front, off-front bars not purged |
+| T-MPSW9-NOT-WIDE-BAR | PASS | MPSW9 is the 5.04in pod fx_mpsw9, not fx_mps_wide |
+| T-OEM-HIDE-FILE | PASS | Front OEM-hide overlay present |
+| T-URL-NO-SEED | PASS | no URL/hash auto-place |
+| T-NO-RESTORE-NODES | PASS | loadState does not rehydrate placements; v1 wiped; empty boot strips sprites |
+| T-BARE-PLATE-PIXELS | PASS | signed+black plates LED/amber pixels=0 durango_front.png=0 durango_front_black.png=0 durango_hero.png=0 durango_hero_black.png=0 |
+| T-BARE-SIDE-GLASS | PASS | side B-pillar/glass LED pixels=0 durango_left.png=0 durango_left_black.png=0 durango_right.png=0 durango_right_black.png=0 |
+| T-ARCHIVE-TREE | PASS | leftovers parked under archive/ |
+| T-PAGES-HONEST | PASS | root README does not promise Pages URL |
+| T-PLATE-HASHES | PASS | durango_front.png unchanged; durango_right.png unchanged; durango_rear.png unchanged; durango_rear_open.png unchanged; durango_left.png unchanged; durango_hero.png unchanged |
+| T-FX-LOOK | PASS | {"ok":true,"n":21,"fail":[],"minBytes":13519,"maxH":72} |
+| T-CATALOG-FX-LOOK | PASS | {"ok":true,"fail":[],"n":9} |
+| T-FX-HEAD | PASS | 75 fx 200 |
+| T-DYNA-HEAD | PASS | 21 dyna fx 200 |
+| T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
+| T-CHROME-RUNTIME | PASS | evaluated |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio41","plateSrc":"durango_front.png?v=studio41","asset":"studio41","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio41","plateSrc":"durango_front.png?v=studio41","asset":"studio41","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio41","src":"durango_front.png?v=studio41","asset":"studio41"} |
+| T-OEM-HIDE-ON | PASS | {"patchOn":true} |
+| T-BARE-EVERY-VIEW | PASS | front,rear,rear_open,left,right,hero |
+| T-CLEAR-EVERY-VIEW | PASS | front/left/right/hero empty after Clear All |
+| T-BARE-SIDE-LOOK | PASS | {"left":{"ok":true,"n":0},"right":{"ok":true,"n":0},"leftClear":{"ok":true,"n":0}} |
+| T-GHOST-NOT-IN-GLASS | PASS | {"left":{"ok":true,"n":0},"right":{"ok":true,"n":0}} |
+| T-GHOST-SIDE-SIT | PASS | {"left":{"ghosts":1,"box":{"topPct":32.0629222972973,"botPct":32.7491554054054,"midX":65.39907094594595,"wPct":25.14991554054054,"hPct":0.6862331081081081,"pxW":186.109375,"pxH":5.078125,"pxRatio":36.64923076923077,"spec":{"kind":"full","sit":"bottom","x":65.4,"y":32.75,"w":25.15,"lenIn":53},"origin":"50% 100%","cls":"ghost-bar full","sample":{"red":317,"blue":493,"ink":905,"imgW":182.9,"boxW":186,"boxH":5},"dom":{"bg":"none","imgs":["fx/fx_algt_side.png?v=s41"],"sprite":true,"overflow":"visible","maxWidth":"none","rx":0,"housingH":0,"rxRatio":0,"lens":"","drawn":false}},"audit":{"lights":[],"ghosts":[{"cls":"ghost-bar full","left":"65.4%","top":"32.75%","origin":"50% 100%","transform":"translate(-50%, -100%)"}]},"edge":{"ok":false,"err":"no svg"},"contact":{"ok":true,"view":"left","kind":"full","maxGap":0.12,"minGap":-3.88,"frontX":541.1,"apillar":null,"cx":669.8,"yb":334.88,"gw":257.4,"gh":6.92,"samples":[{"x":541.1,"barY":334.88,"roof":335,"gap":0.12},{"x":562.5,"barY":334.88,"roof":334,"gap":-0.88},{"x":584,"barY":334.88,"roof":333,"gap":-1.88},{"x":605.4,"barY":334.88,"roof":333,"gap":-1.88},{"x":626.9,"barY":334.88,"roof":332,"gap":-2.88},{"x":648.3,"barY":334.88,"roof":332,"gap":-2.88},{"x":669.8,"barY":334.88,"roof":332,"gap":-2.88},{"x":691.2,"barY":334.88,"roof":332,"gap":-2.88},{"x":712.6,"barY":334.88,"roof":331,"gap":-3.88},{"x":734.1,"barY":334.88,"roof":331,"gap":-3.88},{"x":755.5,"barY":334.88,"roof":331,"gap":-3.88},{"x":777,"barY":334.88,"roof":331,"gap":-3.88},{"x":798.4,"barY":334.88,"roof":331,"gap":-3.88}]}},"right":{"ghosts":1,"box":{"topPct":33.54096283783784,"botPct":34.66638513513514,"midX":34.59881756756757,"wPct":25.14991554054054,"hPct":1.1254222972972971,"pxW":186.109375,"pxH":8.328125,"pxRatio":22.347091932457786,"spec":{"kind":"full","sit":"bottom","x":34.6,"y":34.668,"w":25.15,"lenIn":53},"origin":"50% 100%","cls":"ghost-bar full","sample":{"red":492,"blue":653,"ink":1432,"imgW":178.7,"boxW":186,"boxH":8},"dom":{"bg":"none","imgs":["fx/fx_algt_side_r.png?v=s41"],"sprite":true,"overflow":"visible","maxWidth":"none","rx":0,"housingH":0,"rxRatio":0,"lens":"","drawn":false}},"audit":{"lights":[],"ghosts":[{"cls":"ghost-bar full","left":"34.6%","top":"34.668%","origin":"50% 100%","transform":"translate(-50%, -100%)"}]},"edge":{"ok":false,"err":"no svg"},"contact":{"ok":true,"view":"right","kind":"full","maxGap":-1.63,"minGap":-3.63,"frontX":225.6,"apillar":null,"cx":354.2,"yb":355.63,"gw":257.4,"gh":11.07,"samples":[{"x":225.6,"barY":355.63,"roof":354,"gap":-1.63},{"x":247,"barY":355.63,"roof":353,"gap":-2.63},{"x":268.5,"barY":355.63,"roof":353,"gap":-2.63},{"x":289.9,"barY":355.63,"roof":353,"gap":-2.63},{"x":311.4,"barY":355.63,"roof":352,"gap":-3.63},{"x":332.8,"barY":355.63,"roof":352,"gap":-3.63},{"x":354.2,"barY":355.63,"roof":352,"gap":-3.63},{"x":375.7,"barY":355.63,"roof":352,"gap":-3.63},{"x":397.1,"barY":355.63,"roof":352,"gap":-3.63},{"x":418.6,"barY":355.63,"roof":352,"gap":-3.63},{"x":440,"barY":355.63,"roof":353,"gap":-2.63},{"x":461.5,"barY":355.63,"roof":353,"gap":-2.63},{"x":482.9,"barY":355.63,"roof":354,"gap":-1.63}]}}} |
+| T-SIDE-BAR-FULL | PASS | {"left":{"kind":"full","w":25.15,"wPct":25.14991554054054,"hPct":0.6862331081081081,"src":"fx/fx_algt_side.png?v=s41","drawn":false,"sprite":true,"imgW":182.9},"right":{"kind":"full","w":25.15,"wPct":25.14991554054054,"hPct":1.1254222972972971,"src":"fx/fx_algt_side_r.png?v=s41","drawn":false,"sprite":true,"imgW":178.7}} |
+| T-SIDE-BAR-PHOTO | PASS | {"left":{"kind":"full","w":25.15,"wPct":25.14991554054054,"hPct":0.6862331081081081,"src":"fx/fx_algt_side.png?v=s41","drawn":false,"sprite":true,"imgW":182.9},"right":{"kind":"full","w":25.15,"wPct":25.14991554054054,"hPct":1.1254222972972971,"src":"fx/fx_algt_side_r.png?v=s41","drawn":false,"sprite":true,"imgW":178.7}} |
+| T-ROOF-CONTACT | PASS | {"left":{"maxGap":0.12,"minGap":-3.88,"frontX":541.1},"right":{"maxGap":-1.63,"minGap":-3.63,"frontX":225.6},"hero":{"maxGap":-11.14,"minGap":-24.14,"frontX":491.2,"apillar":454}} |
+| T-REAR-BAR-ON-ROOF | PASS | {"topPct":13.205236486486486,"botPct":15.479307432432432,"wPct":46.74408783783784,"hPct":2.2740709459459456,"expectW":46.745,"specOk":true,"widthOk":true,"ratio":0.0486,"heightOk":true,"midX":50,"spec":{"kind":"full","x":50,"y":16.4,"sit":"bottom","w":46.745},"origin":"50% 100%","ghosts":1,"lights":0,"lightNodes":[],"silverado":{"kind":"full","x":50,"y":20},"f150":{"kind":"full","x":50,"y":20}} |
+| T-CLICKPLACE-ALL | PASS | durango/front=35 durango/left=31 durango/rear=36 silverado/front=35 silverado/left=31 silverado/rear=36 f150/front=35 f150/left=31 f150/rear=36 |
+| T-ROOF-FRONT-ONLY | PASS | roof clickPlace stays on the current view |
+| T-HERO-GHOST-SIT | PASS | {"spec":{"kind":"full","x":63.5,"y":27.1,"rot":0,"w":31.055,"sit":"bottom","apillarX":454,"lenIn":53},"origin":"50% 100%","topPct":27.09881756756757,"botPct":27.09881756756757} |
+| T-TRUCK-NO-DURANGO-LEAK | PASS | {"d":{"roofY":0.248,"frontBarW":42.4,"clickRoofY":0.248,"skuCount":31,"pushBar":{"cx":50,"cy":56,"w":34,"hs":0.88,"ty":0.45}},"s":{"roofY":0.18,"frontBarW":48,"clickRoofY":0.18,"skuCount":31,"pushBar":{"cx":50,"cy":58,"w":42,"hs":0.88,"ty":0.45}},"f":{"roofY":0.162,"frontBarW":50,"clickRoofY":0.162,"skuCount":31,"pushBar":{"cx":50,"cy":59,"w":44,"hs":0.88,"ty":0.45}}} |
+| T-TRUCK-FULL-MAP | PASS | silverado 31/31 f150 31/31 |
+| T-PUSHBAR-PER-PLATE | PASS | {"d":{"cx":50,"cy":56,"w":34,"hs":0.88,"ty":0.45},"s":{"cx":50,"cy":58,"w":42,"hs":0.88,"ty":0.45},"f":{"cx":50,"cy":59,"w":44,"hs":0.88,"ty":0.45}} |
+| T-SCHEME-FILES | PASS | rb/bw/rw/rbw sprites HEAD 200 |
+| T-SCHEME-PIXEL-OWNER | PASS | each scheme requests different sprite set |
+| T-RBW-CONTROL | PASS | btn=true hidden=false |
+| T-LOAD-SKUS | PASS | [["ALGT53JX-P3LB",true],["SIFMJS",true],["MPS63U-RBW",true],["MPS123U-RBW",true]] |
+| T-VISOR-W | PASS | SIFMJS w=14 (per shroud) |
+| T-VISOR-SPLIT | PASS | {"count":2,"xs":[0.37,0.61],"w":14,"gap":0.10000000000000003,"sides":["L","R"],"lights":["light ils-half ils-L","light ils-half ils-R"],"dashWhileParts":true,"afterOwnOn":2,"afterOwnOff":0,"afterDashOn":2,"afterDashOff":0,"centered":false} |
+| T-TOGGLES-ONE-OWNER | PASS | {"dashOn":true,"dashOnCount":2,"dashOff":false,"hatchOn":true,"hatchOff":false} |
+| T-PRINT-RUNTIME | PASS | button=Print |
+| T-LOAD-LABEL | PASS | button=Load SKUs |
+| T-ONE-PARTS-CLICK | PASS | {"one":{"unique":["ALGT53JX-P3LB"],"placements":1,"lights":1},"left":1,"hero":1} |
+| T-CLEAR-ALL-BARE | PASS | {"placements":0,"lights":0,"ghosts":0,"overlays":0,"dash":false,"hatch":false,"push":false} |
+| T-DYNA-CLICKPLACE | PASS | DYNA-1=1 DYNA-2=1 DYNA-S=1 DYNA-X=1 DR1-RBK-SMK=1 DR6-RBW=1 |
+| T-DYNA-LOOK | PASS | slim alpha stick, not a 623-byte/thumbnail product card; dyna-stick + fx_dyna src; on-vehicle module aspect |
+| T-DOCK-FOLLOWS-SELECTION | PASS | {"before":{"on":true,"gapAbove":6.01092529296875,"gapBelow":-79.91717529296875,"dx":0,"dockTop":277.59375,"lightTop":345.60467529296875,"lightBottom":357.51092529296875,"visor":true},"moved":{"lightDx":0.07999999999999996,"lightDy":0.10000000000000003,"visualLightDy":74,"dockDy":74,"after":{"on":true,"gapAbove":6.01092529296875,"gapBelow":-79.91717529296875,"dx":0,"dockTop":351.59375,"lightTop":419.60467529296875,"lightBottom":431.51092529296875,"visor":true}},"afterClear":{"on":false,"gapAbove":null,"gapBelow":null,"dx":null,"dockTop":null,"lightTop":null,"lightBottom":null,"visor":false},"adjacent":true,"followed":true} |
+| T-DOCK-RELEASES-AFTER-DROP | PASS | {"afterClickPlace":{"lights":1,"selected":0,"dockOn":false,"sel":null},"afterClickLight":{"lights":1,"selected":1,"dockOn":true,"sel":1},"afterEmpty":{"lights":1,"selected":0,"dockOn":false,"sel":null},"afterClearView":{"lights":0,"selected":0,"dockOn":false,"sel":null},"afterClearAll":{"lights":0,"selected":0,"dockOn":false,"sel":null},"afterDrop":{"lights":1,"selected":0,"dockOn":false,"sel":null,"dropOk":true}} |
+| T-CLICKPLACE-STAY-VIEW | PASS | {"stay":{"mpsw9Left":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"MPSW9-BW"},"mpsw9Hero":{"from":"hero","after":"hero","on":{"front":0,"rear":0,"rear_open":0,"left":0,"right":0,"hero":1},"total":1,"sku":"MPSW9-BW"},"mpsw9Front":{"from":"front","after":"front","on":{"front":1,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":1,"sku":"MPSW9-BW"},"mpsw9Right":{"from":"right","after":"right","on":{"front":0,"rear":0,"rear_open":0,"left":0,"right":1,"hero":0},"total":1,"sku":"MPSW9-BW"},"mps63Front":{"from":"front","after":"front","on":{"front":1,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":1,"sku":"MPS63U-RBW"},"xsm2Rear":{"from":"rear","after":"rear","on":{"front":0,"rear":1,"rear_open":0,"left":0,"right":0,"hero":0},"total":1,"sku":"XSM2-BRW-US"},"bumperFront":{"from":"front","after":"front","on":{"front":4,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":4,"sku":"416309-RBW-SMK"},"algtLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"ALGT53JX-P3LB"},"sifLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"SIFMJS"},"sifFront":{"from":"front","after":"front","on":{"front":2,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":2,"sku":"SIFMJS"},"homeMpsw9":"left","homeMir":"left","mpsw9Fx":"fx_mpsw9_rb.png"}} |
+| T-ILS-FRONT-ONLY | PASS | {"sifLeft":{"from":"left","after":"left","on":{"front":0,"rear":0,"rear_open":0,"left":1,"right":0,"hero":0},"total":1,"sku":"SIFMJS"},"sifFront":{"from":"front","after":"front","on":{"front":2,"rear":0,"rear_open":0,"left":0,"right":0,"hero":0},"total":2,"sku":"SIFMJS"}} |
+| T-ANY-LIGHT-ANY-VIEW | PASS | 434 SKU×view placements stayed on the clicked view |
+| T-DEFAULT-RB | PASS | {"checked":434,"badN":0,"bad":[],"leftCap":{"src":"fx_algt_side.png","wPct":25.15,"svg":false,"red":418,"blue":687,"white":0,"amber":0},"rightCap":{"src":"fx_algt_side_r.png","wPct":25.15,"svg":false,"red":436,"blue":551,"white":0,"amber":0},"heroCap":{"src":"fx_algt_hero.png","wPct":31.05,"svg":false,"red":274,"blue":238,"white":0,"amber":0},"rwSrcs":["fx_dyna_6ft_rw.png","fx_xsm2_rw.png","fx_algt_side_rw.png"],"rbSrcs":["fx_dyna_6ft_rb.png","fx_xsm2_rb.png","fx_algt_side.png"],"rwBar":{"red":418,"blue":134,"white":549,"amber":0,"op":1269},"rwXsm":{"red":3993,"blue":98,"white":3225,"amber":360,"op":22315},"frontAlgt":"fx_algt_max.png","scheme":"rb","capOk":true,"rwOk":true,"backOk":true} |
+| T-PLACEMENT-STAYS-VIEW | PASS | {"left":{"nodes":1,"lights":1,"skus":["DR6-RBW"]},"hero":{"nodes":0,"lights":0,"skus":[]},"right":{"nodes":0,"lights":0,"skus":[]},"rear":{"nodes":0,"lights":0,"skus":[]},"front":{"nodes":0,"lights":0,"skus":[]}} |
+| T-SIDE-PLACE-FULL | PASS | {"src":"fx_algt_side.png","wPct":25.15,"nodes":1,"other":0} |
+| T-PLACED-BAR-SEAT | PASS | {"left":{"ok":true,"view":"left","maxGap":-0.35,"minGap":-4.35,"yb":335.35,"parent":"plateStack"},"right":{"ok":true,"view":"right","maxGap":-1.01,"minGap":-3.01,"yb":355.01,"parent":"plateStack"},"hero":{"ok":true,"view":"hero","maxGap":-10.49,"minGap":-23.49,"yb":277.49,"parent":"plateStack"}} |
+| T-ROCKER-SNAP | PASS | {"rockL":{"x":0.5,"y":0.549,"vx":[0.5],"hy":[0.549]},"rockR":{"x":0.5,"y":0.566,"vx":[0.5],"hy":[0.566]},"names":{"left":[0.55,0.549,0.548,0.55],"right":[0.564,0.562,0.566,0.564]}} |
+| T-RW-WHITE | PASS | {"rwBar":{"red":418,"blue":134,"white":549,"amber":0,"op":1269},"rwXsm":{"red":3993,"blue":98,"white":3225,"amber":360,"op":22315}} |
+| T-FRONT-FALLBACK-ON-FRONT | PASS | {"algt":{"after":"front","onFront":1,"lights":1},"sif":{"after":"front","onFront":2,"lights":2},"mps63":{"after":"front","onFront":1,"lights":1},"bumper":{"after":"front","onFront":4,"lights":4},"xsm2":{"after":"front","onFront":1,"lights":1},"dr6":{"after":"front","onFront":1,"lights":1},"stick":{"after":"front","onFront":1,"lights":1}} |
+| T-MPSW9-POD | PASS | {"pod":{"w":2.39,"fx":"fx_mpsw9_rb.png","boxW":18,"boxH":6,"nw":449,"nh":145,"src":"fx/fx_mpsw9_rbw.png?v=s41"},"podAsp":3.097,"podBoxAsp":3,"white":[{"file":"fx_mpsw9_rb.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_bw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true},{"file":"fx_mpsw9_rbw.png","w":449,"h":145,"opaque":53534,"nearWhiteOutside":0,"grayOutside":0,"frac":0,"ok":true}]} |
+
+All named traps PASS.
