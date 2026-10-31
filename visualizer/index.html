@@ -149,7 +149,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio40 you are on a stale pack">pack studio40</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio42 you are on a stale pack">pack studio42</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -165,7 +165,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio40" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio42" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
           <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         </div>
@@ -219,8 +219,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio40";
-var FX_V="s40";
+var ASSET_V="studio42";
+var FX_V="s42";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
 var DURANGO_VIEWS=[
@@ -444,7 +444,7 @@ var DEFAULTS={
 };
 /* One click map per vehicle. Durango map. Trucks use veh().clicks. */
 var CLICK={
-  "ALGT53JX-P3LB":{front:[[0.490,0.248,0]],left:[[0.654,0.3275,0]],right:[[0.346,0.3467,0]],hero:[[0.6519,0.2539,0]]},
+  "ALGT53JX-P3LB":{front:[[0.490,0.248,0]],left:[[0.5176,0.3291,0]],right:[[0.5176,0.3496,0]],hero:[[0.6621,0.2568,0]]},
   SIFMJS:{front:[[0.370,0.285,0,"L"],[0.610,0.285,0,"R"]]},
   "DYNA-1":{front:[[0.5,0.66,0]]},
   "DYNA-2":{front:[[0.5,0.66,0]]},
@@ -687,14 +687,14 @@ function renderTabs(){
 }
 function catalogWidth(part,p){
   /* Front 53" bar uses per-vehicle frontRoofBarW — sit-Y drip-rail span.
-     Left/Right draw the 53" run on the side-length scale. 3/4 is the
-     foreshortened run that still fits the flat roof behind the A-pillar. */
+     Left/Right show the end only (housing depth, not the 53" run).
+     3/4 is the foreshortened ~53" run behind the A-pillar. */
   if(part && isRoofBar(part.sku)){
     if(view==="front"){
       var fw=veh().frontRoofBarW;
       return fw!=null?fw:30;
     }
-    if(view==="left" || view==="right") return sideBarWidthPct();
+    if(view==="left" || view==="right") return sideEndWidthPct();
     if(view==="hero") return HERO_BAR_W;
   }
   if(part && part.lenIn) return bodyInToPct(part.lenIn);
@@ -814,12 +814,17 @@ var SIDE_BODY_PX=966, SIDE_BODY_IN=198.8, SIDE_PLATE_PX=1024;
 function sideInToPct(inches){
   return inches * SIDE_BODY_PX / SIDE_BODY_IN / SIDE_PLATE_PX * 100;
 }
-/* 53" Allegiant along the Durango side plate (966px = 198.8"). */
+/* 53" Allegiant along the Durango side plate (966px = 198.8").
+   Side views do not draw this run — they draw the end (depth). */
 function sideBarWidthPct(){
   return +sideInToPct(ALGT_HOUSING.lenIn).toFixed(3);
 }
-/* 3/4 run that stays on the flat roof behind the A-pillar. */
-var HERO_BAR_W=21;
+/* End-on width: housing depth, not the 53" length. */
+function sideEndWidthPct(){
+  return +sideInToPct(ALGT_HOUSING.depthIn).toFixed(3);
+}
+/* 53" across the hero roof. Flat header span is ~360px (~60"); 53" is ~318px. */
+var HERO_BAR_W=31.055;
 /* Real inches → plate %. Side/3/4 use the side-photo body length.
    Rear uses rearBody (858px = 76"). Front uses frontBody when the
    vehicle has one (Durango bumper span). Truck fronts stay 1% per inch,
@@ -945,14 +950,16 @@ function ghostSpecForView(){
      and lum>160: left roof under the end-cap span bottoms at y=340 (33.203%),
      right at y=358 (34.961%). Hero bar sits just behind the A-pillar (x=454)
      with the bottom edge on the roof chord (left end lower). */
-  /* Side and 3/4 are the photo bar at full length, feet on the roof.
-     y is the sole. Left roof under the 53" span bottoms at y=334 (32.617%).
-     Right cabin roof under the mirrored span bottoms at y=355 (34.668%).
-     Hero span sits on the flat roof behind the A-pillar; the low end is y=260. */
-  var fullW=sideBarWidthPct();
-  if(view==="left") return {kind:"full", sit:"bottom", x:65.4, y:32.75, w:fullW, lenIn:ALGT_HOUSING.lenIn};
-  if(view==="right") return {kind:"full", sit:"bottom", x:34.6, y:34.668, w:fullW, lenIn:ALGT_HOUSING.lenIn};
-  if(view==="hero") return {kind:"full", x:65.19, y:25.391, rot:0, w:HERO_BAR_W, sit:"bottom", apillarX:454, lenIn:ALGT_HOUSING.lenIn};
+  /* Side ghosts are the END of the bar only (driver red, passenger blue),
+     feet on the roof at the front of the flat roof. Not the 53" run.
+     y is the sole. Left roof under that end bottoms at y=337 (32.910%).
+     Right roof under that end bottoms at y=358 (34.961%).
+     Hero is the full ~53" photo bar, bottom on the crowned roof (y=263),
+     behind the A-pillar. */
+  var endW=sideEndWidthPct();
+  if(view==="left") return {kind:"end", sit:"bottom", end:"L", x:51.758, y:32.910, w:endW, lenIn:ALGT_HOUSING.depthIn};
+  if(view==="right") return {kind:"end", sit:"bottom", end:"R", x:51.758, y:34.961, w:endW, lenIn:ALGT_HOUSING.depthIn};
+  if(view==="hero") return {kind:"full", x:66.211, y:25.684, rot:0, w:HERO_BAR_W, sit:"bottom", apillarX:454, lenIn:ALGT_HOUSING.lenIn};
   return null;
 }
 function renderGhostBars(stage){
@@ -972,7 +979,7 @@ function renderGhostBars(stage){
     if(!fx) return;
     var el=document.createElement("div");
     var endSide=spec.end==="R"?"r":"l";
-    el.className="ghost-bar"+(spec.kind==="endcap"?" endcap end-"+endSide:" full");
+    el.className="ghost-bar"+(spec.kind==="endcap"?" endcap end-"+endSide:(spec.kind==="end"?" end":" full"));
     el.setAttribute("aria-hidden","true");
     el.style.left=spec.x+"%";
     el.style.top=spec.y+"%";
@@ -981,7 +988,7 @@ function renderGhostBars(stage){
     var ty=spec.sit==="bottom"?"-100%":"-50%";
     if(spec.sit==="bottom") el.style.transformOrigin="50% 100%";
     el.style.transform="translate(-50%,"+ty+")"+(spec.flip?" scaleX(-1)":"")+(spec.rot?" rotate("+spec.rot+"deg)":"");
-    if(spec.kind==="full"){
+    if(spec.kind==="full" || spec.kind==="end"){
       /* spec.w is a plate % already scaled (Durango rear). Otherwise the
          front-plate width. Height stays auto so it follows the sprite
          aspect and does not squash when the width changes. */
@@ -1623,7 +1630,7 @@ window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
-  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView, rearFullWidthPct:rearFullWidthPct, roofContact:roofContact, placedBarContact:placedBarContact, snapTo:snapTo, sideBarWidthPct:sideBarWidthPct,
+  isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView, rearFullWidthPct:rearFullWidthPct, roofContact:roofContact, placedBarContact:placedBarContact, snapTo:snapTo, sideBarWidthPct:sideBarWidthPct, sideEndWidthPct:sideEndWidthPct,
   mounts:function(){ return veh().mounts||MOUNT_SNAPS; },
   syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
   getSel:function(){ return sel; },

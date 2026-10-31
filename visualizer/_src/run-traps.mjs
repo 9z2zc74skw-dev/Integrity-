@@ -303,6 +303,76 @@ function mpsw9WhiteScan() {
   }
 }
 
+function spriteAlphaFacts(file) {
+  const py = [
+    "from PIL import Image",
+    "import json, sys",
+    "im=Image.open(sys.argv[1]).convert('RGBA')",
+    "w,h=im.size; px=im.load()",
+    "op=[[False]*w for _ in range(h)]",
+    "semi=0; opaque=0",
+    "red=blue=white=amber=0",
+    "for y in range(h):",
+    "    for x in range(w):",
+    "        r,g,b,a=px[x,y]",
+    "        if 10<a<200: semi+=1",
+    "        if a>128:",
+    "            opaque+=1; op[y][x]=True",
+    "            if r>160 and g>120 and g>b+40 and r>b+50: amber+=1",
+    "            elif r>180 and g>180 and b>170: white+=1",
+    "            elif r>140 and r>g+30 and r>b+30: red+=1",
+    "            elif b>140 and b>r+25 and b>g+15: blue+=1",
+    "seen=[[False]*w for _ in range(h)]",
+    "comps=[]",
+    "for y in range(h):",
+    "    for x in range(w):",
+    "        if not op[y][x] or seen[y][x]: continue",
+    "        stack=[(x,y)]; seen[y][x]=True; n=0",
+    "        while stack:",
+    "            cx,cy=stack.pop(); n+=1",
+    "            for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):",
+    "                nx,ny=cx+dx,cy+dy",
+    "                if 0<=nx<w and 0<=ny<h and op[ny][nx] and not seen[ny][nx]:",
+    "                    seen[ny][nx]=True; stack.append((nx,ny))",
+    "        comps.append(n)",
+    "gaps=0",
+    "x0,x1=int(w*0.08), int(w*0.92)",
+    "for x in range(x0,x1):",
+    "    runs=0; on=False; cnt=0",
+    "    for y in range(h):",
+    "        if op[y][x]:",
+    "            cnt+=1",
+    "            if not on: runs+=1; on=True",
+    "        else: on=False",
+    "    if runs!=1 or cnt<h*0.85: gaps+=1",
+    "fill=opaque/float(max(w*h,1))",
+    "print(json.dumps({'w':w,'h':h,'comps':len(comps),'largest':max(comps) if comps else 0,",
+    " 'opaque':opaque,'semi':semi,'fill':round(fill,4),'gaps':gaps,",
+    " 'red':red,'blue':blue,'white':white,'amber':amber,'asp':round(w/max(h,1),2)}))",
+  ].join("\n");
+  const r = spawnSync("python3", ["-c", py, file], { encoding: "utf8" });
+  if (r.status !== 0) return { ok: false, err: (r.stderr || r.stdout || "python").slice(0, 200) };
+  try { return JSON.parse(r.stdout || "{}"); } catch (e) { return { ok: false, err: String(e.message || e) }; }
+}
+
+function heroSolidScan() {
+  const f = spriteAlphaFacts(path.join(VIZ, "fx", "fx_algt_hero.png"));
+  const ok = !!(f && f.comps === 1 && f.fill >= 0.9 && f.gaps === 0
+    && f.semi / Math.max(f.opaque, 1) < 0.08
+    && f.red >= 20 && f.blue >= 20 && f.w > 200 && f.h >= 12 && f.h <= 80);
+  return { ok, detail: f };
+}
+
+function rwSpriteColors() {
+  const side = spriteAlphaFacts(path.join(VIZ, "fx", "fx_algt_side_rw.png"));
+  const pass = spriteAlphaFacts(path.join(VIZ, "fx", "fx_algt_side_r_rw.png"));
+  const hero = spriteAlphaFacts(path.join(VIZ, "fx", "fx_algt_hero_rw.png"));
+  const ok = !!(side.red >= 15 && side.asp < 6
+    && pass.white >= 15 && pass.asp < 6
+    && hero.red >= 15 && hero.white >= 15 && hero.comps === 1);
+  return { ok, side, pass, hero };
+}
+
 function staticTraps() {
   const html = fs.readFileSync(path.join(VIZ, "index.html"), "utf8");
   rec("T-NO-CLICK-PAIRS", !/CLICK_PAIRS|CLICK_MULTI|TRUCK_CLICKS|TRUCK_MULTI/.test(html), "duplicate click maps absent");
@@ -311,10 +381,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio40"/.test(html), "ASSET_V=studio40");
+  rec("T-ASSET-V", /ASSET_V="studio42"/.test(html), "ASSET_V=studio42");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio40"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio40");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio40/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio42"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio42");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio42/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -390,11 +460,11 @@ async function chromeEval(base, fnBody) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForFunction(() => window.__IU_TEST__, { timeout: 10000 });
+    await page.waitForFunction(() => !!window.__IU_TEST__, { timeout: 10000, polling: 100 });
     await page.waitForFunction(() => {
       const img = document.getElementById("vehicleImg");
       return !!(img && img.complete && img.naturalHeight > 50 && img.getBoundingClientRect().height > 80);
-    }, { timeout: 15000 });
+    }, { timeout: 15000, polling: 100 });
     const snap = () => page.evaluate(() => {
       const T = window.__IU_TEST__;
       return {
@@ -430,14 +500,14 @@ async function chromeEval(base, fnBody) {
       localStorage.setItem("iu-visualizer-v2", poison);
     });
     await page.reload({ waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForFunction(() => window.__IU_TEST__, { timeout: 10000 });
+    await page.waitForFunction(() => !!window.__IU_TEST__, { timeout: 10000, polling: 100 });
     const afterPoison = await snap();
 
     async function waitPlate() {
       await page.waitForFunction(() => {
         const img = document.getElementById("vehicleImg");
         return !!(img && img.complete && img.naturalHeight > 50 && img.getBoundingClientRect().height > 80);
-      }, { timeout: 15000 });
+      }, { timeout: 15000, polling: 100 });
     }
     async function shotStage(tag) {
       const clip = await page.evaluate(() => {
@@ -486,8 +556,8 @@ async function chromeEval(base, fnBody) {
     await waitPlate();
     await page.waitForFunction(() => {
       const img = document.querySelector("#stage .ghost-bar img");
-      return !!(img && img.complete && img.naturalWidth > 200 && /fx_algt_side\.png/.test(img.getAttribute("src") || ""));
-    }, { timeout: 10000 });
+      return !!(img && img.complete && img.naturalWidth > 40 && /fx_algt_side\.png/.test(img.getAttribute("src") || ""));
+    }, { timeout: 10000, polling: 100 });
     const leftGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
       const edge = T.endcapEdge ? await T.endcapEdge() : null;
@@ -501,8 +571,8 @@ async function chromeEval(base, fnBody) {
     await waitPlate();
     await page.waitForFunction(() => {
       const img = document.querySelector("#stage .ghost-bar img");
-      return !!(img && img.complete && img.naturalWidth > 200 && /fx_algt_side_r\.png/.test(img.getAttribute("src") || ""));
-    }, { timeout: 10000 });
+      return !!(img && img.complete && img.naturalWidth > 40 && /fx_algt_side_r\.png/.test(img.getAttribute("src") || ""));
+    }, { timeout: 10000, polling: 100 });
     const rightGhostSit = await page.evaluate(async () => {
       const T = window.__IU_TEST__;
       const edge = T.endcapEdge ? await T.endcapEdge() : null;
@@ -515,7 +585,7 @@ async function chromeEval(base, fnBody) {
     await page.waitForFunction(() => {
       const img = document.querySelector("#stage .ghost-bar.full img");
       return !!(img && img.complete && img.naturalHeight > 10);
-    }, { timeout: 10000 });
+    }, { timeout: 10000, polling: 100 });
     const rearBarSit = await page.evaluate(() => {
       const T = window.__IU_TEST__;
       const box = T.ghostPlateBox && T.ghostPlateBox();
@@ -570,6 +640,8 @@ async function chromeEval(base, fnBody) {
 
 async function main() {
   staticTraps();
+  const heroSolid = heroSolidScan();
+  rec("T-HERO-SOLID", heroSolid.ok, JSON.stringify(heroSolid.detail));
   const srv = await startServer();
   const { port } = srv.address();
   const base = `http://127.0.0.1:${port}`;
@@ -1118,7 +1190,12 @@ async function main() {
               rbSamples[expectFx]=sampleRb(firstImg);
             }
             var sm=rbSamples[expectFx];
-            if(!(sm && sm.frac<=0.20 && sm.red>=20 && sm.blue>=20)){
+            var sideEnd = expectFx==="fx_algt_side.png" || expectFx==="fx_algt_side_r.png";
+            var sideOk = sideEnd && sm && sm.frac<=0.20 && (
+              (expectFx==="fx_algt_side.png" && sm.red>=20) ||
+              (expectFx==="fx_algt_side_r.png" && sm.blue>=20)
+            );
+            if(!(sm && sm.frac<=0.20 && (sideOk || (!sideEnd && sm.red>=20 && sm.blue>=20)))){
               rbBad.push(rbPart.sku+" wash "+JSON.stringify(sm));
             }
           }
@@ -1280,9 +1357,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio40"
-        && /pack studio40/.test(runtime.bareCold.pack||"")
-        && /studio40/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio42"
+        && /pack studio42/.test(runtime.bareCold.pack||"")
+        && /studio42/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1398,21 +1475,34 @@ async function main() {
     };
     const leftPhoto = photoBar(runtime.leftGhostSit);
     const rightPhoto = photoBar(runtime.rightGhostSit);
+    const endSpan = (p) => !!(p && p.kind === "end" && p.w > 3 && p.w < 8
+      && p.wPct > 3 && p.wPct < 8 && p.hPct > 0.4 && p.hPct < 4
+      && !p.drawn && p.sprite);
     rec("T-SIDE-BAR-FULL",
-      leftPhoto.kind === "full" && rightPhoto.kind === "full"
-      && leftPhoto.w > 22 && leftPhoto.w < 29
-      && leftPhoto.wPct > 22 && leftPhoto.wPct < 29
-      && rightPhoto.wPct > 22 && rightPhoto.wPct < 29
-      && leftPhoto.hPct > 0.35 && leftPhoto.hPct < 6
-      && rightPhoto.hPct > 0.35 && rightPhoto.hPct < 6
+      endSpan(leftPhoto) && endSpan(rightPhoto)
       && /fx_algt_side\.png/.test(leftPhoto.src) && /fx_algt_side_r\.png/.test(rightPhoto.src)
-      && !leftPhoto.drawn && !rightPhoto.drawn,
+      && leftPhoto.wPct < 8 && rightPhoto.wPct < 8,
       JSON.stringify({ left: leftPhoto, right: rightPhoto }));
     rec("T-SIDE-BAR-PHOTO",
       leftPhoto.sprite && rightPhoto.sprite
-      && leftPhoto.imgW > 100 && rightPhoto.imgW > 100
+      && leftPhoto.imgW > 24 && leftPhoto.imgW < 120
+      && rightPhoto.imgW > 24 && rightPhoto.imgW < 120
       && !/endcap/.test((runtime.leftGhostSit.box && runtime.leftGhostSit.box.cls) || ""),
       JSON.stringify({ left: leftPhoto, right: rightPhoto }));
+    const leftDom = (runtime.leftGhostSit.box && runtime.leftGhostSit.box.dom) || {};
+    const rightDom = (runtime.rightGhostSit.box && runtime.rightGhostSit.box.dom) || {};
+    const mirrored = /scaleX\(-1\)/.test(
+      ((runtime.rightGhostSit.audit && runtime.rightGhostSit.audit.ghosts) || [])
+        .map((g) => g.transform || "").join(" ")
+    );
+    rec("T-SIDE-END-ONLY",
+      endSpan(leftPhoto) && endSpan(rightPhoto)
+      && leftPhoto.wPct < 12 && rightPhoto.wPct < 12
+      && /fx_algt_side\.png/.test(leftDom.imgs && leftDom.imgs.join(" "))
+      && /fx_algt_side_r\.png/.test(rightDom.imgs && rightDom.imgs.join(" "))
+      && !mirrored
+      && leftPhoto.src !== rightPhoto.src,
+      JSON.stringify({ left: leftPhoto, right: rightPhoto, mirrored }));
     const gapOk = (c) => !!(c && c.ok && c.maxGap != null && c.maxGap <= 1);
     const leftC = runtime.leftGhostSit.contact;
     const rightC = runtime.rightGhostSit.contact;
@@ -1476,9 +1566,10 @@ async function main() {
     var spec=hs.spec||{};
     rec("T-HERO-GHOST-SIT",
       spec.sit==="bottom" && /100%/.test(hs.origin||"")
-      && spec.y>=24.5 && spec.y<=26.2
+      && spec.y>=25.2 && spec.y<=26.4
       && Math.abs(spec.rot||0)<=1
-      && spec.x>60 && spec.w>14 && spec.w<22,
+      && spec.x>60 && spec.x<72
+      && spec.w>28 && spec.w<34,
       JSON.stringify({spec:hs.spec, origin:hs.origin, topPct:hs.topPct, botPct:hs.botPct}));
     rec("T-TRUCK-NO-DURANGO-LEAK",
       runtime.trucks.durango.roofY !== runtime.trucks.silverado.roofY
@@ -1616,11 +1707,14 @@ async function main() {
     };
     const isRedFill = (c) => !!(c && c.r > 180 && c.r > c.b + 40 && c.g < 120);
     const isBlueFill = (c) => !!(c && c.b > 180 && c.b > c.r + 40 && c.r < 120);
-    const barRb = (cap, fileRe, minW) => !!(cap && fileRe.test(cap.src || "") && !cap.svg
-      && cap.red >= 15 && cap.blue >= 15 && cap.amber <= 40 && cap.wPct > minW);
-    const capOk = !!(drb && barRb(drb.leftCap, /fx_algt_side\.png/, 20)
-      && barRb(drb.rightCap, /fx_algt_side_r\.png/, 20)
-      && barRb(drb.heroCap, /fx_algt_hero/, 16));
+    const barRb = (cap, fileRe, minW, maxW) => !!(cap && fileRe.test(cap.src || "") && !cap.svg
+      && cap.amber <= 40 && cap.wPct > minW && (maxW == null || cap.wPct < maxW));
+    const capOk = !!(drb && barRb(drb.leftCap, /fx_algt_side\.png/, 3, 8)
+      && drb.leftCap.red >= 15 && drb.leftCap.red > drb.leftCap.blue
+      && barRb(drb.rightCap, /fx_algt_side_r\.png/, 3, 8)
+      && drb.rightCap.blue >= 15 && drb.rightCap.blue > drb.rightCap.red
+      && barRb(drb.heroCap, /fx_algt_hero/, 28, 36)
+      && drb.heroCap.red >= 15 && drb.heroCap.blue >= 15);
     const rwOk = !!(drb && drb.rwSrcs && drb.rwSrcs.length >= 3 && drb.rwSrcs.every((f) => /_rw\./.test(f))
       && drb.rwBar && drb.rwBar.red >= 8 && drb.rwBar.white >= 8 && drb.rwBar.amber * 8 < drb.rwBar.white
       && drb.rwXsm && drb.rwXsm.red >= 8 && drb.rwXsm.white >= 8 && drb.rwXsm.amber * 8 < drb.rwXsm.white);
@@ -1647,7 +1741,7 @@ async function main() {
     rec("T-PLACEMENT-STAYS-VIEW", stayOk, JSON.stringify(stay));
     const side = (drb && drb.sidePlace) || {};
     rec("T-SIDE-PLACE-FULL",
-      side.nodes === 1 && side.other === 0 && side.wPct > 22 && side.wPct < 29 && /fx_algt_side\.png/.test(side.src || ""),
+      side.nodes === 1 && side.other === 0 && side.wPct > 3 && side.wPct < 8 && /fx_algt_side\.png/.test(side.src || ""),
       JSON.stringify(side));
     const seat = (drb && drb.placedSeat) || {};
     const seatOk = (c) => !!(c && c.ok && c.maxGap != null && c.maxGap <= 1 && c.parent === "plateStack");
@@ -1662,10 +1756,12 @@ async function main() {
       && Math.abs((rockL.y || 0) - 0.549) < 0.02
       && Math.abs((rockR.y || 0) - 0.563) < 0.02,
       JSON.stringify({ rockL, rockR, names }));
+    const rwFiles = rwSpriteColors();
     rec("T-RW-WHITE",
-      !!(drb && drb.rwBar && drb.rwBar.red >= 8 && drb.rwBar.white >= 8 && drb.rwBar.amber * 8 < drb.rwBar.white
-        && drb.rwXsm && drb.rwXsm.red >= 8 && drb.rwXsm.white >= 8 && drb.rwXsm.amber * 8 < drb.rwXsm.white),
-      JSON.stringify({ rwBar: drb && drb.rwBar, rwXsm: drb && drb.rwXsm }));
+      !!(drb && drb.rwBar && drb.rwBar.red >= 8 && drb.rwBar.amber * 8 < Math.max(drb.rwBar.red, 1)
+        && drb.rwXsm && drb.rwXsm.red >= 8 && drb.rwXsm.white >= 8 && drb.rwXsm.amber * 8 < drb.rwXsm.white
+        && rwFiles.ok),
+      JSON.stringify({ rwBar: drb && drb.rwBar, rwXsm: drb && drb.rwXsm, files: rwFiles }));
     var ff = runtime.frontFallback || {};
     rec("T-FRONT-FALLBACK-ON-FRONT",
       ["algt","sif","mps63","bumper","xsm2","dr6","stick"].every(function(k){
@@ -1697,16 +1793,16 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio40 photo bar",
+    "# Vector trap log — studio42 photo bar",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio40 · FX_V: s40`,
+    `- ASSET_V: studio42 · FX_V: s42`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
-    `- studio40: Left, Right, and 3/4 roof bars are photo cutouts of the PIU bar (lens tint only). The passenger cut is its own sprite, not a mirror. Placed bars use plate percents, so a clipped stage cannot float the bar. A placement stays on the view it was placed on. Red/White is red and white. Side views have a rocker snap row. T-SIDE-BAR-FULL, T-SIDE-PLACE-FULL, T-PLACED-BAR-SEAT, T-PLACEMENT-STAYS-VIEW, T-RW-WHITE, T-ROCKER-SNAP.`,
+    `- studio42: Left and Right show only the end of the Allegiant (driver red, passenger blue), each cut from the PIU 3/4 frame, feet on the roof. The passenger cut is its own crop, not a mirror. The 3/4 bar is one solid photo cut of that frame, ~53in, red on the driver end and blue on the passenger end, seated behind the A-pillar. Front width, Rear 858px scale, plates, snap grids, clickPlace view, bare-by-default, GhostBar-after-Front, and R/W white are unchanged. T-SIDE-END-ONLY, T-HERO-SOLID.`,
     `- Any light, any view: clickPlace no longer refuses Left/Right, no longer forces the roof bar or visor onto Front, and no longer purges off-front bars. Snap grids unchanged. T-ANY-LIGHT-ANY-VIEW.`,
     `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.`,
     `- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.`,
