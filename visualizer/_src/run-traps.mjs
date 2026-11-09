@@ -381,10 +381,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio44"/.test(html), "ASSET_V=studio44");
+  rec("T-ASSET-V", /ASSET_V="studio45"/.test(html), "ASSET_V=studio45");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio44"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio44");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio44/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio45"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio45");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio45/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -1357,9 +1357,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio44"
-        && /pack studio44/.test(runtime.bareCold.pack||"")
-        && /studio44/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio45"
+        && /pack studio45/.test(runtime.bareCold.pack||"")
+        && /studio45/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1793,12 +1793,12 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio44 live lights",
+    "# Vector trap log — studio45 live lights",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio44 · FX_V: s42`,
+    `- ASSET_V: studio45 · FX_V: s42`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
@@ -1809,6 +1809,7 @@ function finish(srv) {
     `- studio39 carry: New placements and the Red/Blue button use R/B on every catalog light and every view. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.`,
     `- studio43: Lights and Night default off (still plate). Lights on runs rAF flash patterns (R/B alternating, all-blue/all-red, takedown). Rear heads never emit white unless Reverse is on. Canvas bloom, body spill, and ground pools use screen/lighter. Roof bars get a contact shadow on every view.`,
     `- studio44: Ground pools sit on the measured tire-contact line. Night drops the plate to about 25% brightness with a blue cast, and body spill is masked to the plate silhouette.`,
+    `- studio45: Ground pools are soft ellipses about 42px tall on the plate, centered under the truck, brighter at night. The 3/4 roof bar also throws a wide footprint pool.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
