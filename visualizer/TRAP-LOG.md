@@ -1,9 +1,9 @@
-# Vector trap log — studio45 live lights
+# Vector trap log — studio46 live lights
 
 Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.
 
 - Ran: `node visualizer/_src/run-traps.mjs` (local Chrome, not Rusty’s live preview)
-- ASSET_V: studio45 · FX_V: s42
+- ASSET_V: studio46 · FX_V: s42
 - Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)
 - studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor `_` unchanged. Plates unchanged.
 - Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.
@@ -15,6 +15,7 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 - studio43: Lights and Night default off (still plate). Lights on runs rAF flash patterns (R/B alternating, all-blue/all-red, takedown). Rear heads never emit white unless Reverse is on. Canvas bloom, body spill, and ground pools use screen/lighter. Roof bars get a contact shadow on every view.
 - studio44: Ground pools sit on the measured tire-contact line. Night drops the plate to about 25% brightness with a blue cast, and body spill is masked to the plate silhouette.
 - studio45: Ground pools are soft ellipses about 42px tall on the plate, centered under the truck, brighter at night. The 3/4 roof bar also throws a wide footprint pool.
+- studio46: Driver is vehicle-left. Front image-right is red, rear image-left is red. Pools use the rendered plate's tire line. T-RB-SIDES.
 
 | Trap | Result | Detail |
 |---|---|---|
@@ -24,9 +25,9 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-RBW-VISIBLE | PASS | R/B/W control not CSS-hidden |
 | T-ONE-ROOF-SKU | PASS | one roof SKU row |
 | T-TRUCKS-DROPDOWN | PASS | Silverado and F-150 in select |
-| T-ASSET-V | PASS | ASSET_V=studio45 |
+| T-ASSET-V | PASS | ASSET_V=studio46 |
 | T-NO-HOME-YANK | PASS | clickPlace never assigns camera from HOME_VIEW |
-| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio45 |
+| T-FIRST-PAINT-SRC | PASS | first-paint plate uses ?v=studio46 |
 | T-PACK-STAMP | PASS | header pack stamp present |
 | T-NO-SIDE-FALLBACK-STAMP | PASS | no Left/Right refusal, roof bar not forced to Front, off-front bars not purged |
 | T-MPSW9-NOT-WIDE-BAR | PASS | MPSW9 is the 5.04in pod fx_mpsw9, not fx_mps_wide |
@@ -45,8 +46,9 @@ Self-test owned by this pass. Valentine trap-scores after. This file does **not*
 | T-DYNA-HEAD | PASS | 21 dyna fx 200 |
 | T-DEMO-QUOTE-FILE | PASS | quotes/demo-1236.json 200 |
 | T-CHROME-RUNTIME | PASS | evaluated |
-| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio45","plateSrc":"durango_front.png?v=studio45","asset":"studio45","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio45","plateSrc":"durango_front.png?v=studio45","asset":"studio45","patchOn":true}} |
-| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio45","src":"durango_front.png?v=studio45","asset":"studio45"} |
+| T-RB-SIDES | PASS | [{"view":"front","spec":{"half":"R"},"side":"driver","color":"red","ok":true},{"view":"front","spec":{"half":"L"},"side":"passenger","color":"blue","ok":true},{"view":"front","spec":{"x":0.75},"side":"driver","color":"red","ok":true},{"view":"front","spec":{"x":0.25},"side":"passenger","color":"blue","ok":true},{"view":"rear","spec":{"half":"L"},"side":"driver","color":"red","ok":true},{"view":"rear","spec":{"half":"R"},"side":"passenger","color":"blue","ok":true},{"view":"rear","spec":{"x":0.25},"side":"driver","color":"red","ok":true},{"view":"rear","spec":{"x":0.75},"side":"passenger","color":"blue","ok":true},{"view":"left","spec":{"x":0.5},"side":"driver","color":"red","ok":true},{"view":"right","spec":{"x":0.5},"side":"passenger","color":"blue","ok":true},{"view":"hero","spec":{"half":"R"},"side":"driver","color":"red","ok":true},{"view":"hero","spec":{"half":"L"},"side":"passenger","color":"blue","ok":true}] |
+| T-BARE-DEFAULT | PASS | {"cold":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio46","plateSrc":"durango_front.png?v=studio46","asset":"studio46","patchOn":true},"afterPoison":{"placements":0,"lights":0,"ghosts":0,"overlays":0,"push":false,"dash":false,"hatch":false,"pushSw":false,"pack":"pack studio46","plateSrc":"durango_front.png?v=studio46","asset":"studio46","patchOn":true}} |
+| T-COLD-NO-SPRITE | PASS | {"pack":"pack studio46","src":"durango_front.png?v=studio46","asset":"studio46"} |
 | T-OEM-HIDE-ON | PASS | {"patchOn":true} |
 | T-BARE-EVERY-VIEW | PASS | front,rear,rear_open,left,right,hero |
 | T-CLEAR-EVERY-VIEW | PASS | front/left/right/hero empty after Clear All |

@@ -80,6 +80,8 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .ghost-bar.endcap svg{display:block;width:100%;height:100%;overflow:visible}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+/* Front nose: file-left red belongs on image-right (driver). Flip the bitmap only. */
+.light.flip-front>img{transform:scaleX(-1)}
 /* Roof-bar contact. Absolute, so it does not move the sprite box. */
 .contact-shadow{position:absolute;left:50%;bottom:0;width:118%;height:26px;transform:translate(-50%,58%);background:radial-gradient(ellipse at center, rgba(0,0,0,.58) 0%, rgba(0,0,0,.28) 42%, rgba(0,0,0,0) 72%);pointer-events:none}
 .phase-shade,.phase-wash{position:absolute;inset:0;pointer-events:none;display:none}
@@ -168,7 +170,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio45 you are on a stale pack">pack studio45</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio46 you are on a stale pack">pack studio46</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -184,7 +186,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio45" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio46" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
           <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         </div>
@@ -246,7 +248,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio45";
+var ASSET_V="studio46";
 var FX_V="s42";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
@@ -825,7 +827,10 @@ function renderStage(){
     },{passive:false});
     var img=el.querySelector("img");
     if(img) img.addEventListener("load",function(){ if(p.id===sel) syncSelDock(); });
-    if(part && isRoofBar(part.sku)) addContactShadow(el);
+    if(part && isRoofBar(part.sku)){
+      addContactShadow(el);
+      if(view==="front") el.classList.add("flip-front");
+    }
     plateEl().appendChild(el);
   });
   renderGhostBars(stage);
@@ -1669,7 +1674,7 @@ function placedBarContact(){
 /* studio43 live emission. Lights off + Night off leaves sprites, plates, and
    filters as studio42. Contact shadow is the only extra mark under roof bars. */
 var lightsOn=false, nightOn=false, reverseOn=false, pattern="alt";
-var liveRAF=0, liveT0=0, liveHold=null, lastHeads=[];
+var liveRAF=0, liveT0=0, liveHold=null, lastHeads=[], livePaused=true;
 var PULSE_ON=0.07, PULSE_OFF=0.05, PULSE_N=3;
 var LIVE_BURST=PULSE_N*(PULSE_ON+PULSE_OFF);
 var LIVE_SLOT=0.75;
@@ -1817,15 +1822,23 @@ function facingOf(cx){
   }
   return "side";
 }
+/* Vehicle-left is the driver. Facing the nose, that is image-right.
+   Facing the tail, that is image-left. Left view shows the driver flank.
+   The 3/4 is that same flank (nose on image-left), so the bar's image-right
+   end is the near/driver end. */
+function driverOnImageRight(){
+  return view==="front" || view==="hero";
+}
 function sideOf(cx){
   if(view==="left") return "driver";
   if(view==="right") return "passenger";
-  if(view==="hero") return cx<0.42?"passenger":"driver";
+  if(driverOnImageRight()) return cx>=0.5?"driver":"passenger";
   return cx<0.5?"driver":"passenger";
 }
 function halfSide(which){
-  if(view==="hero") return which==="L"?"passenger":"driver";
-  return which==="L"?"driver":"passenger";
+  var imageLeft=which!=="R";
+  if(driverOnImageRight()) return imageLeft?"passenger":"driver";
+  return imageLeft?"driver":"passenger";
 }
 function nativeColor(side){
   var pair=schemePair();
@@ -1974,20 +1987,24 @@ function paintSpill(ctx, x, y, rx, ry, rgb, a){
   paintRadial(ctx, x, y, rx, ry, rgb, [[0,a],[0.16,a*0.62],[0.38,a*0.28],[0.62,a*0.08],[1,0]]);
 }
 var tireCache={};
+/* Tire line in the rendered plate bitmap (CSS pixels of the img), so fit and
+   max-height scaling cannot drift from the 1024 file. */
 function tireContact(img){
-  var key=(img.currentSrc||img.src||"")+"|"+(img.naturalWidth||0);
+  var ir=img.getBoundingClientRect();
+  var w=Math.max(1, Math.round(ir.width));
+  var h=Math.max(1, Math.round(ir.height));
+  var key=(img.currentSrc||img.src||"")+"|"+w+"x"+h;
   if(tireCache[key]) return tireCache[key];
-  var w=img.naturalWidth, h=img.naturalHeight;
-  if(!w||!h) return null;
+  if(!img.naturalWidth) return null;
   var c=document.createElement("canvas");
   c.width=w; c.height=h;
   var rctx=c.getContext("2d",{willReadFrequently:true});
-  rctx.drawImage(img,0,0);
+  rctx.drawImage(img,0,0,w,h);
   var data=rctx.getImageData(0,0,w,h).data;
   var bottom=new Int16Array(w);
   var x,y,i;
   for(x=0;x<w;x++) bottom[x]=-1;
-  for(y=h-1;y>=Math.floor(h*0.4);y--){
+  for(y=h-1;y>=Math.floor(h*0.35);y--){
     var row=y*w*4;
     for(x=0;x<w;x++){
       if(bottom[x]>=0) continue;
@@ -1995,52 +2012,87 @@ function tireContact(img){
     }
   }
   var ys=[];
-  for(x=0;x<w;x++) if(bottom[x]>h*0.45) ys.push(bottom[x]);
+  for(x=0;x<w;x++) if(bottom[x]>h*0.4) ys.push(bottom[x]);
   if(!ys.length) return null;
   ys.sort(function(a,b){ return a-b; });
-  var line=ys[Math.floor(ys.length*0.9)];
-  var xs=[];
-  for(x=0;x<w;x++) if(bottom[x]>=line-8) xs.push(x);
-  if(!xs.length) return null;
-  var groups=[], g=[xs[0]], gap=Math.max(24, w*0.06);
-  for(i=1;i<xs.length;i++){
-    if(xs[i]-xs[i-1]>gap){ groups.push(g); g=[xs[i]]; }
-    else g.push(xs[i]);
-  }
-  groups.push(g);
+  var line=ys[Math.floor(ys.length*0.94)];
+  var track=[];
+  for(x=0;x<w;x++) if(bottom[x]>=line-3) track.push(x);
+  if(!track.length) return null;
   var body=[];
   for(x=0;x<w;x++) if(bottom[x]>=0) body.push(x);
+  var band=Math.max(10, Math.round(h*0.09));
+  var dark=new Int16Array(w);
+  for(x=0;x<w;x++){
+    if(bottom[x]<0) continue;
+    var n=0, y1=bottom[x], y0=Math.max(0, y1-band), yy, ii, lum;
+    for(yy=y0;yy<=y1;yy++){
+      ii=(yy*w+x)*4;
+      if(data[ii+3]<40) continue;
+      lum=(data[ii]+data[ii+1]+data[ii+2])/3;
+      if(lum<85) n++;
+    }
+    dark[x]=n;
+  }
+  var wheels=[], wg=null, thresh=band*0.42;
+  for(x=0;x<w;x++){
+    if(dark[x]>=thresh){
+      if(!wg) wg=[x];
+      else wg.push(x);
+    } else if(wg){
+      if(wg.length>Math.max(4, w*0.015)) wheels.push(wg);
+      wg=null;
+    }
+  }
+  if(wg && wg.length>Math.max(4, w*0.015)) wheels.push(wg);
+  function mid(arr){ return (arr[0]+arr[arr.length-1])/2; }
   var info={
-    y:line/h,
-    x0:xs[0]/w,
-    x1:xs[xs.length-1]/w,
-    bodyX0:body.length?body[0]/w:xs[0]/w,
-    bodyX1:body.length?body[body.length-1]/w:xs[xs.length-1]/w,
-    clusters:groups.map(function(arr){
-      return {x0:arr[0]/w, x1:arr[arr.length-1]/w, x:(arr[0]+arr[arr.length-1])/(2*w)};
-    })
+    y:line,
+    h:h,
+    w:w,
+    trackX0:track[0],
+    trackX1:track[track.length-1],
+    bodyX0:body.length?body[0]:track[0],
+    bodyX1:body.length?body[body.length-1]:track[track.length-1],
+    wheel0:wheels.length?mid(wheels[0]):null,
+    wheel1:wheels.length>1?mid(wheels[wheels.length-1]):null
   };
   tireCache[key]=info;
   return info;
 }
-function bodySpan(contact){
-  var x0=contact.bodyX0!=null?contact.bodyX0:contact.x0;
-  var x1=contact.bodyX1!=null?contact.bodyX1:contact.x1;
-  var w=Math.max(0.2, x1-x0);
-  return {x0:x0, x1:x1, w:w, mid:(x0+x1)/2};
-}
-/* Pool center sits under the lit half of the body, not on the outer tire edge. */
-function sidePoolX(contact, side){
-  var b=bodySpan(contact);
-  var x=side==="passenger"?b.x0+b.w*0.70:b.x0+b.w*0.30;
-  var rx=b.w*0.26;
-  var limit0=b.x0-b.w*0.15, limit1=b.x1+b.w*0.15;
-  if(x-rx<limit0) x=limit0+rx;
-  if(x+rx>limit1) x=limit1-rx;
-  return {x:x, rx:rx};
-}
 function platePx(px, img, H){
   return px*(H/(img.naturalHeight||1024));
+}
+/* Top of the ellipse sits on the tire bottoms. Squash if the canvas would clip it. */
+function poolBox(contact, img, H, wantRy){
+  var top=contact.y-Math.min(platePx(6, img, H), 8);
+  if(top<0) top=0;
+  var ry=wantRy;
+  var cy=top+ry;
+  if(cy+ry>H-2){
+    var room=Math.max(10, (H-2)-top);
+    ry=room/2;
+    cy=top+ry;
+  }
+  return {top:top, cy:cy, ry:ry};
+}
+function trackPool(contact, side){
+  var x0=contact.trackX0, x1=contact.trackX1, span=Math.max(12, x1-x0);
+  var driverRight=view==="front"||view==="hero";
+  var onLeft=(side==="driver")!==driverRight;
+  var x=onLeft?x0+span*0.28:x0+span*0.72;
+  var rx=span*0.20;
+  if(x-rx<x0) x=x0+rx;
+  if(x+rx>x1) x=x1-rx;
+  return {x:x, rx:rx};
+}
+function wheelbasePool(contact){
+  if(contact.wheel0!=null && contact.wheel1!=null && Math.abs(contact.wheel1-contact.wheel0)>contact.w*0.15){
+    var span=Math.abs(contact.wheel1-contact.wheel0)*1.10;
+    return {x:(contact.wheel0+contact.wheel1)/2, rx:span/2};
+  }
+  var bw=Math.max(12, contact.bodyX1-contact.bodyX0);
+  return {x:(contact.bodyX0+contact.bodyX1)/2, rx:bw*0.28};
 }
 function paintPool(ctx, x, y, rx, ry, rgb, a){
   if(a<=0.004) return;
@@ -2062,11 +2114,10 @@ function paintNightContact(){
   var dpr=Math.min(2, window.devicePixelRatio||1);
   var ctx=sizeFx(canvas, ir.width, ir.height, dpr);
   var W=ir.width, H=ir.height;
-  var cy=contact.y*H+H*0.003;
-  var rx=Math.max(36, (contact.x1-contact.x0)*W*0.55);
-  var ry=Math.max(5, H*0.011);
+  var box=poolBox(contact, img, ir.height, platePx(10, img, ir.height));
+  var rx=Math.max(28, (contact.trackX1-contact.trackX0)*0.46);
   ctx.globalCompositeOperation="source-over";
-  paintBlob(ctx, ((contact.x0+contact.x1)/2)*W, cy, rx, ry, [0,0,0], 0.5);
+  paintBlob(ctx, (contact.trackX0+contact.trackX1)/2, box.cy, rx, box.ry, [0,0,0], 0.45);
 }
 function paintLive(ms){
   if(!lightsOn) return;
@@ -2122,37 +2173,38 @@ function paintLive(ms){
     else locals.push({x:h.cx, color:h.color, level:h.level, side:h.side});
   });
   if(contact){
-    var contactY=contact.y*H;
-    var b=bodySpan(contact);
-    var ry=platePx(42, img, H);
-    var cy=contactY+ry*0.62;
     var whiteOf=function(color){ return color==="white"?0.7:1; };
+    var box=poolBox(contact, img, H, platePx(42, img, H));
+    var cy=box.cy, ry=box.ry;
     if(view==="hero"){
+      var bw=Math.max(12, contact.bodyX1-contact.bodyX0);
+      var footBox=poolBox(contact, img, H, platePx(48, img, H));
       Object.keys(foot).forEach(function(color){
         var rgb=LIVE_RGB[color];
         if(!rgb) return;
-        paintPool(gctx, b.mid*W, cy, b.w*W*0.62, platePx(48, img, H), rgb, (nightOn?0.58:0.34)*foot[color]*whiteOf(color));
+        paintPool(gctx, (contact.bodyX0+contact.bodyX1)/2, footBox.cy, bw*0.46, footBox.ry, rgb, (nightOn?0.62:0.36)*foot[color]*whiteOf(color));
       });
       locals.forEach(function(L){
         var rgb=LIVE_RGB[L.color];
         if(!rgb) return;
-        var rx=Math.min(b.w*0.2, 0.18)*W;
-        var x=Math.max(b.x0-b.w*0.15+rx/W, Math.min(b.x1+b.w*0.15-rx/W, L.x))*W;
-        paintPool(gctx, x, cy, rx, ry, rgb, (nightOn?1:0.58)*L.level*whiteOf(L.color));
+        var lrx=Math.min(bw*0.16, platePx(72, img, H));
+        var x=Math.max(contact.bodyX0+lrx, Math.min(contact.bodyX1-lrx, L.x*W));
+        paintPool(gctx, x, cy, lrx, ry, rgb, (nightOn?1:0.6)*L.level*whiteOf(L.color));
       });
     } else if(view==="left"||view==="right"){
+      var wb=wheelbasePool(contact);
       var sideColors={};
       Object.keys(foot).forEach(function(color){ sideColors[color]=Math.max(sideColors[color]||0, foot[color]); });
       locals.forEach(function(L){ sideColors[L.color]=Math.max(sideColors[L.color]||0, L.level); });
       Object.keys(sideColors).forEach(function(color){
         var rgb=LIVE_RGB[color];
         if(!rgb) return;
-        paintPool(gctx, b.mid*W, cy, b.w*W*0.4, ry, rgb, (nightOn?0.95:0.52)*sideColors[color]*whiteOf(color));
+        paintPool(gctx, wb.x, cy, wb.rx, ry, rgb, (nightOn?0.95:0.52)*sideColors[color]*whiteOf(color));
       });
     } else {
       var halves={};
       function addHalf(side, color, level){
-        if(side!=="driver" && side!=="passenger") side=side==="passenger"?"passenger":"driver";
+        if(side!=="passenger") side="driver";
         var key=side+"|"+color;
         halves[key]=Math.max(halves[key]||0, level);
       }
@@ -2165,15 +2217,13 @@ function paintLive(ms){
         var parts=key.split("|");
         var rgb=LIVE_RGB[parts[1]];
         if(!rgb) return;
-        var anchor=sidePoolX(contact, parts[0]);
-        paintPool(gctx, anchor.x*W, cy, anchor.rx*W, ry, rgb, (nightOn?0.95:0.52)*halves[key]*whiteOf(parts[1]));
+        var anchor=trackPool(contact, parts[0]);
+        paintPool(gctx, anchor.x, cy, anchor.rx, ry, rgb, (nightOn?0.98:0.55)*halves[key]*whiteOf(parts[1]));
       });
     }
     gctx.globalCompositeOperation="destination-in";
     gctx.fillStyle="#000";
-    var bandTop=contactY-platePx(20, img, H);
-    var bandBot=cy+platePx(52, img, H);
-    gctx.fillRect(0, bandTop, W, Math.max(1, bandBot-bandTop));
+    gctx.fillRect(0, Math.max(0, box.top-2), W, Math.max(1, H-(box.top-2)));
   }
   if(img.naturalWidth){
     bctx.globalCompositeOperation="destination-in";
@@ -2182,17 +2232,20 @@ function paintLive(ms){
   if(nightOn) paintNightContact();
 }
 function startLive(){
-  if(liveRAF || !lightsOn) return;
+  if(!lightsOn) return;
+  livePaused=false;
+  if(liveRAF) return;
   var loop=function(ts){
     liveRAF=0;
     if(!lightsOn) return;
-    if(document.hidden && liveHold==null) return;
+    if(document.hidden && liveHold==null){ livePaused=true; return; }
     paintLive(liveHold!=null?liveHold*1000:(ts-liveT0));
     if(lightsOn && !(document.hidden && liveHold==null)) liveRAF=requestAnimationFrame(loop);
   };
   liveRAF=requestAnimationFrame(loop);
 }
 function stopLive(){
+  livePaused=true;
   if(liveRAF) cancelAnimationFrame(liveRAF);
   liveRAF=0;
 }
@@ -2201,11 +2254,24 @@ document.addEventListener("visibilitychange", function(){
     if(liveHold==null) stopLive();
   } else if(lightsOn) startLive();
 });
+window.__vectorAnim={
+  get paused(){ return livePaused || document.hidden || !lightsOn; }
+};
 window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
   VEHICLES:VEHICLES, clickPlace:clickPlace, catalogSku:catalogSku,
   isRoofBar:isRoofBar, isMirrorSku:isMirrorSku, isInherentMulti:isInherentMulti, isDyna:isDyna, isVisorIls:isVisorIls, visorSide:visorSide, fxFor:fxFor, schemeName:schemeName, ghostSpecForView:ghostSpecForView, rearFullWidthPct:rearFullWidthPct, roofContact:roofContact, placedBarContact:placedBarContact, snapTo:snapTo, sideBarWidthPct:sideBarWidthPct, sideEndWidthPct:sideEndWidthPct,
+  halfSide:function(which){ return halfSide(which); },
+  sideOf:function(cx){ return sideOf(cx); },
+  rbSide:function(v, spec){
+    var prev=view;
+    view=v;
+    var side=spec&&spec.half?halfSide(spec.half):sideOf(spec&&spec.x!=null?spec.x:0.5);
+    var color=nativeColor(side);
+    view=prev;
+    return {side:side, color:color};
+  },
   mounts:function(){ return veh().mounts||MOUNT_SNAPS; },
   syncSelDock:syncSelDock, hideSelDock:hideSelDock, clearSelection:clearSelection,
   getSel:function(){ return sel; },

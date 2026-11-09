@@ -381,10 +381,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio45"/.test(html), "ASSET_V=studio45");
+  rec("T-ASSET-V", /ASSET_V="studio46"/.test(html), "ASSET_V=studio46");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio45"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio45");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio45/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio46"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio46");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio46/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -1339,10 +1339,32 @@ async function main() {
       };
       T.resetNodes();
       T.setVehicle("durango");
+      T.setScheme("rb");
+      var sideExpect = [
+        ["front", {half:"R"}, "driver", "red"],
+        ["front", {half:"L"}, "passenger", "blue"],
+        ["front", {x:0.75}, "driver", "red"],
+        ["front", {x:0.25}, "passenger", "blue"],
+        ["rear", {half:"L"}, "driver", "red"],
+        ["rear", {half:"R"}, "passenger", "blue"],
+        ["rear", {x:0.25}, "driver", "red"],
+        ["rear", {x:0.75}, "passenger", "blue"],
+        ["left", {x:0.5}, "driver", "red"],
+        ["right", {x:0.5}, "passenger", "blue"],
+        ["hero", {half:"R"}, "driver", "red"],
+        ["hero", {half:"L"}, "passenger", "blue"]
+      ];
+      out.rbSides = sideExpect.map(function(row){
+        var got = T.rbSide(row[0], row[1]);
+        return {view:row[0], spec:row[1], side:got.side, color:got.color, ok:got.side===row[2] && got.color===row[3]};
+      });
+      out.rbSidesOk = out.rbSides.every(function(r){ return r.ok; });
       T.setView("front");
       return out;
     });
     rec("T-CHROME-RUNTIME", !!(runtime && runtime.runtime), runtime ? "evaluated" : "no runtime");
+    rec("T-RB-SIDES", !!(runtime && runtime.runtime && runtime.runtime.rbSidesOk),
+      JSON.stringify((runtime && runtime.runtime && runtime.runtime.rbSides) || null));
   } catch (e) {
     rec("T-CHROME-RUNTIME", false, e && e.message);
     finish(srv);
@@ -1357,9 +1379,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio45"
-        && /pack studio45/.test(runtime.bareCold.pack||"")
-        && /studio45/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio46"
+        && /pack studio46/.test(runtime.bareCold.pack||"")
+        && /studio46/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1793,12 +1815,12 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio45 live lights",
+    "# Vector trap log — studio46 live lights",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio45 · FX_V: s42`,
+    `- ASSET_V: studio46 · FX_V: s42`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
@@ -1810,6 +1832,7 @@ function finish(srv) {
     `- studio43: Lights and Night default off (still plate). Lights on runs rAF flash patterns (R/B alternating, all-blue/all-red, takedown). Rear heads never emit white unless Reverse is on. Canvas bloom, body spill, and ground pools use screen/lighter. Roof bars get a contact shadow on every view.`,
     `- studio44: Ground pools sit on the measured tire-contact line. Night drops the plate to about 25% brightness with a blue cast, and body spill is masked to the plate silhouette.`,
     `- studio45: Ground pools are soft ellipses about 42px tall on the plate, centered under the truck, brighter at night. The 3/4 roof bar also throws a wide footprint pool.`,
+    `- studio46: Driver is vehicle-left. Front image-right is red, rear image-left is red. Pools use the rendered plate's tire line. T-RB-SIDES.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
