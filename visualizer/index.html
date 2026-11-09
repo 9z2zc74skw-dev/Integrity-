@@ -80,6 +80,23 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .ghost-bar.endcap svg{display:block;width:100%;height:100%;overflow:visible}
 .light{position:absolute;cursor:move;transform-origin:center center;z-index:10;touch-action:none;user-select:none}
 .light img{display:block;width:100%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+/* Roof-bar contact. Absolute, so it does not move the sprite box. */
+.contact-shadow{position:absolute;left:50%;bottom:0;width:118%;height:26px;transform:translate(-50%,58%);background:radial-gradient(ellipse at center, rgba(0,0,0,.58) 0%, rgba(0,0,0,.28) 42%, rgba(0,0,0,0) 72%);pointer-events:none}
+.phase-shade,.phase-wash{position:absolute;inset:0;pointer-events:none;display:none}
+.stage.live .phase-shade{display:block;z-index:2;mix-blend-mode:multiply;filter:blur(5px)}
+.stage.live .phase-wash{display:block;z-index:3;mix-blend-mode:screen;-webkit-mask-image:linear-gradient(180deg, transparent 10%, #000 34%, #000 66%, transparent 90%);mask-image:linear-gradient(180deg, transparent 10%, #000 34%, #000 66%, transparent 90%)}
+.stage.live .light img.is-dim,.stage.live .ghost-bar img.is-dim{filter:brightness(.4) saturate(.4)}
+.stage.live .light img.is-hot,.stage.live .ghost-bar img.is-hot{filter:brightness(1.28) saturate(1.15)}
+.stage.live .light img.is-cast,.stage.live .ghost-bar img.is-cast{filter:brightness(.32) saturate(.14)}
+.fx-layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;display:none}
+.stage.live .fx-layer{display:block}
+.fx-layer.ground{z-index:3;mix-blend-mode:screen}
+.fx-layer.body{z-index:6;mix-blend-mode:screen}
+.fx-layer.bloom{z-index:18;mix-blend-mode:screen}
+.stage.night{background:radial-gradient(ellipse at center,#101218,#05060a)}
+.stage.night img.vehicle,.stage.night img.vehicle-patch{filter:brightness(.4) saturate(.22) contrast(1.08)}
+.pats{display:flex;flex-direction:column;gap:6px;padding:0 0 4px}
+.pats .scheme{text-align:left}
 /* ILS visor: one sprite file, two nodes. Clip to a single shroud per visor. */
 .light.ils-half{overflow:hidden}
 .light.ils-L img,.light.ils-R img{width:200%;max-width:none;height:auto}
@@ -149,7 +166,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio42 you are on a stale pack">pack studio42</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio43 you are on a stale pack">pack studio43</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -165,7 +182,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio42" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio43" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
           <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         </div>
@@ -191,6 +208,14 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
         <div class="toggle"><div class="lbl">Push Bar<small>Front bumper guard</small></div><button type="button" class="sw" id="pushBarToggle" data-on="false" aria-label="Push Bar"></button></div>
         <div class="toggle"><div class="lbl">Interior Dash<small>Places SIFMJS visor ILS pair (L+R shrouds) — same SKU, not a second overlay</small></div><button type="button" class="sw" id="dashToggle" data-on="false" aria-label="Interior Dash"></button></div>
         <div class="toggle"><div class="lbl">Rear Hatch Lights<small>Places STICK-RB on hatch — same SKU, not a decoration overlay</small></div><button type="button" class="sw" id="hatchToggle" data-on="false" aria-label="Rear Hatch Lights"></button></div>
+        <div class="toggle"><div class="lbl">Lights<small>Off keeps the still plate. On flashes placed heads</small></div><button type="button" class="sw" id="lightsToggle" data-on="false" aria-label="Lights"></button></div>
+        <div class="toggle"><div class="lbl">Night<small>Darkens the photo so the LEDs read</small></div><button type="button" class="sw" id="nightToggle" data-on="false" aria-label="Night"></button></div>
+        <div class="pats" id="flashPattern" role="group" aria-label="Flash pattern">
+          <button class="scheme active" data-pat="alt" type="button">R/B alternating</button>
+          <button class="scheme" data-pat="sync" type="button">All blue / red</button>
+          <button class="scheme" data-pat="takedown" type="button">Takedown / scene</button>
+        </div>
+        <div class="toggle"><div class="lbl">Reverse<small>Rear heads may show white. Off, they never do</small></div><button type="button" class="sw" id="reverseToggle" data-on="false" aria-label="Reverse"></button></div>
       </div>
     </div>
     <div class="section">
@@ -219,7 +244,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio42";
+var ASSET_V="studio43";
 var FX_V="s42";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
@@ -798,9 +823,12 @@ function renderStage(){
     },{passive:false});
     var img=el.querySelector("img");
     if(img) img.addEventListener("load",function(){ if(p.id===sel) syncSelDock(); });
+    if(part && isRoofBar(part.sku)) addContactShadow(el);
     plateEl().appendChild(el);
   });
   renderGhostBars(stage);
+  ensureFxLayers();
+  syncLiveChrome();
   saveState();
   requestAnimationFrame(syncSelDock);
 }
@@ -1004,6 +1032,7 @@ function renderGhostBars(stage){
       el.style.backgroundImage="none";
       el.innerHTML=endcapMarkup(spec.end||"L");
     }
+    addContactShadow(el);
     host.appendChild(el);
   });
 }
@@ -1374,6 +1403,15 @@ document.querySelectorAll(".sw").forEach(function(s){
     else if(s.id==="pushBarToggle"){ pushBar=!on; renderStage(); }
     else if(s.id==="dashToggle"){ setOwnedSku("SIFMJS", !on); }
     else if(s.id==="hatchToggle"){ setOwnedSku("STICK-RB", !on); }
+    else if(s.id==="lightsToggle"){ setLights(!on); }
+    else if(s.id==="nightToggle"){ setNight(!on); }
+    else if(s.id==="reverseToggle"){ setReverse(!on); }
+  };
+});
+document.getElementById("flashPattern").querySelectorAll("button").forEach(function(btn){
+  btn.onclick=function(){
+    if(!btn.dataset.pat) return;
+    setPattern(btn.dataset.pat);
   };
 });
 document.getElementById("bodyColor").querySelectorAll("button").forEach(function(btn){
@@ -1626,6 +1664,400 @@ function placedBarContact(){
     parent:el.parentElement&&el.parentElement.id
   };
 }
+/* studio43 live emission. Lights off + Night off leaves sprites, plates, and
+   filters as studio42. Contact shadow is the only extra mark under roof bars. */
+var lightsOn=false, nightOn=false, reverseOn=false, pattern="alt";
+var liveRAF=0, liveT0=0, liveHold=null, lastHeads=[];
+var PULSE_ON=0.07, PULSE_OFF=0.05, PULSE_N=3;
+var LIVE_BURST=PULSE_N*(PULSE_ON+PULSE_OFF);
+var LIVE_SLOT=0.75;
+var LIVE_RGB={
+  red:[255,40,32],
+  blue:[52,112,255],
+  white:[255,250,242],
+  amber:[255,148,24]
+};
+function addContactShadow(el){
+  if(!el || el.querySelector(".contact-shadow")) return;
+  var s=document.createElement("div");
+  s.className="contact-shadow";
+  s.setAttribute("aria-hidden","true");
+  el.insertBefore(s, el.firstChild);
+}
+function setSwEl(id, on){
+  var s=document.getElementById(id);
+  if(!s) return;
+  s.dataset.on=String(!!on);
+  s.classList.toggle("on", !!on);
+}
+function setPattern(p){
+  if(p!=="alt" && p!=="sync" && p!=="takedown") return;
+  pattern=p;
+  document.querySelectorAll("#flashPattern button").forEach(function(b){
+    b.classList.toggle("active", b.dataset.pat===p);
+  });
+  if(lightsOn) paintLive(liveHold!=null?liveHold*1000:(performance.now()-liveT0));
+}
+function setLights(on){
+  lightsOn=!!on;
+  setSwEl("lightsToggle", lightsOn);
+  if(lightsOn){
+    if(liveHold==null) liveT0=performance.now();
+    syncLiveChrome();
+    paintLive(liveHold!=null?liveHold*1000:0);
+    startLive();
+  } else {
+    stopLive();
+    syncLiveChrome();
+  }
+}
+function setNight(on){
+  nightOn=!!on;
+  setSwEl("nightToggle", nightOn);
+  syncLiveChrome();
+  if(lightsOn) paintLive(liveHold!=null?liveHold*1000:(performance.now()-liveT0));
+}
+function setReverse(on){
+  reverseOn=!!on;
+  setSwEl("reverseToggle", reverseOn);
+  if(lightsOn) paintLive(liveHold!=null?liveHold*1000:(performance.now()-liveT0));
+}
+function ensureFxLayers(){
+  var stack=document.getElementById("plateStack");
+  if(!stack || document.getElementById("fxGround")) return;
+  ["fxGround","fxBody","fxBloom"].forEach(function(id, i){
+    var c=document.createElement("canvas");
+    c.id=id;
+    c.className="fx-layer "+["ground","body","bloom"][i];
+    c.setAttribute("aria-hidden","true");
+    stack.appendChild(c);
+  });
+}
+function syncLiveChrome(){
+  var stageEl=document.getElementById("stage");
+  if(stageEl){
+    stageEl.classList.toggle("live", lightsOn);
+    stageEl.classList.toggle("night", nightOn);
+  }
+  ensureFxLayers();
+  if(!lightsOn){
+    document.querySelectorAll("#stage .phase-shade,#stage .phase-wash").forEach(function(n){ n.remove(); });
+    document.querySelectorAll("#stage img.is-dim,#stage img.is-hot,#stage img.is-cast").forEach(function(img){
+      img.classList.remove("is-dim","is-hot","is-cast");
+    });
+    clearFx();
+  }
+}
+function clearFx(){
+  ["fxGround","fxBody","fxBloom"].forEach(function(id){
+    var c=document.getElementById(id);
+    if(!c) return;
+    var ctx=c.getContext("2d");
+    if(ctx) ctx.clearRect(0,0,c.width,c.height);
+  });
+}
+function isEmitterSku(sku){
+  if(!sku) return false;
+  if(/BRACKET|ES100|ESBL|RBKIT|RBC2|CNSM-RBK/.test(sku)) return false;
+  return true;
+}
+function livePhase(ms){
+  var t=ms/1000;
+  if(t<0) t=0;
+  var lt=t%(LIVE_SLOT*2);
+  var which=lt<LIVE_SLOT?0:1;
+  var local=lt%LIVE_SLOT;
+  var pulse=0;
+  if(local<LIVE_BURST){
+    var m=local%(PULSE_ON+PULSE_OFF);
+    pulse=m<PULSE_ON?1:0;
+  }
+  var rearCycle=LIVE_BURST+0.84;
+  var rlocal=t%rearCycle;
+  var rear=0;
+  if(rlocal<LIVE_BURST){
+    var rm=rlocal%(PULSE_ON+PULSE_OFF);
+    rear=rm<PULSE_ON?1:0;
+  }
+  return {which:which, pulse:pulse, rear:rear};
+}
+function schemePair(){
+  if(scheme==="rw") return {driver:"red", passenger:"white", sync:["red","white"], swap:true};
+  if(scheme==="bw") return {driver:"blue", passenger:"white", sync:["blue","white"], swap:true};
+  return {driver:"red", passenger:"blue", sync:["blue","red"], swap:false};
+}
+function facingOf(cx){
+  if(view==="rear" || view==="rear_open") return "rear";
+  if(view==="front") return "front";
+  if(view==="left"){
+    if(cx>0.70) return "rear";
+    if(cx<0.26) return "front";
+    return "side";
+  }
+  if(view==="right"){
+    if(cx<0.30) return "rear";
+    if(cx>0.74) return "front";
+    return "side";
+  }
+  if(view==="hero"){
+    if(cx>0.80) return "rear";
+    if(cx<0.34) return "front";
+    return "side";
+  }
+  return "side";
+}
+function sideOf(cx){
+  if(view==="left") return "driver";
+  if(view==="right") return "passenger";
+  if(view==="hero") return cx<0.42?"passenger":"driver";
+  return cx<0.5?"driver":"passenger";
+}
+function halfSide(which){
+  if(view==="hero") return which==="L"?"passenger":"driver";
+  return which==="L"?"driver":"passenger";
+}
+function nativeColor(side){
+  var pair=schemePair();
+  return side==="passenger"?pair.passenger:pair.driver;
+}
+function relBox(el, ir){
+  var er=el.getBoundingClientRect();
+  if(!ir.width || !ir.height) return null;
+  return {
+    x:(er.left-ir.left)/ir.width,
+    y:(er.top-ir.top)/ir.height,
+    w:er.width/ir.width,
+    h:er.height/ir.height,
+    cx:(er.left+er.width/2-ir.left)/ir.width,
+    cy:(er.top+er.height/2-ir.top)/ir.height
+  };
+}
+function shouldSplit(sku, box){
+  if(view==="left" || view==="right") return false;
+  if(isRoofBar(sku) && (view==="front" || view==="rear" || view==="rear_open" || view==="hero")) return true;
+  if(box.w>0.20 && Math.abs(box.cx-0.5)<0.16 && (view==="front" || view==="rear" || view==="rear_open" || view==="hero")) return true;
+  return false;
+}
+function headsFor(el, sku, ir){
+  var box=relBox(el, ir);
+  if(!box) return [];
+  var split=shouldSplit(sku, box);
+  if(!split){
+    var side=sideOf(box.cx);
+    return [{el:el, sku:sku, box:box, cx:box.cx, cy:box.cy, side:side, facing:facingOf(box.cx), x0:0, x1:1, native:nativeColor(side), wide:false}];
+  }
+  var out=[];
+  [["L",0,0.5,0.28],["R",0.5,1,0.72]].forEach(function(spec){
+    var side=halfSide(spec[0]);
+    var cx=box.x+box.w*spec[3];
+    out.push({el:el, sku:sku, box:box, cx:cx, cy:box.cy, side:side, facing:facingOf(cx), x0:spec[1], x1:spec[2], native:nativeColor(side), wide:true});
+  });
+  return out;
+}
+function headEmission(head, ph){
+  if(reverseOn && head.facing==="rear") return {color:"white", level:1};
+  if(pattern==="takedown"){
+    if(head.facing==="rear") return {color:"amber", level:ph.rear};
+    return {color:"white", level:1};
+  }
+  var pair=schemePair();
+  var col;
+  if(pattern==="sync") col=pair.sync[ph.which];
+  else if(pair.swap){
+    var seq=head.side==="passenger"?[pair.passenger, pair.driver]:[pair.driver, pair.passenger];
+    col=seq[ph.which];
+  } else {
+    var owner=ph.which===0?"driver":"passenger";
+    if(head.side!==owner) return {color:null, level:0};
+    col=head.side==="driver"?pair.driver:pair.passenger;
+  }
+  if(col==="white" && head.facing==="rear" && !reverseOn) return {color:null, level:0};
+  return {color:col, level:ph.pulse?1:0};
+}
+function collectHeads(ir){
+  var heads=[];
+  document.querySelectorAll("#stage .light").forEach(function(el){
+    var id=el.dataset.id;
+    var p=(nodes[view]||[]).find(function(n){ return String(n.id)===String(id); });
+    if(!p || !isEmitterSku(p.sku)) return;
+    headsFor(el, p.sku, ir).forEach(function(h){ heads.push(h); });
+  });
+  document.querySelectorAll("#stage .ghost-bar").forEach(function(el){
+    headsFor(el, "ALGT53JX-P3LB", ir).forEach(function(h){ heads.push(h); });
+  });
+  return heads;
+}
+function childLayer(el, cls){
+  var n=el.querySelector(":scope > ."+cls);
+  if(!n){
+    n=document.createElement("div");
+    n.className=cls;
+    el.appendChild(n);
+  }
+  return n;
+}
+function bandBackground(segs, colorOf){
+  if(segs.length<2) return colorOf(segs[0]);
+  var join=segs[0].x1, fade=0.28;
+  var a=Math.max(0, join-fade), b=Math.min(1, join+fade);
+  var left=colorOf(segs[0]), right=colorOf(segs[1]);
+  return "linear-gradient(90deg,"+left+" 0%,"+left+" "+(a*100).toFixed(1)+"%,"+right+" "+(b*100).toFixed(1)+"%,"+right+" 100%)";
+}
+function paintSprite(el, segs){
+  var img=el.querySelector("img");
+  var shade=childLayer(el, "phase-shade");
+  var wash=childLayer(el, "phase-wash");
+  var any=false, cast=false, split=segs.length>1, i;
+  for(i=0;i<segs.length;i++){
+    if(segs[i].level>0.45){
+      any=true;
+      if(segs[i].color && segs[i].color!==segs[i].native) cast=true;
+    }
+  }
+  /* Split bars keep the printed lens on the lit half. A flat color wash
+     read as a sticker, so the halo lives on the canvas instead. Pods are
+     recast: the printed second color drops back and the bloom owns the hue. */
+  if(img){
+    img.classList.toggle("is-dim", !any);
+    img.classList.toggle("is-hot", false);
+    img.classList.toggle("is-cast", any && (!split || cast));
+  }
+  shade.style.background=split?bandBackground(segs, function(s){
+    return s.level>0.45?"rgba(0,0,0,0)":"rgba(0,0,0,.9)";
+  }):"transparent";
+  wash.style.background="transparent";
+}
+function sizeFx(c, w, h, dpr){
+  var pw=Math.max(1, Math.round(w*dpr));
+  var ph=Math.max(1, Math.round(h*dpr));
+  if(c.width!==pw || c.height!==ph){
+    c.width=pw; c.height=ph;
+  }
+  var ctx=c.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  return ctx;
+}
+function paintBlob(ctx, x, y, rx, ry, rgb, a){
+  if(a<=0.004 || rx<1 || ry<1) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(rx, ry);
+  var g=ctx.createRadialGradient(0,0,0,0,0,1);
+  g.addColorStop(0, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+a+")");
+  g.addColorStop(0.28, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+(a*0.55)+")");
+  g.addColorStop(0.62, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+(a*0.16)+")");
+  g.addColorStop(1, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",0)");
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.arc(0,0,1,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function groundSpec(){
+  var table={
+    front:{y0:0.72,y1:0.97,cy:0.80,ry:0.09,rx:0.24,driver:0.32,passenger:0.68},
+    rear:{y0:0.835,y1:1,cy:0.925,ry:0.05,rx:0.19,driver:0.32,passenger:0.68},
+    rear_open:{y0:0.70,y1:0.98,cy:0.86,ry:0.065,rx:0.20,driver:0.32,passenger:0.68},
+    left:{y0:0.60,y1:0.78,cy:0.655,ry:0.048,rx:0.36,driver:0.50,passenger:0.50},
+    right:{y0:0.618,y1:0.82,cy:0.708,ry:0.05,rx:0.38,driver:0.50,passenger:0.50},
+    hero:{y0:0.655,y1:0.90,cy:0.755,ry:0.062,rx:0.22,driver:0.60,passenger:0.28}
+  };
+  return table[view]||table.front;
+}
+function paintLive(ms){
+  if(!lightsOn) return;
+  var img=document.getElementById("vehicleImg");
+  var ir=img && img.getBoundingClientRect();
+  if(!img || !ir || ir.width<8 || !img.complete) return;
+  var ph=livePhase(ms);
+  var heads=collectHeads(ir);
+  var byEl=[];
+  heads.forEach(function(h){
+    var em=headEmission(h, ph);
+    h.color=em.color;
+    h.level=em.level;
+    var row=byEl.find(function(r){ return r.el===h.el; });
+    if(!row){ row={el:h.el, segs:[]}; byEl.push(row); }
+    row.segs.push(h);
+  });
+  byEl.forEach(function(row){
+    row.segs.sort(function(a,b){ return a.x0-b.x0; });
+    paintSprite(row.el, row.segs);
+  });
+  lastHeads=heads.map(function(h){
+    return {sku:h.sku, side:h.side, facing:h.facing, color:h.color, level:h.level, cx:+h.cx.toFixed(3), cy:+h.cy.toFixed(3)};
+  });
+  var dpr=Math.min(2, window.devicePixelRatio||1);
+  var W=ir.width, H=ir.height;
+    var gctx=sizeFx(document.getElementById("fxGround"), W, H, dpr);
+  var bctx=sizeFx(document.getElementById("fxBody"), W, H, dpr);
+  var lctx=sizeFx(document.getElementById("fxBloom"), W, H, dpr);
+  gctx.globalCompositeOperation="lighter";
+  bctx.globalCompositeOperation="lighter";
+  lctx.globalCompositeOperation="lighter";
+  var pool={};
+  var gs=groundSpec();
+  heads.forEach(function(h){
+    if(!h.color || h.level<0.05) return;
+    var rgb=LIVE_RGB[h.color];
+    if(!rgb) return;
+    var white=h.color==="white"?0.62:1;
+    var x=h.cx*W, y=h.cy*H;
+    var rx=h.wide ? h.box.w*W*0.34 : Math.max(16, h.box.w*W*1.15);
+    var ry=h.wide ? Math.max(18, h.box.h*H*3.2) : Math.max(16, h.box.h*H*3.1, rx*0.7);
+    var bloomA=(nightOn?1:0.82)*h.level*white;
+    paintBlob(lctx, x, y, rx*0.72, ry*0.72, rgb, bloomA);
+    paintBlob(lctx, x, y, rx*1.8, ry*1.9, rgb, bloomA*0.48);
+    paintBlob(lctx, x, y+ry*0.45, rx*2.3, ry*2.4, rgb, bloomA*0.22);
+    var bodyA=(nightOn?0.55:0.2)*h.level*white;
+    paintBlob(bctx, x, y+H*0.02, rx*2.2, ry*2.4, rgb, bodyA);
+    paintBlob(bctx, x, y+H*0.06, rx*3.1, ry*3.2, rgb, bodyA*0.65);
+    var key=h.side+"|"+h.color;
+    pool[key]=Math.max(pool[key]||0, h.level);
+  });
+  Object.keys(pool).forEach(function(key){
+    var parts=key.split("|");
+    var side=parts[0], color=parts[1], level=pool[key];
+    var rgb=LIVE_RGB[color];
+    if(!rgb) return;
+    var white=color==="white"?0.72:1;
+    var gx=(side==="passenger"?gs.passenger:gs.driver)*W;
+    var gy=gs.cy*H;
+    var a=(nightOn?0.78:0.5)*level*white;
+    paintBlob(gctx, gx, gy, gs.rx*W, gs.ry*H, rgb, a);
+    paintBlob(gctx, gx, gy+H*0.02, gs.rx*W*1.15, gs.ry*H*1.35, rgb, a*0.45);
+  });
+  gctx.globalCompositeOperation="destination-in";
+  gctx.fillStyle="rgba(0,0,0,1)";
+  gctx.fillRect(0, gs.y0*H, W, (gs.y1-gs.y0)*H);
+  if(img.naturalWidth){
+    gctx.globalCompositeOperation="destination-out";
+    gctx.drawImage(img, 0, 0, W, H);
+    bctx.globalCompositeOperation="destination-in";
+    bctx.drawImage(img, 0, 0, W, H);
+  }
+}
+function startLive(){
+  if(liveRAF || !lightsOn) return;
+  var loop=function(ts){
+    liveRAF=0;
+    if(!lightsOn) return;
+    if(document.hidden && liveHold==null) return;
+    paintLive(liveHold!=null?liveHold*1000:(ts-liveT0));
+    if(lightsOn && !(document.hidden && liveHold==null)) liveRAF=requestAnimationFrame(loop);
+  };
+  liveRAF=requestAnimationFrame(loop);
+}
+function stopLive(){
+  if(liveRAF) cancelAnimationFrame(liveRAF);
+  liveRAF=0;
+}
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden){
+    if(liveHold==null) stopLive();
+  } else if(lightsOn) startLive();
+});
 window.__IU_TEST__={
   ASSET_V:ASSET_V, FX_V:FX_V,
   CATALOG:CATALOG, HOME_VIEW:HOME_VIEW, CLICK:CLICK, DEFAULTS:DEFAULTS,
@@ -1655,6 +2087,18 @@ window.__IU_TEST__={
   syncSkuToggles:syncSkuToggles,
   placementCount:totalPlacements,
   packStamp:function(){ var e=document.getElementById("packStamp"); return e?e.textContent.trim():""; },
+  lightsOn:function(){ return !!lightsOn; },
+  nightOn:function(){ return !!nightOn; },
+  reverseOn:function(){ return !!reverseOn; },
+  pattern:function(){ return pattern; },
+  setLights:function(on){ setLights(!!on); },
+  setNight:function(on){ setNight(!!on); },
+  setReverse:function(on){ setReverse(!!on); },
+  setPattern:function(p){ setPattern(p); },
+  holdLive:function(sec){ liveHold=sec; if(lightsOn) paintLive(sec*1000); },
+  releaseLive:function(){ liveHold=null; if(lightsOn){ liveT0=performance.now(); startLive(); } },
+  livePhaseAt:function(sec){ return livePhase(sec*1000); },
+  liveHeads:function(){ return lastHeads; },
   plateSrc:function(){ var e=document.getElementById("vehicleImg"); return e?e.getAttribute("src")||e.src:""; },
   platePatchOn:function(){ var e=document.getElementById("vehiclePatch"); return !!(e && e.classList.contains("on") && e.getAttribute("src")); },
   stageLightCount:function(){ return document.querySelectorAll("#stage .light").length; },

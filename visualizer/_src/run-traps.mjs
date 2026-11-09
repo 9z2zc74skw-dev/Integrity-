@@ -381,10 +381,10 @@ function staticTraps() {
   rec("T-RBW-VISIBLE", /data-s="rbw"/.test(html) && !/#colorScheme \[data-s="rbw"\]\{display:none/.test(html), "R/B/W control not CSS-hidden");
   rec("T-ONE-ROOF-SKU", (html.match(/ALGT53JX-P3LB/g) || []).length > 0 && !/{sku:"ALGT",/.test(html), "one roof SKU row");
   rec("T-TRUCKS-DROPDOWN", /value="silverado"/.test(html) && /value="f150"/.test(html), "Silverado and F-150 in select");
-  rec("T-ASSET-V", /ASSET_V="studio42"/.test(html), "ASSET_V=studio42");
+  rec("T-ASSET-V", /ASSET_V="studio43"/.test(html), "ASSET_V=studio43");
   rec("T-NO-HOME-YANK", !/view\s*=\s*preferView\(/.test(html) && !/view\s*=\s*HOME_VIEW/.test(html) && /Camera stays/.test(html), "clickPlace never assigns camera from HOME_VIEW");
-  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio42"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio42");
-  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio42/.test(html), "header pack stamp present");
+  rec("T-FIRST-PAINT-SRC", /src="durango_front\.png\?v=studio43"/.test(html) && !/ac5173e/.test(html), "first-paint plate uses ?v=studio43");
+  rec("T-PACK-STAMP", /id="packStamp"/.test(html) && /pack studio43/.test(html), "header pack stamp present");
   rec("T-NO-SIDE-FALLBACK-STAMP",
     !/if\(stay==="left" \|\| stay==="right"\)/.test(html)
     && !/isRoofBar\(sku\)\?"front"/.test(html)
@@ -1357,9 +1357,9 @@ async function main() {
     rec("T-BARE-DEFAULT", bareOk(runtime.bareCold) && bareOk(runtime.afterPoison),
       JSON.stringify({cold:runtime.bareCold, afterPoison:runtime.afterPoison}));
     rec("T-COLD-NO-SPRITE",
-      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio42"
-        && /pack studio42/.test(runtime.bareCold.pack||"")
-        && /studio42/.test(runtime.bareCold.plateSrc||""),
+      bareOk(runtime.bareCold) && runtime.bareCold.asset==="studio43"
+        && /pack studio43/.test(runtime.bareCold.pack||"")
+        && /studio43/.test(runtime.bareCold.plateSrc||""),
       JSON.stringify({pack:runtime.bareCold.pack, src:runtime.bareCold.plateSrc, asset:runtime.bareCold.asset}));
     rec("T-OEM-HIDE-ON", !!(runtime.bareCold && runtime.bareCold.patchOn),
       JSON.stringify({patchOn:runtime.bareCold && runtime.bareCold.patchOn}));
@@ -1793,12 +1793,12 @@ function finish(srv) {
   srv.close();
   const fail = results.filter((r) => !r.ok);
   const md = [
-    "# Vector trap log — studio42 photo bar",
+    "# Vector trap log — studio43 live lights",
     "",
     "Self-test owned by this pass. Valentine trap-scores after. This file does **not** certify buyer-ready.",
     "",
     `- Ran: \`node visualizer/_src/run-traps.mjs\` (local Chrome, not Rusty’s live preview)`,
-    `- ASSET_V: studio42 · FX_V: s42`,
+    `- ASSET_V: studio43 · FX_V: s42`,
     `- Signed Durango plate bytes: T-PLATE-HASHES (Front/Right/Rear/Hatch/Left not recut)`,
     `- studio35: Durango Rear ghost of a Front roof bar is bottom-anchored at y=16.4 (no barNudge), on the roof above the spoiler. Width uses the 858px widest-body span as 76 inches (42.4" ≈ 46.7% of the plate). Silverado/F-150 Rear stay center-anchored at y=20. Left/Right end-caps unchanged. Front clickPlace / defaultFor \`_\` unchanged. Plates unchanged.`,
     `- Look trap: T-REAR-BAR-ON-ROOF — Durango Rear bar bottom <= 16.5% of plate height and top >= 12%; fail if the bar reaches 18%+. Width within ±5% of (858/1024)*(42.4/76). Height keeps the sprite aspect.`,
@@ -1807,6 +1807,7 @@ function finish(srv) {
     `- studio36: DynaFlare sprites follow the Federal Signal face (length × 1.1in) and MPSW9 is the 5.04in black pod (sprite aspect ≤ 3.6; the black-housing cut is ~3.1). T-MPSW9-POD fails if more than 5% of opaque pixels outside the lit lens are near-white (RGB > 220) or light-gray backing (sat < 40, every channel > 120). Scaled with bodyInToPct. Roof bar length, end-cap shape, and plates unchanged.`,
     `- studio37: Left/Right end-cap feet and the 3/4 bar bottom sit on the plate roof (T-ROOF-CONTACT fails if the gap is over 1px). The 3/4 bar stays behind the A-pillar. Rear bar is not moved.`,
     `- studio39 carry: New placements and the Red/Blue button use R/B on every catalog light and every view. R/W, Blue/White, and R/B/W stay selectable. T-DEFAULT-RB.`,
+    `- studio43: Lights and Night default off (still plate). Lights on runs rAF flash patterns (R/B alternating, all-blue/all-red, takedown). Rear heads never emit white unless Reverse is on. Canvas bloom, body spill, and ground pools use screen/lighter. Roof bars get a contact shadow on every view.`,
     "",
     "| Trap | Result | Detail |",
     "|---|---|---|",
