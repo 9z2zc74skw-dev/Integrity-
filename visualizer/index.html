@@ -89,12 +89,14 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 .stage.live .light img.is-hot,.stage.live .ghost-bar img.is-hot{filter:brightness(1.28) saturate(1.15)}
 .stage.live .light img.is-cast,.stage.live .ghost-bar img.is-cast{filter:brightness(.32) saturate(.14)}
 .fx-layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;display:none}
-.stage.live .fx-layer{display:block}
+.stage.live .fx-layer,.stage.night .fx-layer.contact{display:block}
+.fx-layer.contact{z-index:2;mix-blend-mode:multiply}
 .fx-layer.ground{z-index:3;mix-blend-mode:screen}
 .fx-layer.body{z-index:6;mix-blend-mode:screen}
 .fx-layer.bloom{z-index:18;mix-blend-mode:screen}
-.stage.night{background:radial-gradient(ellipse at center,#101218,#05060a)}
-.stage.night img.vehicle,.stage.night img.vehicle-patch{filter:brightness(.4) saturate(.22) contrast(1.08)}
+.stage.night{background:radial-gradient(ellipse at center,#070910,#020308)}
+.stage.night img.vehicle,.stage.night img.vehicle-patch{filter:brightness(.27) saturate(.5) contrast(1.04)}
+.stage.night .plate-stack::after{content:"";position:absolute;inset:0;background:rgba(16,42,108,.4);mix-blend-mode:multiply;pointer-events:none;z-index:1}
 .pats{display:flex;flex-direction:column;gap:6px;padding:0 0 4px}
 .pats .scheme{text-align:left}
 /* ILS visor: one sprite file, two nodes. Clip to a single shroud per visor. */
@@ -166,7 +168,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <button class="btn" id="loadBtn" type="button" title="Import a JSON/text SKU list and place via click rules">Load SKUs</button>
   </div>
   <div class="header-right">
-    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio43 you are on a stale pack">pack studio43</span>
+    <span class="pack-stamp" id="packStamp" title="Hard-refresh cache key — if this is not studio44 you are on a stale pack">pack studio44</span>
     <button class="btn btn-primary" id="pdfBtn" type="button">Print</button>
   </div>
 </header>
@@ -182,7 +184,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
     <div class="stage-area" id="stageArea">
       <div class="stage" id="stage">
         <div class="plate-stack" id="plateStack">
-          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio43" alt="Vehicle" draggable="false"/>
+          <img class="vehicle" id="vehicleImg" src="durango_front.png?v=studio44" alt="Vehicle" draggable="false"/>
           <img class="vehicle-patch" id="vehiclePatch" alt="" draggable="false"/>
           <div class="snap-guides" id="snapGuides" aria-hidden="true"></div>
         </div>
@@ -244,7 +246,7 @@ select:focus,input[type=text]:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(-
 (function(){
 /* Multi-canvas visualizer. Catalog is shared FedSig SKUs (no invented lights).
    Durango mounts stay as previously signed; trucks have their own snaps. */
-var ASSET_V="studio43";
+var ASSET_V="studio44";
 var FX_V="s42";
 /* Fallback thickness if a Dyna row has no faceIn. Real rows use faceIn. */
 var DYNA_H=2.2;
@@ -752,7 +754,7 @@ function renderStage(){
   vimg.src=(bodyColor==="black"?v.imgB:v.imgW)+"?v="+ASSET_V;
   if(!vimg.dataset.dockBound){
     vimg.dataset.dockBound="1";
-    vimg.addEventListener("load", function(){ syncSelDock(); });
+    vimg.addEventListener("load", function(){ syncSelDock(); if(nightOn) paintNightContact(); });
   }
   renderPlatePatch();
   var stage=document.getElementById("stage");
@@ -1724,11 +1726,12 @@ function setReverse(on){
 }
 function ensureFxLayers(){
   var stack=document.getElementById("plateStack");
-  if(!stack || document.getElementById("fxGround")) return;
-  ["fxGround","fxBody","fxBloom"].forEach(function(id, i){
+  if(!stack) return;
+  [["fxContact","contact"],["fxGround","ground"],["fxBody","body"],["fxBloom","bloom"]].forEach(function(pair){
+    if(document.getElementById(pair[0])) return;
     var c=document.createElement("canvas");
-    c.id=id;
-    c.className="fx-layer "+["ground","body","bloom"][i];
+    c.id=pair[0];
+    c.className="fx-layer "+pair[1];
     c.setAttribute("aria-hidden","true");
     stack.appendChild(c);
   });
@@ -1747,6 +1750,14 @@ function syncLiveChrome(){
     });
     clearFx();
   }
+  if(nightOn) paintNightContact();
+  else clearContact();
+}
+function clearContact(){
+  var c=document.getElementById("fxContact");
+  if(!c) return;
+  var ctx=c.getContext("2d");
+  if(ctx) ctx.clearRect(0,0,c.width,c.height);
 }
 function clearFx(){
   ["fxGround","fxBody","fxBloom"].forEach(function(id){
@@ -1938,32 +1949,118 @@ function sizeFx(c, w, h, dpr){
   ctx.clearRect(0,0,w,h);
   return ctx;
 }
-function paintBlob(ctx, x, y, rx, ry, rgb, a){
-  if(a<=0.004 || rx<1 || ry<1) return;
+function rgba(rgb, a){
+  return "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+a+")";
+}
+function paintRadial(ctx, x, y, rx, ry, rgb, stops){
+  if(rx<1 || ry<1) return;
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(rx, ry);
   var g=ctx.createRadialGradient(0,0,0,0,0,1);
-  g.addColorStop(0, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+a+")");
-  g.addColorStop(0.28, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+(a*0.55)+")");
-  g.addColorStop(0.62, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+(a*0.16)+")");
-  g.addColorStop(1, "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",0)");
+  stops.forEach(function(s){ g.addColorStop(s[0], rgba(rgb, s[1])); });
   ctx.fillStyle=g;
   ctx.beginPath();
   ctx.arc(0,0,1,0,Math.PI*2);
   ctx.fill();
   ctx.restore();
 }
-function groundSpec(){
-  var table={
-    front:{y0:0.72,y1:0.97,cy:0.80,ry:0.09,rx:0.24,driver:0.32,passenger:0.68},
-    rear:{y0:0.835,y1:1,cy:0.925,ry:0.05,rx:0.19,driver:0.32,passenger:0.68},
-    rear_open:{y0:0.70,y1:0.98,cy:0.86,ry:0.065,rx:0.20,driver:0.32,passenger:0.68},
-    left:{y0:0.60,y1:0.78,cy:0.655,ry:0.048,rx:0.36,driver:0.50,passenger:0.50},
-    right:{y0:0.618,y1:0.82,cy:0.708,ry:0.05,rx:0.38,driver:0.50,passenger:0.50},
-    hero:{y0:0.655,y1:0.90,cy:0.755,ry:0.062,rx:0.22,driver:0.60,passenger:0.28}
+function paintBlob(ctx, x, y, rx, ry, rgb, a){
+  if(a<=0.004) return;
+  paintRadial(ctx, x, y, rx, ry, rgb, [[0,a],[0.28,a*0.55],[0.62,a*0.16],[1,0]]);
+}
+function paintSpill(ctx, x, y, rx, ry, rgb, a){
+  if(a<=0.004) return;
+  paintRadial(ctx, x, y, rx, ry, rgb, [[0,a],[0.16,a*0.62],[0.38,a*0.28],[0.62,a*0.08],[1,0]]);
+}
+var tireCache={};
+function tireContact(img){
+  var key=(img.currentSrc||img.src||"")+"|"+(img.naturalWidth||0);
+  if(tireCache[key]) return tireCache[key];
+  var w=img.naturalWidth, h=img.naturalHeight;
+  if(!w||!h) return null;
+  var c=document.createElement("canvas");
+  c.width=w; c.height=h;
+  var rctx=c.getContext("2d",{willReadFrequently:true});
+  rctx.drawImage(img,0,0);
+  var data=rctx.getImageData(0,0,w,h).data;
+  var bottom=new Int16Array(w);
+  var x,y,i;
+  for(x=0;x<w;x++) bottom[x]=-1;
+  for(y=h-1;y>=Math.floor(h*0.4);y--){
+    var row=y*w*4;
+    for(x=0;x<w;x++){
+      if(bottom[x]>=0) continue;
+      if(data[row+x*4+3]>28) bottom[x]=y;
+    }
+  }
+  var ys=[];
+  for(x=0;x<w;x++) if(bottom[x]>h*0.45) ys.push(bottom[x]);
+  if(!ys.length) return null;
+  ys.sort(function(a,b){ return a-b; });
+  var line=ys[Math.floor(ys.length*0.9)];
+  var xs=[];
+  for(x=0;x<w;x++) if(bottom[x]>=line-8) xs.push(x);
+  if(!xs.length) return null;
+  var groups=[], g=[xs[0]], gap=Math.max(24, w*0.06);
+  for(i=1;i<xs.length;i++){
+    if(xs[i]-xs[i-1]>gap){ groups.push(g); g=[xs[i]]; }
+    else g.push(xs[i]);
+  }
+  groups.push(g);
+  var info={
+    y:line/h,
+    x0:xs[0]/w,
+    x1:xs[xs.length-1]/w,
+    clusters:groups.map(function(arr){
+      return {x0:arr[0]/w, x1:arr[arr.length-1]/w, x:(arr[0]+arr[arr.length-1])/(2*w)};
+    })
   };
-  return table[view]||table.front;
+  tireCache[key]=info;
+  return info;
+}
+function poolAnchor(contact, side){
+  var clusters=contact.clusters||[];
+  if(!clusters.length) return {x:side==="passenger"?0.68:0.34, rx:0.16};
+  if(clusters.length===1){
+    var c=clusters[0];
+    var span=Math.max(0.08, c.x1-c.x0);
+    var mid=(c.x0+c.x1)/2;
+    if(view==="left"||view==="right") return {x:mid, rx:Math.min(0.42, span*0.46)};
+    if(view==="hero"){
+      return {
+        x:side==="passenger"?mid-span*0.18:mid+span*0.08,
+        rx:Math.min(0.28, span*0.38)
+      };
+    }
+    return {x:mid, rx:Math.min(0.34, span*0.4)};
+  }
+  var left=clusters[0], right=clusters[clusters.length-1];
+  var pick=(view==="hero" ? (side==="passenger"?left:right) : (side==="passenger"?right:left));
+  var w=Math.max(0.06, pick.x1-pick.x0);
+  return {x:pick.x, rx:Math.min(0.22, Math.max(0.12, w*2.1))};
+}
+function paintNightContact(){
+  ensureFxLayers();
+  var canvas=document.getElementById("fxContact");
+  var img=document.getElementById("vehicleImg");
+  if(!canvas||!img) return;
+  if(!nightOn || !img.complete || !img.naturalWidth){
+    if(!nightOn) clearContact();
+    return;
+  }
+  var ir=img.getBoundingClientRect();
+  if(ir.width<8) return;
+  var contact=tireContact(img);
+  if(!contact) return;
+  var dpr=Math.min(2, window.devicePixelRatio||1);
+  var ctx=sizeFx(canvas, ir.width, ir.height, dpr);
+  var W=ir.width, H=ir.height;
+  var cy=contact.y*H+H*0.003;
+  var rx=Math.max(36, (contact.x1-contact.x0)*W*0.55);
+  var ry=Math.max(5, H*0.011);
+  ctx.globalCompositeOperation="source-over";
+  paintBlob(ctx, ((contact.x0+contact.x1)/2)*W, cy, rx, ry, [0,0,0], 0.5);
 }
 function paintLive(ms){
   if(!lightsOn) return;
@@ -1990,14 +2087,14 @@ function paintLive(ms){
   });
   var dpr=Math.min(2, window.devicePixelRatio||1);
   var W=ir.width, H=ir.height;
-    var gctx=sizeFx(document.getElementById("fxGround"), W, H, dpr);
+  var gctx=sizeFx(document.getElementById("fxGround"), W, H, dpr);
   var bctx=sizeFx(document.getElementById("fxBody"), W, H, dpr);
   var lctx=sizeFx(document.getElementById("fxBloom"), W, H, dpr);
   gctx.globalCompositeOperation="lighter";
   bctx.globalCompositeOperation="lighter";
   lctx.globalCompositeOperation="lighter";
   var pool={};
-  var gs=groundSpec();
+  var contact=img.naturalWidth?tireContact(img):null;
   heads.forEach(function(h){
     if(!h.color || h.level<0.05) return;
     var rgb=LIVE_RGB[h.color];
@@ -2009,34 +2106,38 @@ function paintLive(ms){
     var bloomA=(nightOn?1:0.82)*h.level*white;
     paintBlob(lctx, x, y, rx*0.72, ry*0.72, rgb, bloomA);
     paintBlob(lctx, x, y, rx*1.8, ry*1.9, rgb, bloomA*0.48);
-    paintBlob(lctx, x, y+ry*0.45, rx*2.3, ry*2.4, rgb, bloomA*0.22);
-    var bodyA=(nightOn?0.55:0.2)*h.level*white;
-    paintBlob(bctx, x, y+H*0.02, rx*2.2, ry*2.4, rgb, bodyA);
-    paintBlob(bctx, x, y+H*0.06, rx*3.1, ry*3.2, rgb, bodyA*0.65);
+    paintBlob(lctx, x, y+ry*0.35, rx*2.1, ry*2.1, rgb, bloomA*0.2);
+    var bodyA=(nightOn?0.78:0.16)*h.level*white;
+    var spillRx=Math.max(rx*2.1, nightOn?W*0.16:W*0.05);
+    var spillRy=Math.max(ry*2.2, nightOn?H*0.15:H*0.035);
+    paintSpill(bctx, x, y+H*(nightOn?0.02:0.008), spillRx, spillRy, rgb, bodyA);
+    if(nightOn && y<H*0.45) paintSpill(bctx, x, y+H*0.06, spillRx*0.72, spillRy*0.7, rgb, bodyA*0.42);
     var key=h.side+"|"+h.color;
     pool[key]=Math.max(pool[key]||0, h.level);
   });
-  Object.keys(pool).forEach(function(key){
-    var parts=key.split("|");
-    var side=parts[0], color=parts[1], level=pool[key];
-    var rgb=LIVE_RGB[color];
-    if(!rgb) return;
-    var white=color==="white"?0.72:1;
-    var gx=(side==="passenger"?gs.passenger:gs.driver)*W;
-    var gy=gs.cy*H;
-    var a=(nightOn?0.78:0.5)*level*white;
-    paintBlob(gctx, gx, gy, gs.rx*W, gs.ry*H, rgb, a);
-    paintBlob(gctx, gx, gy+H*0.02, gs.rx*W*1.15, gs.ry*H*1.35, rgb, a*0.45);
-  });
-  gctx.globalCompositeOperation="destination-in";
-  gctx.fillStyle="rgba(0,0,0,1)";
-  gctx.fillRect(0, gs.y0*H, W, (gs.y1-gs.y0)*H);
+  if(contact){
+    var contactY=contact.y*H;
+    var ryPool=Math.max(8, H*0.02);
+    var overlap=Math.max(5, H*0.008);
+    Object.keys(pool).forEach(function(key){
+      var parts=key.split("|");
+      var side=parts[0], color=parts[1], level=pool[key];
+      var rgb=LIVE_RGB[color];
+      if(!rgb) return;
+      var white=color==="white"?0.7:1;
+      var anchor=poolAnchor(contact, side);
+      var a=(nightOn?0.9:0.55)*level*white;
+      paintBlob(gctx, anchor.x*W, contactY+ryPool*0.15, anchor.rx*W, ryPool, rgb, a);
+    });
+    gctx.globalCompositeOperation="destination-in";
+    gctx.fillStyle="#000";
+    gctx.fillRect(0, contactY-overlap, W, overlap+ryPool*2.1);
+  }
   if(img.naturalWidth){
-    gctx.globalCompositeOperation="destination-out";
-    gctx.drawImage(img, 0, 0, W, H);
     bctx.globalCompositeOperation="destination-in";
     bctx.drawImage(img, 0, 0, W, H);
   }
+  if(nightOn) paintNightContact();
 }
 function startLive(){
   if(liveRAF || !lightsOn) return;
